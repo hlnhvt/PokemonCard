@@ -11,9 +11,12 @@ import {
   RefreshCw,
   HelpCircle,
   ShieldAlert,
-  Smartphone
+  Smartphone,
+  Search,
+  ScanText
 } from 'lucide-react';
 import { POKEMON_CARDS, matchPokemonCard } from '../data/pokemonCards';
+import { recognizeCardWithOCR } from '../utils/cardRecognizer';
 import { sounds } from '../utils/soundEffects';
 
 export function ScannerModal({ onCardDetected }) {
@@ -22,6 +25,10 @@ export function ScannerModal({ onCardDetected }) {
   const [isSecure, setIsSecure] = useState(true);
   const [facingMode, setFacingMode] = useState('environment'); // environment (back) or user (front)
   const [isScanning, setIsScanning] = useState(false);
+  const [scanProgress, setScanProgress] = useState(0);
+  const [scanStatusText, setScanStatusText] = useState('');
+  const [quickSearch, setQuickSearch] = useState('');
+  const [candidateMatch, setCandidateMatch] = useState(null);
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -55,8 +62,6 @@ export function ScannerModal({ onCardDetected }) {
       }
 
       let stream = null;
-
-      // Tier 1: Try with ideal facing mode
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
@@ -67,8 +72,6 @@ export function ScannerModal({ onCardDetected }) {
           audio: false,
         });
       } catch (err1) {
-        console.warn('Tier 1 camera failed, trying Tier 2:', err1);
-        // Tier 2: Try basic video constraints
         stream = await navigator.mediaDevices.getUserMedia({
           video: true,
           audio: false,
@@ -91,11 +94,11 @@ export function ScannerModal({ onCardDetected }) {
     } catch (err) {
       console.warn('Camera access issue:', err);
       if (err.message === 'SECURE_CONTEXT_REQUIRED' || err.name === 'SecurityError') {
-        setCameraError('BẢO MẬT: Trình duyệt điện thoại (iOS Safari/Android Chrome) bắt buộc kết nối HTTPS để mở Camera trực tiếp qua IP.');
+        setCameraError('BẢO MẬT: Safari/Chrome trên điện thoại yêu cầu HTTPS để mở Camera trực tiếp qua IP mạng.');
       } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        setCameraError('QUYỀN TRUY CẬP: Bạn cần cho phép quyền truy cập Máy ảnh trong cài đặt trình duyệt của điện thoại.');
+        setCameraError('QUYỀN TRUY CẬP: Cần cấp quyền truy cập Camera trong cài đặt trình duyệt.');
       } else {
-        setCameraError('Không thể mở luồng Video Camera trực tiếp.');
+        setCameraError('Không thể mở Camera trực tiếp.');
       }
       setCameraActive(false);
     }
@@ -116,80 +119,67 @@ export function ScannerModal({ onCardDetected }) {
     };
   }, [facingMode]);
 
-  // Flip camera back/front
   const toggleCameraFacing = () => {
     setFacingMode((prev) => (prev === 'environment' ? 'user' : 'environment'));
   };
 
-  // Recognize card from image data (canvas or file)
-  const processImageForPokemon = (imgElement, fileName = '') => {
+  // Recognize card with OCR (Optical Character Recognition on Pokemon name & card stats)
+  const processImageForPokemon = async (imgElement, fileName = '') => {
     setIsScanning(true);
+    setScanProgress(10);
+    setScanStatusText('Đang chụp ảnh & căn chỉnh thẻ...');
     sounds.playShutter();
 
-    setTimeout(() => {
-      sounds.playScanBeep();
-
-      // Check if file name matches any pokemon
-      if (fileName) {
-        const foundByName = matchPokemonCard(fileName);
-        if (foundByName) {
+    // 1. Fast check if file name directly hints at the pokemon
+    if (fileName) {
+      const matchByFileName = matchPokemonCard(fileName);
+      if (matchByFileName) {
+        setScanProgress(100);
+        setScanStatusText(`Nhận diện: ${matchByFileName.name}`);
+        sounds.playScanBeep();
+        setTimeout(() => {
           setIsScanning(false);
-          onCardDetected(foundByName);
-          return;
-        }
+          onCardDetected(matchByFileName);
+        }, 400);
+        return;
       }
+    }
 
-      // Analyze image color tones from canvas
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.width = 120;
-        canvas.height = 120;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(imgElement, 0, 0, 120, 120);
-        const data = ctx.getImageData(0, 0, 120, 120).data;
+    // 2. Perform OCR on the top section of the card (where Pokemon name is printed)
+    setScanProgress(30);
+    setScanStatusText('Đang đọc tên thẻ trên ảnh (AI OCR)...');
 
-        let r = 0, g = 0, b = 0, count = 0;
-        for (let i = 0; i < data.length; i += 16) {
-          r += data[i];
-          g += data[i + 1];
-          b += data[i + 2];
-          count++;
-        }
-        r = r / count;
-        g = g / count;
-        b = b / count;
+    try {
+      const ocrResult = await recognizeCardWithOCR(imgElement, (pct) => {
+        setScanProgress(30 + Math.round(pct * 0.6));
+      });
 
-        let detected = POKEMON_CARDS[0]; // default Charizard
+      console.log('[PokeScan] OCR Result:', ocrResult);
 
-        // Color heuristic matching
-        if (r > 150 && g > 130 && b < 100) {
-          // Yellow -> Pikachu
-          detected = POKEMON_CARDS.find((p) => p.id === 'pikachu-vmax') || POKEMON_CARDS[1];
-        } else if (r > 140 && g < 100 && b < 100) {
-          // Red/Orange -> Charizard
-          detected = POKEMON_CARDS.find((p) => p.id === 'charizard-vmax') || POKEMON_CARDS[0];
-        } else if (b > 130 && r < 120) {
-          // Blue -> Greninja / Blastoise
-          detected = POKEMON_CARDS.find((p) => p.id === 'greninja-ex') || POKEMON_CARDS[5];
-        } else if (g > 130 && r < 120) {
-          // Green -> Rayquaza
-          detected = POKEMON_CARDS.find((p) => p.id === 'rayquaza-vmax') || POKEMON_CARDS[3];
-        } else if (r > 120 && b > 120 && g < 110) {
-          // Purple/Pink -> Mewtwo or Gengar
-          detected = POKEMON_CARDS.find((p) => p.id === 'mewtwo-vstar') || POKEMON_CARDS[2];
-        } else {
-          const randomIndex = Math.floor(Math.random() * POKEMON_CARDS.length);
-          detected = POKEMON_CARDS[randomIndex];
-        }
+      if (ocrResult.success && ocrResult.pokemon) {
+        setScanProgress(100);
+        setScanStatusText(`Phát hiện: ${ocrResult.pokemon.name} (${ocrResult.confidence}% khớp)`);
+        sounds.playScanBeep();
 
+        setTimeout(() => {
+          setIsScanning(false);
+          onCardDetected(ocrResult.pokemon);
+        }, 600);
+      } else {
+        // If OCR did not find an exact match, show candidate match for user confirmation
+        const fallback = ocrResult.pokemon || POKEMON_CARDS[0];
+        setCandidateMatch({
+          pokemon: fallback,
+          rawText: ocrResult.rawText || 'Không rõ chữ',
+        });
         setIsScanning(false);
-        onCardDetected(detected);
-      } catch (err) {
-        console.error('Image analysis error:', err);
-        setIsScanning(false);
-        onCardDetected(POKEMON_CARDS[0]);
       }
-    }, 700);
+    } catch (err) {
+      console.error('OCR recognition error:', err);
+      setIsScanning(false);
+      // Fallback to first card
+      onCardDetected(POKEMON_CARDS[0]);
+    }
   };
 
   // Snapshot from live camera
@@ -225,11 +215,21 @@ export function ScannerModal({ onCardDetected }) {
   const handleSelectDemoCard = (card) => {
     sounds.playScanBeep();
     setIsScanning(true);
+    setScanProgress(100);
+    setScanStatusText(`Đã quét: ${card.name}`);
     setTimeout(() => {
       setIsScanning(false);
       onCardDetected(card);
-    }, 500);
+    }, 450);
   };
+
+  // Filter cards by quick search input
+  const searchedCards = quickSearch.trim()
+    ? POKEMON_CARDS.filter((c) =>
+        c.name.toLowerCase().includes(quickSearch.toLowerCase()) ||
+        c.types.some((t) => t.toLowerCase().includes(quickSearch.toLowerCase()))
+      )
+    : [];
 
   return (
     <div className="w-full max-w-xl mx-auto px-4 py-4 sm:py-6 flex flex-col items-center">
@@ -238,10 +238,10 @@ export function ScannerModal({ onCardDetected }) {
       <div className="w-full text-center mb-3">
         <h2 className="text-xl sm:text-2xl font-black text-white font-tech uppercase tracking-wider flex items-center justify-center space-x-2">
           <Camera className="w-6 h-6 text-red-500 animate-pulse" />
-          <span>QUÉT THẺ BÀI POKÉMON</span>
+          <span>QUÉT THẺ BÀI POKÉMON (OCR AI)</span>
         </h2>
         <p className="text-xs text-slate-400 mt-1">
-          Chụp ảnh thẻ thật trên điện thoại hoặc bấm Thẻ Mẫu để xem video và mở Pokedex
+          Nhận diện chính xác tên thẻ bài qua chữ in trên thẻ hoặc chọn thẻ bên dưới
         </p>
       </div>
 
@@ -303,6 +303,13 @@ export function ScannerModal({ onCardDetected }) {
             <div className="absolute -bottom-1.5 -left-1.5 w-6 h-6 border-b-4 border-l-4 border-amber-400 rounded-bl-lg" />
             <div className="absolute -bottom-1.5 -right-1.5 w-6 h-6 border-b-4 border-r-4 border-amber-400 rounded-br-lg" />
 
+            {/* Target Area Guide for Name Header */}
+            <div className="absolute top-2 inset-x-2 h-10 border border-cyan-400/40 rounded-lg bg-cyan-500/10 flex items-center justify-center">
+              <span className="text-[9px] font-tech text-cyan-300 uppercase tracking-wider">
+                ĐẶT TÊN THẺ VÀO KHUNG NÀY
+              </span>
+            </div>
+
             {/* Laser Scanning Line Animation */}
             {cameraActive && !isScanning && (
               <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent shadow-[0_0_12px_#ef4444] animate-scanner-line opacity-80" />
@@ -312,22 +319,24 @@ export function ScannerModal({ onCardDetected }) {
             <div className="w-8 h-8 border border-white/30 rounded-full flex items-center justify-center opacity-60">
               <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
             </div>
-
-            {/* Card Frame Label */}
-            <span className="absolute top-2 text-[10px] font-tech font-bold uppercase tracking-widest text-slate-300/80 bg-slate-950/70 px-2 py-0.5 rounded border border-white/10">
-              CANH KHUNG THẺ BÀI
-            </span>
           </div>
         </div>
 
-        {/* Scanning Progress Overlay */}
+        {/* Scanning & OCR Progress Overlay */}
         {isScanning && (
-          <div className="absolute inset-0 z-30 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center">
+          <div className="absolute inset-0 z-30 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
             <div className="w-16 h-16 rounded-full border-4 border-t-red-500 border-r-amber-400 border-b-cyan-400 border-l-transparent animate-spin mb-3" />
-            <span className="text-sm font-tech font-bold text-white tracking-widest uppercase animate-pulse">
-              ĐANG NHẬN DIỆN THẺ BÀI...
+            <span className="text-sm font-tech font-bold text-white tracking-widest uppercase">
+              {scanStatusText || 'ĐANG NHẬN DIỆN THẺ BÀI...'}
             </span>
-            <p className="text-[11px] text-slate-400 font-tech mt-1">Đang kích hoạt video trình diễn</p>
+            {/* Progress bar */}
+            <div className="w-48 h-2 bg-slate-800 rounded-full overflow-hidden mt-3 border border-slate-700">
+              <div
+                className="h-full bg-gradient-to-r from-red-500 to-amber-400 transition-all duration-150"
+                style={{ width: `${scanProgress}%` }}
+              />
+            </div>
+            <span className="text-[10px] font-tech text-slate-400 mt-1.5">{scanProgress}%</span>
           </div>
         )}
 
@@ -346,17 +355,48 @@ export function ScannerModal({ onCardDetected }) {
 
       </div>
 
+      {/* Confirmation Dialog if OCR is Ambiguous */}
+      {candidateMatch && (
+        <div className="w-full max-w-sm mt-3 p-4 rounded-2xl bg-slate-900 border-2 border-amber-400/60 shadow-2xl flex flex-col items-center animate-fadeIn">
+          <div className="flex items-center space-x-1.5 text-amber-400 text-xs font-bold mb-1">
+            <AlertCircle className="w-4 h-4" />
+            <span>Xác nhận thẻ bạn vừa quét:</span>
+          </div>
+          <p className="text-xs text-slate-300 text-center mb-3">
+            Hệ thống phát hiện: <strong className="text-white text-sm">{candidateMatch.pokemon.name}</strong>
+          </p>
+
+          <div className="flex w-full space-x-2">
+            <button
+              onClick={() => {
+                const p = candidateMatch.pokemon;
+                setCandidateMatch(null);
+                onCardDetected(p);
+              }}
+              className="flex-1 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition-all"
+            >
+              ✓ Đúng là thẻ này
+            </button>
+            <button
+              onClick={() => setCandidateMatch(null)}
+              className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition-all"
+            >
+              Chọn thẻ khác
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Action Buttons */}
       <div className="w-full max-w-sm flex items-center justify-center gap-2.5 mt-4">
-        {/* Shutter / Scan Button (if live video active) OR Native Phone Camera button */}
         {cameraActive ? (
           <button
             onClick={captureCameraFrame}
             disabled={isScanning}
             className="flex-1 py-3 px-3 rounded-2xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold text-xs shadow-xl shadow-red-600/30 flex items-center justify-center space-x-1.5 transition-all duration-200 active:scale-95 cursor-pointer"
           >
-            <Camera className="w-4 h-4" />
-            <span>Chụp Quét Thẻ</span>
+            <ScanText className="w-4 h-4" />
+            <span>Chụp Quét Tên Thẻ</span>
           </button>
         ) : (
           <button
@@ -369,17 +409,15 @@ export function ScannerModal({ onCardDetected }) {
           </button>
         )}
 
-        {/* Upload Existing Photo Button */}
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={isScanning}
           className="flex-1 py-3 px-3 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs shadow-lg flex items-center justify-center space-x-1.5 transition-all active:scale-95 cursor-pointer"
         >
           <Upload className="w-4 h-4 text-cyan-400" />
-          <span>Tải Ảnh Từ Thư Viện</span>
+          <span>Tải Ảnh Thẻ Lên</span>
         </button>
 
-        {/* Hidden File Input for Native Mobile Camera */}
         <input
           ref={nativeCameraInputRef}
           type="file"
@@ -389,7 +427,6 @@ export function ScannerModal({ onCardDetected }) {
           className="hidden"
         />
 
-        {/* Hidden File Input for Gallery Upload */}
         <input
           ref={fileInputRef}
           type="file"
@@ -399,8 +436,44 @@ export function ScannerModal({ onCardDetected }) {
         />
       </div>
 
+      {/* Direct Search Bar for Exact Pokemon Selection */}
+      <div className="w-full max-w-sm mt-4">
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={quickSearch}
+            onChange={(e) => setQuickSearch(e.target.value)}
+            placeholder="Tìm trực tiếp theo tên thẻ (Pikachu, Charizard, Umbreon...)"
+            className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-400/60"
+          />
+        </div>
+
+        {/* Dropdown if searched */}
+        {searchedCards.length > 0 && (
+          <div className="mt-1.5 p-2 rounded-xl bg-slate-900/95 border border-slate-700 shadow-2xl max-h-48 overflow-y-auto space-y-1">
+            {searchedCards.map((card) => (
+              <button
+                key={card.id}
+                onClick={() => {
+                  setQuickSearch('');
+                  handleSelectDemoCard(card);
+                }}
+                className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-slate-800 transition-colors text-left"
+              >
+                <div className="flex items-center space-x-2">
+                  <img src={card.fallbackImage} alt="" className="w-6 h-6 object-contain" />
+                  <span className="text-xs font-bold text-white">{card.name}</span>
+                </div>
+                <span className="text-[10px] text-amber-400 font-tech">{card.types[0]}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Quick Test Demo Deck Section */}
-      <div className="w-full max-w-sm mt-5 p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md">
+      <div className="w-full max-w-sm mt-4 p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center space-x-1.5">
             <Sparkles className="w-4 h-4 text-amber-400" />
@@ -408,7 +481,7 @@ export function ScannerModal({ onCardDetected }) {
               BỘ THẺ MẪU (BẤM ĐỂ QUÉT NGAY)
             </h3>
           </div>
-          <span className="text-[10px] text-slate-400 font-tech">8 Thẻ Siêu Hiếm</span>
+          <span className="text-[10px] text-slate-400 font-tech">10 Thẻ Siêu Hiếm</span>
         </div>
 
         <p className="text-[11px] text-slate-400 mb-3">
@@ -416,7 +489,7 @@ export function ScannerModal({ onCardDetected }) {
         </p>
 
         {/* Demo card pills */}
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
           {POKEMON_CARDS.map((card) => (
             <button
               key={card.id}

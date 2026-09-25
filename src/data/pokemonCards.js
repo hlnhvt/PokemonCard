@@ -406,24 +406,158 @@ export const POKEMON_CARDS = [
     ],
     lore: "Các khẩu pháo nước trên mai của Blastoise có thể bắn ra những tia nước áp lực cực mạnh, đục thủng những tấm thép dày một cách dễ dàng.",
     keywords: ["blastoise", "vmax", "water", "009", "hydro", "bombard", "kamex"]
+  },
+  {
+    id: "umbreon-vmax",
+    pokedexNumber: "197",
+    name: "Umbreon VMAX (Moonbreon)",
+    japaneseName: "ブラッキーVMAX",
+    species: "Moonlight Pokémon",
+    types: ["Darkness"],
+    hp: 310,
+    rarity: "Special Art Secret Rare",
+    cardSet: "Evolving Skies",
+    cardNumber: "215/203",
+    illustrator: "KEIICHIRO ITO",
+    themeColor: {
+      primary: "#6366F1",
+      secondary: "#312E81",
+      accent: "#FDE047",
+      glow: "rgba(99, 102, 241, 0.6)"
+    },
+    image: "https://images.pokemontcg.io/swsh7/215_hires.png",
+    fallbackImage: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/197.png",
+    videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+    videoShowcase: {
+      title: "DARK SIGNAL MOONLIGHT ECLIPSE",
+      duration: 5,
+      soundEffect: "shadow-abyss",
+      description: "Umbreon dưới ánh trăng tròn phóng thích tín hiệu hắc ám thao túng toàn bộ đấu trường!",
+      canvasStyle: "ghost"
+    },
+    height: "1.0 m",
+    weight: "27.0 kg",
+    weakness: { type: "Grass", value: "×2" },
+    resistance: { type: "None", value: "0" },
+    retreatCost: 2,
+    ability: {
+      name: "Dark Signal",
+      type: "Ability",
+      text: "Khi bạn tiến hóa Umbreon này từ bài trên tay, bạn có thể chuyển 1 Pokémon Dự Bị của đối thủ lên Vị Trí Chiến Đấu."
+    },
+    attacks: [
+      {
+        name: "Max Darkness",
+        cost: ["Darkness", "Colorless", "Colorless"],
+        damage: "160",
+        description: "Bóng đêm cực đại nuốt chửng đối thủ trong màn đêm vĩnh cửu."
+      }
+    ],
+    lore: "Khi tiếp xúc với ánh trăng, các vòng tròn trên cơ thể Umbreon phát sáng mờ ảo, làm đối phương khiếp sợ.",
+    keywords: ["umbreon", "moonbreon", "vmax", "blacky", "197", "darkness", "moonlight", "signal"]
+  },
+  {
+    id: "eevee-gx",
+    pokedexNumber: "133",
+    name: "Eevee & Snorlax GX",
+    japaneseName: "イーブイ&カビゴンGX",
+    species: "Evolution & Sleeping Pokémon",
+    types: ["Colorless"],
+    hp: 270,
+    rarity: "TAG TEAM Secret Rare",
+    cardSet: "Team Up",
+    cardNumber: "171/181",
+    illustrator: "Tomokazu Komiya",
+    themeColor: {
+      primary: "#D97706",
+      secondary: "#0D9488",
+      accent: "#FEF08A",
+      glow: "rgba(217, 119, 6, 0.6)"
+    },
+    image: "https://images.pokemontcg.io/sm9/171_hires.png",
+    fallbackImage: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/133.png",
+    videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+    videoShowcase: {
+      title: "MEGATON FRIENDS GX SMASH",
+      duration: 5,
+      soundEffect: "aura-blast",
+      description: "Cú dậm nhảy nghìn cân của Snorlax cùng sự nhanh nhẹn của Eevee tạo chấn động địa cầu!",
+      canvasStyle: "aura"
+    },
+    height: "0.3 m",
+    weight: "6.5 kg",
+    weakness: { type: "Fighting", value: "×2" },
+    resistance: { type: "None", value: "0" },
+    retreatCost: 4,
+    ability: null,
+    attacks: [
+      {
+        name: "Cheer Up",
+        cost: ["Colorless"],
+        damage: "-",
+        description: "Gắn 1 Thẻ Năng Lượng từ bài trên tay vào 1 Pokémon của bạn."
+      },
+      {
+        name: "Dump Truck Press",
+        cost: ["Colorless", "Colorless", "Colorless", "Colorless"],
+        damage: "120+",
+        description: "Nếu Pokémon đối thủ là Pokémon Tiến Hóa, đòn này gây thêm 120 sát thương."
+      }
+    ],
+    lore: "Eevee sở hữu bộ gen không ổn định, cho phép nó tiến hóa thành nhiều dạng khác nhau theo môi trường.",
+    keywords: ["eevee", "snorlax", "gx", "tag team", "133", "143", "dump", "truck"]
   }
 ];
 
 // Helper to find a Pokemon card by keyword, ID or name
 export function matchPokemonCard(query) {
   if (!query) return null;
-  const cleanQuery = query.toLowerCase().trim();
-  
-  // Exact ID match
-  const exact = POKEMON_CARDS.find(p => p.id === cleanQuery || p.pokedexNumber === cleanQuery);
-  if (exact) return exact;
+  const cleanQuery = query.toLowerCase().replace(/[^a-z0-9]/g, ' ').trim();
+  const words = cleanQuery.split(/\s+/).filter(w => w.length > 1);
 
-  // Keyword match
-  const matched = POKEMON_CARDS.find(p => {
-    return p.name.toLowerCase().includes(cleanQuery) ||
-           p.keywords.some(k => cleanQuery.includes(k) || k.includes(cleanQuery)) ||
-           p.species.toLowerCase().includes(cleanQuery);
-  });
+  if (words.length === 0) return null;
 
-  return matched || POKEMON_CARDS[0]; // fallback to Charizard if no match
+  // 1. Exact ID or Pokedex number match
+  for (const card of POKEMON_CARDS) {
+    if (card.id === cleanQuery || card.pokedexNumber === cleanQuery) {
+      return card;
+    }
+  }
+
+  // 2. Score match based on card name, keywords, and species
+  let bestCard = null;
+  let bestScore = 0;
+
+  for (const card of POKEMON_CARDS) {
+    let score = 0;
+    const lowerName = card.name.toLowerCase();
+    const primaryName = lowerName.split(' ')[0];
+
+    // Check if main name exists in words
+    if (words.some(w => primaryName.includes(w) || w.includes(primaryName))) {
+      score += 40;
+    }
+    if (cleanQuery.includes(primaryName)) {
+      score += 30;
+    }
+
+    // Check card keywords
+    card.keywords.forEach(kw => {
+      if (words.includes(kw) || cleanQuery.includes(kw)) {
+        score += 15;
+      }
+    });
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestCard = card;
+    }
+  }
+
+  if (bestScore >= 20) {
+    return bestCard;
+  }
+
+  return null;
 }
+
