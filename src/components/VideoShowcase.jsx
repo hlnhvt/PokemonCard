@@ -1,23 +1,36 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Play, SkipForward, Sparkles, Zap, Flame, ShieldAlert, Volume2, VolumeX, Video, ArrowRight } from 'lucide-react';
+import { Play, SkipForward, Sparkles, Zap, Flame, ShieldAlert, Volume2, VolumeX, Video, ExternalLink, ArrowRight } from 'lucide-react';
 import { sounds } from '../utils/soundEffects';
 
 export function VideoShowcase({ pokemon, onComplete, isMuted, onToggleMute }) {
   const [progress, setProgress] = useState(0);
-  const [useYoutube, setUseYoutube] = useState(!!pokemon.youtubeUrl);
+  const [videoMode, setVideoMode] = useState('direct'); // 'direct' (HTML5 MP4) | 'youtube' | 'canvas'
   const [autoAdvance, setAutoAdvance] = useState(true);
-  const duration = pokemon?.videoShowcase?.duration || 8;
+  const [videoError, setVideoError] = useState(false);
+  const videoRef = useRef(null);
+  const duration = pokemon?.videoShowcase?.duration || 7;
 
   useEffect(() => {
     sounds.playEnergySurge();
     const cryTimer = setTimeout(() => {
       sounds.playPokemonCry(pokemon.videoShowcase?.soundEffect || pokemon.types[0]);
-    }, 400);
+    }, 350);
 
     return () => clearTimeout(cryTimer);
   }, [pokemon]);
 
-  // Progress timer for auto transition
+  // Attempt to play direct HTML5 video
+  useEffect(() => {
+    if (videoRef.current && videoMode === 'direct') {
+      videoRef.current.muted = isMuted;
+      videoRef.current.play().catch((e) => {
+        console.warn('HTML5 Video play issue:', e);
+        setVideoError(true);
+      });
+    }
+  }, [videoMode, isMuted]);
+
+  // Progress countdown timer
   useEffect(() => {
     if (!autoAdvance) return;
 
@@ -31,7 +44,7 @@ export function VideoShowcase({ pokemon, onComplete, isMuted, onToggleMute }) {
           clearInterval(timer);
           setTimeout(() => {
             onComplete();
-          }, 400);
+          }, 350);
           return 100;
         }
         return next;
@@ -51,7 +64,6 @@ export function VideoShowcase({ pokemon, onComplete, isMuted, onToggleMute }) {
         }}
       />
 
-      {/* Futuristic Scanline Overlay */}
       <div className="absolute inset-0 scanline pointer-events-none opacity-30" />
 
       {/* Top Header info */}
@@ -59,27 +71,26 @@ export function VideoShowcase({ pokemon, onComplete, isMuted, onToggleMute }) {
         <div className="flex items-center space-x-2">
           <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
           <span className="text-xs font-tech font-bold uppercase tracking-widest text-slate-200">
-            VIDEO SHOWCASE: #{pokemon.pokedexNumber} {pokemon.name}
+            SHOWCASE: #{pokemon.pokedexNumber} {pokemon.name}
           </span>
         </div>
 
         <div className="flex items-center space-x-2">
-          {pokemon.youtubeUrl && (
-            <button
-              onClick={() => {
-                setUseYoutube(!useYoutube);
-                setAutoAdvance(false);
-              }}
-              className="flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-red-600/30 border border-red-500/40 text-xs text-red-200 hover:bg-red-600/50 transition-colors"
+          {pokemon.youtubeSearchUrl && (
+            <a
+              href={pokemon.youtubeSearchUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center space-x-1 px-2.5 py-1 rounded-lg bg-red-600/30 hover:bg-red-600/50 border border-red-500/40 text-xs text-red-200 transition-colors"
             >
-              <Video className="w-3.5 h-3.5 text-red-400" />
-              <span>{useYoutube ? 'Xem Animation' : 'Xem YouTube'}</span>
-            </button>
+              <span>Xem trên YouTube</span>
+              <ExternalLink className="w-3 h-3 text-red-400" />
+            </a>
           )}
 
           <button
             onClick={onComplete}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-semibold text-white transition-colors"
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-semibold text-white transition-colors cursor-pointer"
           >
             <span>Bỏ qua</span>
             <SkipForward className="w-3.5 h-3.5" />
@@ -87,44 +98,68 @@ export function VideoShowcase({ pokemon, onComplete, isMuted, onToggleMute }) {
         </div>
       </div>
 
-      {/* Main Video Stage: YouTube Embed or Animated Hologram */}
+      {/* Main Video Stage */}
       <div className="relative z-10 w-full max-w-2xl aspect-[16/10] sm:aspect-video rounded-2xl overflow-hidden border-2 border-slate-700/80 shadow-[0_0_50px_rgba(0,0,0,0.8)] bg-slate-950 flex items-center justify-center">
         
-        {useYoutube && pokemon.youtubeUrl ? (
+        {/* Mode 1: High Quality HTML5 Video (No ads, 100% reliable) */}
+        {videoMode === 'direct' && !videoError && pokemon.directVideoUrl && (
+          <video
+            ref={videoRef}
+            src={pokemon.directVideoUrl}
+            autoPlay
+            playsInline
+            muted={isMuted}
+            onEnded={onComplete}
+            onError={() => setVideoError(true)}
+            className="absolute inset-0 w-full h-full object-cover opacity-85"
+          />
+        )}
+
+        {/* Mode 2: YouTube Iframe (If selected and available) */}
+        {videoMode === 'youtube' && pokemon.youtubeUrl && (
           <iframe
             src={pokemon.youtubeUrl}
             title={`${pokemon.name} Video Showcase`}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
-            className="w-full h-full border-0"
+            className="w-full h-full border-0 relative z-20"
           />
-        ) : (
+        )}
+
+        {/* Mode 3 / Fallback: 3D Holographic Awakening Animation */}
+        {(videoMode === 'canvas' || videoError || !pokemon.directVideoUrl) && (
           <div className="relative w-full h-full flex flex-col items-center justify-center p-6 text-center">
-            {/* Holographic light ring */}
+            {/* Spinning Holographic Light Ring */}
             <div
-              className="absolute w-64 h-64 rounded-full border-2 border-dashed opacity-60 animate-spin-slow pointer-events-none"
+              className="absolute w-72 h-72 rounded-full border-2 border-dashed opacity-70 animate-spin-slow pointer-events-none"
               style={{ borderColor: pokemon.themeColor.primary }}
+            />
+
+            {/* Glowing Energy Aura */}
+            <div
+              className="absolute w-48 h-48 rounded-full blur-2xl opacity-60 animate-pulse pointer-events-none"
+              style={{ backgroundColor: pokemon.themeColor.primary }}
             />
 
             {/* Pokemon Artwork */}
             <img
               src={pokemon.fallbackImage || pokemon.image}
               alt={pokemon.name}
-              className="w-44 h-44 sm:w-56 sm:h-56 object-contain drop-shadow-[0_0_40px_rgba(255,255,255,0.7)] animate-float relative z-10"
+              className="w-48 h-48 sm:w-60 sm:h-60 object-contain drop-shadow-[0_0_40px_rgba(255,255,255,0.7)] animate-float relative z-10"
             />
-
-            {/* Showcase title banner */}
-            <div className="absolute bottom-3 inset-x-4 p-3 rounded-xl bg-slate-950/80 backdrop-blur-md border border-slate-800 flex flex-col items-center">
-              <span className="text-xs font-tech font-bold text-amber-400 uppercase tracking-widest flex items-center space-x-1">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>{pokemon.videoShowcase?.title || `${pokemon.name.toUpperCase()} BATTLE AWAKENING`}</span>
-              </span>
-              <p className="text-[11px] text-slate-300 line-clamp-2 mt-1">
-                {pokemon.videoShowcase?.description || pokemon.lore}
-              </p>
-            </div>
           </div>
         )}
+
+        {/* Video Overlay Info Banner */}
+        <div className="absolute bottom-3 inset-x-4 p-3 rounded-xl bg-slate-950/85 backdrop-blur-md border border-slate-800 flex flex-col items-center z-30">
+          <span className="text-xs font-tech font-bold text-amber-400 uppercase tracking-widest flex items-center space-x-1">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>{pokemon.videoShowcase?.title || `${pokemon.name.toUpperCase()} BATTLE AWAKENING`}</span>
+          </span>
+          <p className="text-[11px] text-slate-300 line-clamp-2 mt-0.5 text-center">
+            {pokemon.videoShowcase?.description || pokemon.lore}
+          </p>
+        </div>
       </div>
 
       {/* Progress Bar & Status */}
@@ -132,7 +167,7 @@ export function VideoShowcase({ pokemon, onComplete, isMuted, onToggleMute }) {
         <div className="flex justify-between items-center text-xs font-tech text-slate-400 mb-1.5">
           <span className="flex items-center space-x-1">
             <Zap className="w-3.5 h-3.5 text-yellow-400 animate-bounce" />
-            <span>Đang đồng bộ dữ liệu Pokémon Online...</span>
+            <span>Đang nạp năng lượng & đồng bộ dữ liệu Pokédex...</span>
           </span>
           <span className="font-bold text-slate-200">{Math.round(progress)}%</span>
         </div>
@@ -148,13 +183,13 @@ export function VideoShowcase({ pokemon, onComplete, isMuted, onToggleMute }) {
         </div>
       </div>
 
-      {/* Main Big Button: Proceed to Full Details */}
+      {/* Control Actions */}
       <div className="relative z-10 w-full max-w-2xl mt-4 flex flex-col sm:flex-row items-center justify-between gap-3 px-2">
         <button
           onClick={() => setAutoAdvance(!autoAdvance)}
           className="text-xs text-slate-400 hover:text-slate-200 underline font-tech"
         >
-          {autoAdvance ? 'Tạm dừng tự động chuyển trang' : 'Tiếp tục tự động chuyển trang'}
+          {autoAdvance ? 'Tạm dừng tự động chuyển' : 'Tiếp tục tự động chuyển'}
         </button>
 
         <button

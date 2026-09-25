@@ -34,6 +34,7 @@ export function ScannerModal({ onCardDetected }) {
   
   // Recognition confirmation state
   const [detectedName, setDetectedName] = useState('');
+  const [detectedCandidates, setDetectedCandidates] = useState([]);
   const [isEditingName, setIsEditingName] = useState(false);
   const [manualInputName, setManualInputName] = useState('');
   const [isLoadingOnline, setIsLoadingOnline] = useState(false);
@@ -128,7 +129,7 @@ export function ScannerModal({ onCardDetected }) {
     setFacingMode((prev) => (prev === 'environment' ? 'user' : 'environment'));
   };
 
-  // Step 1: Recognize Name from Image using OCR + Fuzzy Matching
+  // Step 1: Recognize Name from Image using Google Lens-grade OCR
   const processImageForPokemon = async (imgElement, fileName = '') => {
     setIsScanning(true);
     setScanProgress(15);
@@ -143,34 +144,39 @@ export function ScannerModal({ onCardDetected }) {
         setScanProgress(100);
         setIsScanning(false);
         setDetectedName(match);
+        setManualInputName(match);
+        setDetectedCandidates([{ name: match, displayName: match.toUpperCase(), score: 100 }]);
         sounds.playScanBeep();
         return;
       }
     }
 
     setScanProgress(35);
-    setScanStatusText('Đang nhận diện tên Pokémon trên thẻ (OCR)...');
+    setScanStatusText('Đang nhận diện tên Pokémon trên thẻ (AI OCR)...');
 
     try {
       const ocrResult = await recognizeCardWithOCR(imgElement, (pct) => {
         setScanProgress(35 + Math.round(pct * 0.5));
       });
 
-      console.log('[PokeScan OCR Text]:', ocrResult.rawText);
+      console.log('[PokeScan AI OCR Output]:', ocrResult);
 
-      // Find best matching official Pokemon name from OCR text
-      const matchedName = await findBestPokemonNameFromText(ocrResult.rawText);
       setScanProgress(100);
       setIsScanning(false);
       sounds.playScanBeep();
 
-      if (matchedName) {
-        setDetectedName(matchedName);
-        setManualInputName(matchedName);
+      if (ocrResult.candidates && ocrResult.candidates.length > 0) {
+        setDetectedCandidates(ocrResult.candidates);
+        setDetectedName(ocrResult.candidates[0].name);
+        setManualInputName(ocrResult.candidates[0].name);
+      } else if (ocrResult.bestMatch) {
+        setDetectedName(ocrResult.bestMatch);
+        setManualInputName(ocrResult.bestMatch);
+        setDetectedCandidates([{ name: ocrResult.bestMatch, displayName: ocrResult.bestMatch.toUpperCase(), score: ocrResult.confidence || 80 }]);
       } else {
-        // Offer manual input with OCR raw snippet
         setDetectedName('');
-        setManualInputName(ocrResult.rawText.slice(0, 15).trim());
+        setManualInputName((ocrResult.rawText || '').slice(0, 15).trim());
+        setDetectedCandidates([]);
         setIsEditingName(true);
       }
     } catch (err) {
@@ -383,6 +389,35 @@ export function ScannerModal({ onCardDetected }) {
               <Edit3 className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             </div>
           </div>
+
+          {/* Quick AI OCR Candidate Chips */}
+          {detectedCandidates.length > 0 && (
+            <div className="w-full my-1.5">
+              <span className="text-[10px] font-tech text-slate-400 uppercase tracking-wider block mb-1">
+                Gợi ý chuẩn xác từ AI OCR:
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {detectedCandidates.map((cand) => (
+                  <button
+                    key={cand.name}
+                    type="button"
+                    onClick={() => {
+                      setDetectedName(cand.name);
+                      setManualInputName(cand.name);
+                    }}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      (detectedName || manualInputName).toLowerCase() === cand.name.toLowerCase()
+                        ? 'bg-cyan-500 text-slate-950 shadow-md font-black'
+                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                    }`}
+                  >
+                    <span>{cand.displayName}</span>
+                    <span className="ml-1 text-[10px] opacity-75 font-tech">({cand.score}%)</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {onlineError && (
             <p className="text-xs text-rose-400 mb-2 text-center">{onlineError}</p>
