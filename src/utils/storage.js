@@ -5,7 +5,12 @@ export function getSavedCollection() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    // Drop malformed entries so views never crash on missing fields
+    return parsed.filter(
+      (item) => item && typeof item.id === 'string' && typeof item.name === 'string'
+    );
   } catch (err) {
     console.error('Failed to read from localStorage:', err);
     return [];
@@ -29,6 +34,8 @@ export function saveCardToPokedex(card) {
         ...current,
         ...card,
         scanCount: (current.scanCount || 1) + 1,
+        firstScannedAt: current.firstScannedAt || now,
+        isFavorite: !!current.isFavorite,
         lastScannedAt: now,
       };
       updatedList = [...list];
@@ -54,8 +61,8 @@ export function saveCardToPokedex(card) {
 }
 
 export function toggleCardFavorite(cardId) {
+  const list = getSavedCollection();
   try {
-    const list = getSavedCollection();
     const updated = list.map(item => {
       if (item.id === cardId) {
         return { ...item, isFavorite: !item.isFavorite };
@@ -66,19 +73,20 @@ export function toggleCardFavorite(cardId) {
     return updated;
   } catch (err) {
     console.error('Error toggling favorite:', err);
-    return [];
+    // Keep showing what is actually persisted instead of wiping the UI
+    return list;
   }
 }
 
 export function removeCardFromPokedex(cardId) {
+  const list = getSavedCollection();
   try {
-    const list = getSavedCollection();
     const updated = list.filter(item => item.id !== cardId);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     return updated;
   } catch (err) {
     console.error('Error removing card:', err);
-    return [];
+    return list;
   }
 }
 

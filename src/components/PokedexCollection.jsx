@@ -1,17 +1,11 @@
 import React, { useState } from 'react';
-import { 
-  BookOpen, 
-  Search, 
-  Star, 
-  Trash2, 
-  Play, 
-  ExternalLink, 
-  Flame, 
-  Sparkles, 
-  Plus, 
-  Layers, 
-  Trophy,
-  Filter
+import {
+  BookOpen,
+  Search,
+  Star,
+  Trash2,
+  Play,
+  Plus
 } from 'lucide-react';
 import { toggleCardFavorite, removeCardFromPokedex, clearPokedex } from '../utils/storage';
 
@@ -41,24 +35,34 @@ export function PokedexCollection({ collection, onSelectCard, onReplayVideo, onS
     }
   };
 
+  // Unique types actually present in the collection (PokeAPI names: Dark, Grass, Ghost...)
+  const collectionTypes = [
+    ...new Set(collection.flatMap((c) => (Array.isArray(c.types) ? c.types : []).map((t) => String(t).toUpperCase()))),
+  ].sort();
+  const availableTypes = ['ALL', ...collectionTypes];
+  // A filter for a type that no longer exists (e.g. after deleting cards) falls back to ALL
+  const activeType = availableTypes.includes(selectedType) ? selectedType : 'ALL';
+
   // Filter items
+  const query = search.trim().toLowerCase();
+  // "#006" (as the placeholder suggests) should match Pokedex number "006"
+  const numberQuery = query.replace(/^#/, '');
   const filteredList = collection.filter((item) => {
+    const types = Array.isArray(item.types) ? item.types : [];
     const matchesSearch =
-      item.name.toLowerCase().includes(search.toLowerCase()) ||
-      item.pokedexNumber.includes(search) ||
-      (item.species && item.species.toLowerCase().includes(search.toLowerCase()));
+      !query ||
+      item.name.toLowerCase().includes(query) ||
+      (numberQuery !== '' && String(item.pokedexNumber || '').includes(numberQuery)) ||
+      (typeof item.species === 'string' && item.species.toLowerCase().includes(query));
 
     const matchesType =
-      selectedType === 'ALL' ||
-      item.types.some((t) => t.toUpperCase() === selectedType);
+      activeType === 'ALL' ||
+      types.some((t) => String(t).toUpperCase() === activeType);
 
     const matchesFav = !showOnlyFavs || item.isFavorite;
 
     return matchesSearch && matchesType && matchesFav;
   });
-
-  // Unique types from collection
-  const availableTypes = ['ALL', 'FIRE', 'WATER', 'ELECTRIC', 'PSYCHIC', 'DRAGON', 'FIGHTING', 'DARKNESS'];
 
   // Stats calculation
   const totalScans = collection.reduce((acc, curr) => acc + (curr.scanCount || 1), 0);
@@ -164,7 +168,7 @@ export function PokedexCollection({ collection, onSelectCard, onReplayVideo, onS
               key={t}
               onClick={() => setSelectedType(t)}
               className={`px-3 py-1 rounded-lg font-tech font-bold uppercase transition-all whitespace-nowrap ${
-                selectedType === t
+                activeType === t
                   ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30'
                   : 'bg-slate-900/80 text-slate-400 hover:text-slate-200 border border-slate-800'
               }`}
@@ -235,7 +239,7 @@ export function PokedexCollection({ collection, onSelectCard, onReplayVideo, onS
                   alt={card.name}
                   onError={(e) => {
                     e.target.onerror = null;
-                    e.target.src = card.fallbackImage;
+                    if (card.fallbackImage) e.target.src = card.fallbackImage;
                   }}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
@@ -259,7 +263,7 @@ export function PokedexCollection({ collection, onSelectCard, onReplayVideo, onS
 
                 <div className="flex items-center justify-between mt-1">
                   <span className="text-[9px] text-slate-400 uppercase font-tech">
-                    {card.types.join('/')}
+                    {(Array.isArray(card.types) ? card.types : []).join('/')}
                   </span>
                   
                   {/* Play video mini button */}

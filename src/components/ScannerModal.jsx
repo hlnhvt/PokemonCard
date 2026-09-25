@@ -1,41 +1,43 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Camera, 
-  Upload, 
-  FlipHorizontal, 
-  Zap, 
-  Sparkles, 
-  AlertCircle, 
-  Image as ImageIcon,
+import {
+  Camera,
+  Upload,
+  FlipHorizontal,
+  Sparkles,
+  AlertCircle,
   Check,
   RefreshCw,
-  HelpCircle,
   ShieldAlert,
   Smartphone,
-  Search,
   ScanText,
   Globe,
   ArrowRight,
   Edit3
 } from 'lucide-react';
-import { POKEMON_CARDS } from '../data/pokemonCards';
 import { recognizeCardWithOCR } from '../utils/cardRecognizer';
 import { findBestPokemonNameFromText, fetchPokemonOnline } from '../services/pokemonOnlineService';
 import { sounds } from '../utils/soundEffects';
 
+function detectSecureContext() {
+  if (typeof window === 'undefined') return true;
+  return window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+}
+
 export function ScannerModal({ onCardDetected }) {
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState(null);
-  const [isSecure, setIsSecure] = useState(true);
+  const [isSecure] = useState(detectSecureContext);
   const [facingMode, setFacingMode] = useState('environment');
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [scanStatusText, setScanStatusText] = useState('');
-  
+  const [scanError, setScanError] = useState(null);
+
   // Recognition confirmation state
   const [detectedName, setDetectedName] = useState('');
   const [detectedCandidates, setDetectedCandidates] = useState([]);
-  const [isEditingName, setIsEditingName] = useState(false);
+  // Kept separate from the name so clearing the input does not close the panel
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [manualInputName, setManualInputName] = useState('');
   const [isLoadingOnline, setIsLoadingOnline] = useState(false);
   const [onlineError, setOnlineError] = useState(null);
@@ -44,15 +46,12 @@ export function ScannerModal({ onCardDetected }) {
   const streamRef = useRef(null);
   const fileInputRef = useRef(null);
   const nativeCameraInputRef = useRef(null);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const secure = window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      setIsSecure(secure);
-    }
-  }, []);
+  // Incremented on every start/stop so a getUserMedia call that resolves late can tell it is stale
+  const cameraRequestRef = useRef(0);
+  const isLoadingOnlineRef = useRef(false);
 
   const startCamera = async (mode = facingMode) => {
+    const requestId = ++cameraRequestRef.current;
     setCameraError(null);
     try {
       if (streamRef.current) {
@@ -60,7 +59,7 @@ export function ScannerModal({ onCardDetected }) {
         streamRef.current = null;
       }
 
-      if (!window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      if (!detectSecureContext()) {
         throw new Error('SECURE_CONTEXT_REQUIRED');
       }
 
@@ -78,11 +77,21 @@ export function ScannerModal({ onCardDetected }) {
           },
           audio: false,
         });
-      } catch (err1) {
+      } catch (constraintErr) {
+        // Permission problems will not be fixed by looser constraints
+        if (constraintErr?.name === 'NotAllowedError' || constraintErr?.name === 'SecurityError') {
+          throw constraintErr;
+        }
         stream = await navigator.mediaDevices.getUserMedia({
           video: true,
           audio: false,
         });
+      }
+
+      if (requestId !== cameraRequestRef.current) {
+        // The component unmounted or another request started meanwhile: release the camera
+        stream.getTracks().forEach((track) => track.stop());
+        return;
       }
 
       streamRef.current = stream;
@@ -96,13 +105,22 @@ export function ScannerModal({ onCardDetected }) {
         } catch (playErr) {
           console.warn('play prevented:', playErr);
         }
-        setCameraActive(true);
+        if (requestId === cameraRequestRef.current) {
+          setCameraActive(true);
+        }
       }
     } catch (err) {
+      if (requestId !== cameraRequestRef.current) return;
       if (err.message === 'SECURE_CONTEXT_REQUIRED' || err.name === 'SecurityError') {
         setCameraError('BẢO MẬT: Trình duyệt điện thoại chặn camera trực tiếp qua HTTP IP. Hãy dùng nút "Chụp Bằng Camera Điện Thoại" bên dưới.');
       } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
         setCameraError('QUYỀN TRUY CẬP: Cần cấp quyền truy cập Camera trong cài đặt trình duyệt.');
+      } else if (err.message === 'MEDIA_DEVICES_NOT_SUPPORTED') {
+        setCameraError('Trình duyệt này không hỗ trợ mở Camera trực tiếp. Hãy tải ảnh thẻ lên hoặc dùng camera điện thoại.');
+      } else if (err.name === 'NotFoundError' || err.name === 'OverconstrainedError') {
+        setCameraError('Không tìm thấy Camera trên thiết bị này.');
+      } else if (err.name === 'NotReadableError') {
+        setCameraError('Camera đang được ứng dụng khác sử dụng.');
       } else {
         setCameraError('Không thể mở luồng Camera trực tiếp.');
       }
@@ -111,6 +129,7 @@ export function ScannerModal({ onCardDetected }) {
   };
 
   const stopCamera = () => {
+    cameraRequestRef.current++;
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
@@ -129,32 +148,38 @@ export function ScannerModal({ onCardDetected }) {
     setFacingMode((prev) => (prev === 'environment' ? 'user' : 'environment'));
   };
 
+  const openConfirmation = (name, candidates) => {
+    setDetectedName(name);
+    setManualInputName(name);
+    setDetectedCandidates(candidates);
+    setIsConfirmOpen(true);
+  };
+
   // Step 1: Recognize Name from Image using Google Lens-grade OCR
   const processImageForPokemon = async (imgElement, fileName = '') => {
     setIsScanning(true);
     setScanProgress(15);
     setScanStatusText('Đang chụp ảnh & căn chỉnh thẻ...');
     setOnlineError(null);
+    setScanError(null);
     sounds.playShutter();
 
-    // Check file name hint
-    if (fileName) {
-      const match = await findBestPokemonNameFromText(fileName);
-      if (match) {
-        setScanProgress(100);
-        setIsScanning(false);
-        setDetectedName(match);
-        setManualInputName(match);
-        setDetectedCandidates([{ name: match, displayName: match.toUpperCase(), score: 100 }]);
-        sounds.playScanBeep();
-        return;
-      }
-    }
-
-    setScanProgress(35);
-    setScanStatusText('Đang nhận diện tên Pokémon trên thẻ (AI OCR)...');
-
     try {
+      // Check file name hint
+      if (fileName) {
+        const match = await findBestPokemonNameFromText(fileName.replace(/\.[a-z0-9]+$/i, ''));
+        if (match) {
+          setScanProgress(100);
+          setIsScanning(false);
+          openConfirmation(match, [{ name: match, displayName: match.toUpperCase(), score: 100 }]);
+          sounds.playScanBeep();
+          return;
+        }
+      }
+
+      setScanProgress(35);
+      setScanStatusText('Đang nhận diện tên Pokémon trên thẻ (AI OCR)...');
+
       const ocrResult = await recognizeCardWithOCR(imgElement, (pct) => {
         setScanProgress(35 + Math.round(pct * 0.5));
       });
@@ -166,67 +191,87 @@ export function ScannerModal({ onCardDetected }) {
       sounds.playScanBeep();
 
       if (ocrResult.candidates && ocrResult.candidates.length > 0) {
-        setDetectedCandidates(ocrResult.candidates);
-        setDetectedName(ocrResult.candidates[0].name);
-        setManualInputName(ocrResult.candidates[0].name);
+        openConfirmation(ocrResult.candidates[0].name, ocrResult.candidates);
       } else if (ocrResult.bestMatch) {
-        setDetectedName(ocrResult.bestMatch);
-        setManualInputName(ocrResult.bestMatch);
-        setDetectedCandidates([{ name: ocrResult.bestMatch, displayName: ocrResult.bestMatch.toUpperCase(), score: ocrResult.confidence || 80 }]);
+        openConfirmation(ocrResult.bestMatch, [{ name: ocrResult.bestMatch, displayName: ocrResult.bestMatch.toUpperCase(), score: ocrResult.confidence || 80 }]);
       } else {
-        setDetectedName('');
+        // Nothing recognised: let the user type the name instead of guessing one
+        openConfirmation('', []);
         setManualInputName((ocrResult.rawText || '').slice(0, 15).trim());
-        setDetectedCandidates([]);
-        setIsEditingName(true);
+        setOnlineError('Không đọc được tên Pokémon trên ảnh. Hãy nhập tên thủ công.');
       }
     } catch (err) {
       console.error('OCR error:', err);
       setIsScanning(false);
-      setDetectedName('pikachu');
-      setManualInputName('pikachu');
+      openConfirmation('', []);
+      setOnlineError('Nhận diện ảnh thất bại. Hãy nhập tên Pokémon thủ công.');
     }
   };
 
   // Step 2: Fetch Pokemon from Online sources (PokeAPI, TCG API & YouTube)
   const handleFetchOnline = async (targetName = detectedName || manualInputName) => {
+    // A ref guards against double submits (Enter + click) before React re-renders
+    if (isLoadingOnlineRef.current) return;
+
     if (!targetName || !targetName.trim()) {
       setOnlineError('Vui lòng nhập tên Pokémon');
       return;
     }
 
+    isLoadingOnlineRef.current = true;
     setIsLoadingOnline(true);
     setOnlineError(null);
 
     try {
       console.log('[PokeScan] Fetching online data for:', targetName);
       const onlinePokemon = await fetchPokemonOnline(targetName.trim());
-      setIsLoadingOnline(false);
       setDetectedName('');
+      setIsConfirmOpen(false);
 
       // Advance to Video Showcase and detail flow!
       onCardDetected(onlinePokemon);
     } catch (err) {
       console.error('Online fetch failed:', err);
-      setIsLoadingOnline(false);
       setOnlineError(err.message || 'Không tìm thấy Pokémon này trên cơ sở dữ liệu online.');
+    } finally {
+      isLoadingOnlineRef.current = false;
+      setIsLoadingOnline(false);
     }
   };
 
   const captureCameraFrame = () => {
     if (!videoRef.current) return;
     const video = videoRef.current;
+    if (!video.videoWidth || !video.videoHeight) {
+      // Capturing before the first frame arrives would OCR a black image
+      setScanError('Camera chưa sẵn sàng, vui lòng thử lại sau giây lát.');
+      return;
+    }
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
     const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      setScanError('Không thể chụp khung hình từ Camera.');
+      return;
+    }
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     processImageForPokemon(canvas, '');
   };
 
   const handleFileUpload = (e) => {
-    const file = e.target.files?.[0];
+    const input = e.target;
+    const file = input.files?.[0];
+    // Reset so choosing the same file again still fires onChange
+    input.value = '';
     if (!file) return;
+
+    setScanError(null);
+    if (file.type && !file.type.startsWith('image/')) {
+      setScanError('Tệp đã chọn không phải là ảnh. Vui lòng chọn ảnh thẻ bài.');
+      return;
+    }
 
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -234,7 +279,13 @@ export function ScannerModal({ onCardDetected }) {
       img.onload = () => {
         processImageForPokemon(img, file.name);
       };
+      img.onerror = () => {
+        setScanError('Không đọc được ảnh (định dạng không hỗ trợ hoặc tệp bị hỏng).');
+      };
       img.src = event.target.result;
+    };
+    reader.onerror = () => {
+      setScanError('Không đọc được tệp ảnh.');
     };
     reader.readAsDataURL(file);
   };
@@ -275,10 +326,14 @@ export function ScannerModal({ onCardDetected }) {
             <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 text-xs text-slate-300 max-w-xs mb-3 leading-relaxed">
               <div className="flex items-center justify-center space-x-1 text-amber-400 font-bold mb-1">
                 <ShieldAlert className="w-4 h-4" />
-                <span>Trình duyệt yêu cầu HTTPS</span>
+                <span>{isSecure ? 'Chưa mở được Camera' : 'Trình duyệt yêu cầu HTTPS'}</span>
               </div>
-              <p className="text-[11px] text-slate-400">
-                Để bảo vệ quyền riêng tư, Safari/Chrome chặn camera qua HTTP IP. Bấm nút dưới để chụp bằng Máy ảnh gốc điện thoại:
+              <p className="text-[11px] text-slate-400" role="status">
+                {cameraError
+                  ? cameraError
+                  : isSecure
+                    ? 'Đang kết nối Camera... Nếu không được, bấm nút dưới để chụp bằng Máy ảnh gốc điện thoại:'
+                    : 'Để bảo vệ quyền riêng tư, Safari/Chrome chặn camera qua HTTP IP. Bấm nút dưới để chụp bằng Máy ảnh gốc điện thoại:'}
               </p>
             </div>
 
@@ -363,12 +418,12 @@ export function ScannerModal({ onCardDetected }) {
       </div>
 
       {/* Confirmation & Online Fetch Modal (Displayed as soon as Name is recognized) */}
-      {(detectedName || isEditingName) && (
+      {isConfirmOpen && (
         <div className="w-full max-w-sm mt-3 p-4 rounded-2xl bg-slate-900 border-2 border-cyan-400/80 shadow-[0_0_25px_rgba(6,182,212,0.3)] flex flex-col items-center animate-fadeIn">
-          
+
           <div className="flex items-center space-x-1.5 text-cyan-400 text-xs font-bold mb-1">
-            <Check className="w-4 h-4" />
-            <span>ĐÃ NHẬN DIỆN TÊN POKÉMON</span>
+            {detectedCandidates.length > 0 ? <Check className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
+            <span>{detectedCandidates.length > 0 ? 'ĐÃ NHẬN DIỆN TÊN POKÉMON' : 'NHẬP TÊN POKÉMON'}</span>
           </div>
 
           <div className="w-full my-2">
@@ -378,7 +433,8 @@ export function ScannerModal({ onCardDetected }) {
             <div className="relative">
               <input
                 type="text"
-                value={detectedName || manualInputName}
+                aria-label="Tên Pokémon cần xác nhận"
+                value={manualInputName}
                 onChange={(e) => {
                   setDetectedName(e.target.value);
                   setManualInputName(e.target.value);
@@ -444,7 +500,8 @@ export function ScannerModal({ onCardDetected }) {
             <button
               onClick={() => {
                 setDetectedName('');
-                setIsEditingName(false);
+                setIsConfirmOpen(false);
+                setOnlineError(null);
               }}
               className="py-3 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition-colors"
             >
@@ -504,6 +561,18 @@ export function ScannerModal({ onCardDetected }) {
         />
       </div>
 
+      {scanError && (
+        <p role="alert" className="w-full max-w-sm mt-2 text-xs text-rose-400 text-center flex items-center justify-center space-x-1">
+          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+          <span>{scanError}</span>
+        </p>
+      )}
+
+      {/* Error of a direct search shown here when the confirmation panel is closed */}
+      {onlineError && !isConfirmOpen && (
+        <p role="alert" className="w-full max-w-sm mt-2 text-xs text-rose-400 text-center">{onlineError}</p>
+      )}
+
       {/* Direct Online Search for ANY Pokemon */}
       <div className="w-full max-w-sm mt-4 p-3 rounded-2xl bg-slate-900/60 border border-slate-800">
         <span className="text-[10px] font-tech text-slate-400 uppercase tracking-wider block mb-1.5">
@@ -512,6 +581,7 @@ export function ScannerModal({ onCardDetected }) {
         <div className="flex gap-2">
           <input
             type="text"
+            aria-label="Tìm Pokémon theo tên"
             placeholder="Ví dụ: rayquaza, mewtwo, garchomp..."
             value={manualInputName}
             onChange={(e) => setManualInputName(e.target.value)}
@@ -548,7 +618,8 @@ export function ScannerModal({ onCardDetected }) {
             <button
               key={name}
               onClick={() => handleFetchOnline(name)}
-              className="py-2 px-1 rounded-xl bg-slate-950/80 hover:bg-cyan-950/50 border border-slate-800 hover:border-cyan-500/50 text-center transition-all group cursor-pointer"
+              disabled={isLoadingOnline}
+              className="disabled:opacity-50 disabled:cursor-not-allowed py-2 px-1 rounded-xl bg-slate-950/80 hover:bg-cyan-950/50 border border-slate-800 hover:border-cyan-500/50 text-center transition-all group cursor-pointer"
             >
               <span className="text-[11px] font-bold text-slate-300 capitalize group-hover:text-cyan-400 block truncate">
                 {name}

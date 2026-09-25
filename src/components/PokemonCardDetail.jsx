@@ -1,31 +1,38 @@
 import React, { useState, useRef, useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { 
-  CheckCircle, 
-  RotateCw, 
-  Play, 
-  Volume2, 
-  Sparkles, 
-  Shield, 
-  Swords, 
-  Bookmark, 
-  Share2, 
-  ArrowLeft,
+import {
+  CheckCircle,
+  AlertTriangle,
+  RotateCw,
+  Play,
+  Volume2,
+  Sparkles,
+  Swords,
+  Bookmark,
+  Share2,
   Flame,
-  Zap,
-  Droplets,
-  Eye,
-  Crosshair,
   Award
 } from 'lucide-react';
 import { sounds } from '../utils/soundEffects';
 
-export function PokemonCardDetail({ pokemon, savedItem, onScanNext, onReplayVideo, onViewCollection }) {
+const DEFAULT_THEME = { primary: '#AAAA99', secondary: '#777766', accent: '#CCCCBB', glow: 'rgba(170, 170, 153, 0.6)' };
+
+export function PokemonCardDetail({ pokemon: rawPokemon, savedItem, onScanNext, onReplayVideo, onViewCollection }) {
+  // Older or partially saved cards may miss fields; fill them so rendering never crashes
+  const pokemon = {
+    ...rawPokemon,
+    themeColor: { ...DEFAULT_THEME, ...(rawPokemon.themeColor || {}) },
+    types: Array.isArray(rawPokemon.types) && rawPokemon.types.length > 0 ? rawPokemon.types : ['Normal'],
+    attacks: Array.isArray(rawPokemon.attacks) ? rawPokemon.attacks : [],
+    weakness: rawPokemon.weakness || { type: '—', value: '' },
+    resistance: rawPokemon.resistance || { type: '—', value: '' },
+    retreatCost: Math.max(0, Math.min(5, Math.floor(Number(rawPokemon.retreatCost) || 0))),
+  };
   const cardRef = useRef(null);
   const [rotateX, setRotateX] = useState(0);
   const [rotateY, setRotateY] = useState(0);
   const [glarePos, setGlarePos] = useState({ x: 50, y: 50 });
-  const [isCopied, setIsCopied] = useState(false);
+  const [shareStatus, setShareStatus] = useState(null); // null | 'copied' | 'failed'
 
   useEffect(() => {
     // Play celebratory sound fanfare
@@ -37,12 +44,17 @@ export function PokemonCardDetail({ pokemon, savedItem, onScanNext, onReplayVide
         particleCount: 70,
         spread: 60,
         origin: { y: 0.65 },
-        colors: [pokemon.themeColor.primary, pokemon.themeColor.secondary, '#FFDE00', '#ffffff'],
+        colors: [
+          rawPokemon.themeColor?.primary || DEFAULT_THEME.primary,
+          rawPokemon.themeColor?.secondary || DEFAULT_THEME.secondary,
+          '#FFDE00',
+          '#ffffff',
+        ],
       });
     } catch {
       // ignore
     }
-  }, [pokemon]);
+  }, [rawPokemon]);
 
   // 3D Card tilt handler for mouse / touch
   const handleMouseMove = (e) => {
@@ -92,6 +104,11 @@ export function PokemonCardDetail({ pokemon, savedItem, onScanNext, onReplayVide
     }
   };
 
+  const showShareStatus = (status) => {
+    setShareStatus(status);
+    setTimeout(() => setShareStatus(null), 2000);
+  };
+
   const handleShare = async () => {
     if (navigator.share) {
       try {
@@ -103,12 +120,19 @@ export function PokemonCardDetail({ pokemon, savedItem, onScanNext, onReplayVide
       } catch {
         // user cancelled share
       }
-    } else {
-      navigator.clipboard.writeText(
+      return;
+    }
+
+    // navigator.clipboard only exists in secure contexts (not on plain HTTP LAN IPs)
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error('Clipboard unavailable');
+      await navigator.clipboard.writeText(
         `Thẻ bài Pokémon: ${pokemon.name} - HP: ${pokemon.hp} - Độ hiếm: ${pokemon.rarity}`
       );
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
+      showShareStatus('copied');
+    } catch (err) {
+      console.warn('Share failed:', err);
+      showShareStatus('failed');
     }
   };
 
@@ -121,17 +145,32 @@ export function PokemonCardDetail({ pokemon, savedItem, onScanNext, onReplayVide
       electric: 'bg-amber-400 text-slate-950 border-amber-300',
       psychic: 'bg-fuchsia-500 text-white border-fuchsia-400',
       dragon: 'bg-indigo-600 text-white border-indigo-400',
+      dark: 'bg-slate-800 text-slate-200 border-slate-600',
       darkness: 'bg-slate-800 text-slate-200 border-slate-600',
       fighting: 'bg-orange-700 text-white border-orange-500',
       steel: 'bg-slate-400 text-slate-900 border-slate-300',
+      ice: 'bg-cyan-400 text-slate-950 border-cyan-300',
+      fairy: 'bg-pink-400 text-slate-950 border-pink-300',
+      normal: 'bg-stone-400 text-slate-950 border-stone-300',
+      flying: 'bg-sky-400 text-slate-950 border-sky-300',
+      poison: 'bg-purple-600 text-white border-purple-400',
+      ground: 'bg-yellow-600 text-white border-yellow-400',
+      rock: 'bg-amber-700 text-white border-amber-500',
+      bug: 'bg-lime-500 text-slate-950 border-lime-400',
+      ghost: 'bg-violet-700 text-white border-violet-500',
     };
     return map[t] || 'bg-slate-700 text-white border-slate-600';
   };
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-4 sm:py-6 pb-20 animate-fadeIn">
-      {/* Top Banner: Success notice */}
-      <div className="mb-4 sm:mb-6 p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-emerald-950/80 via-slate-900/90 to-emerald-950/80 border border-emerald-500/40 shadow-lg shadow-emerald-950/40 flex flex-wrap items-center justify-between gap-3">
+      {/* Top Banner: Success notice (or warning when LocalStorage refused the save) */}
+      <div className={`mb-4 sm:mb-6 p-3 sm:p-4 rounded-2xl border shadow-lg flex flex-wrap items-center justify-between gap-3 ${
+        savedItem
+          ? 'bg-gradient-to-r from-emerald-950/80 via-slate-900/90 to-emerald-950/80 border-emerald-500/40 shadow-emerald-950/40'
+          : 'bg-gradient-to-r from-amber-950/80 via-slate-900/90 to-amber-950/80 border-amber-500/40 shadow-amber-950/40'
+      }`}>
+        {savedItem ? (
         <div className="flex items-center space-x-3">
           <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
             <CheckCircle className="w-5 h-5" />
@@ -146,10 +185,25 @@ export function PokemonCardDetail({ pokemon, savedItem, onScanNext, onReplayVide
               </span>
             </div>
             <p className="text-xs text-slate-300">
-              Đã ghi nhận vào Pokedex • Số lần quét: <strong className="text-amber-400 font-tech text-sm">{savedItem?.scanCount || 1}</strong>
+              Đã ghi nhận vào Pokedex • Số lần quét: <strong className="text-amber-400 font-tech text-sm">{savedItem.scanCount || 1}</strong>
             </p>
           </div>
         </div>
+        ) : (
+        <div className="flex items-center space-x-3">
+          <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
+            <AlertTriangle className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-xs font-tech font-bold uppercase tracking-wider text-amber-400">
+              CHƯA LƯU ĐƯỢC VÀO BỘ SƯU TẬP
+            </span>
+            <p className="text-xs text-slate-300">
+              Trình duyệt không cho ghi LocalStorage (chế độ ẩn danh hoặc bộ nhớ đầy).
+            </p>
+          </div>
+        </div>
+        )}
 
         <div className="flex items-center space-x-2 ml-auto">
           <button
@@ -193,7 +247,7 @@ export function PokemonCardDetail({ pokemon, savedItem, onScanNext, onReplayVide
                 alt={pokemon.name}
                 onError={(e) => {
                   e.target.onerror = null;
-                  e.target.src = pokemon.fallbackImage;
+                  if (pokemon.fallbackImage) e.target.src = pokemon.fallbackImage;
                 }}
                 className="w-full h-full object-cover select-none pointer-events-none"
               />
@@ -233,7 +287,9 @@ export function PokemonCardDetail({ pokemon, savedItem, onScanNext, onReplayVide
               className="flex-1 flex items-center justify-center space-x-1.5 py-2 px-3 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-300 transition-colors"
             >
               <Share2 className="w-3.5 h-3.5" />
-              <span>{isCopied ? 'Đã sao chép!' : 'Chia sẻ thẻ'}</span>
+              <span>
+                {shareStatus === 'copied' ? 'Đã sao chép!' : shareStatus === 'failed' ? 'Không thể chia sẻ' : 'Chia sẻ thẻ'}
+              </span>
             </button>
             <button
               onClick={onViewCollection}
@@ -372,7 +428,7 @@ export function PokemonCardDetail({ pokemon, savedItem, onScanNext, onReplayVide
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center space-x-2">
                       <div className="flex space-x-1">
-                        {atk.cost.map((c, i) => (
+                        {(atk.cost || []).map((c, i) => (
                           <span
                             key={i}
                             title={c}
@@ -414,7 +470,7 @@ export function PokemonCardDetail({ pokemon, savedItem, onScanNext, onReplayVide
             <div className="glass-panel p-2.5 rounded-xl text-center">
               <span className="text-[10px] text-slate-400 uppercase font-tech block">Rút lui</span>
               <span className="text-xs font-bold text-slate-300 font-tech">
-                {'★'.repeat(pokemon.retreatCost)}
+                {pokemon.retreatCost > 0 ? '★'.repeat(pokemon.retreatCost) : '—'}
               </span>
             </div>
           </div>

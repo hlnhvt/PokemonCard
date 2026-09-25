@@ -17,8 +17,40 @@ const CURATED_YOUTUBE_VIDEOS = {
   arceus: "https://www.youtube.com/embed/m6X8y2uX2_k?autoplay=1&mute=0&rel=0&playsinline=1",
   mew: "https://www.youtube.com/embed/w8eX2_0g_f4?autoplay=1&mute=0&rel=0&playsinline=1",
   dragonite: "https://www.youtube.com/embed/3A_y_hU_8kY?autoplay=1&mute=0&rel=0&playsinline=1",
-  gengar: "https://www.youtube.com/embed/T6Z3X2B1q-k?autoplay=1&mute=0&rel=0&playsinline=1"
 };
+
+const POKEAPI_BASE = 'https://pokeapi.co/api/v2';
+const POKEAPI_TIMEOUT_MS = 10000;
+const TCG_TIMEOUT_MS = 6000;
+
+async function fetchWithTimeout(url, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Convert free text ("Mr. Mime", "Ho Oh", "Farfetch'd", "Nidoran♀") into a PokeAPI slug
+ * ("mr-mime", "ho-oh", "farfetchd", "nidoran-f"). PokeAPI slugs keep hyphens.
+ */
+export function normalizePokemonQuery(query) {
+  return String(query || '')
+    .toLowerCase()
+    .trim()
+    .replace(/♀/g, '-f')
+    .replace(/♂/g, '-m')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[.'’]/g, '')
+    .replace(/[\s_]+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
 
 // Type color themes
 const TYPE_COLORS = {
@@ -41,69 +73,83 @@ const TYPE_COLORS = {
   steel: { primary: '#AAAABB', secondary: '#777788', accent: '#CCCCDD', glow: 'rgba(170, 170, 187, 0.6)' },
 };
 
+const FALLBACK_POKEMON_NAMES = [
+  'charizard', 'pikachu', 'mewtwo', 'rayquaza', 'gengar', 'greninja',
+  'lucario', 'blastoise', 'umbreon', 'eevee', 'snorlax', 'lugia', 'arceus',
+  'mew', 'dragonite', 'bulbasaur', 'squirtle', 'charmander', 'charmeleon', 'gyarados',
+  'gardevoir', 'garchomp', 'tyranitar', 'salamence', 'metagross', 'dialga',
+  'palkia', 'giratina', 'reshiram', 'zekrom', 'kyogre', 'groudon', 'cinderace',
+  'infernape', 'blaziken', 'sceptile', 'swampert', 'torterra'
+];
+
 let cachedPokemonNames = null;
 
 /**
- * Fetch and cache the list of 1025 Pokemon names for accurate fuzzy matching
+ * Fetch and cache the list of 1025 species names (base names such as "giratina", "ho-oh")
+ * for accurate fuzzy matching. The fallback list is returned but never cached, so the
+ * next call retries the network.
  */
 export async function getAllPokemonNames() {
   if (cachedPokemonNames && cachedPokemonNames.length > 0) {
     return cachedPokemonNames;
   }
   try {
-    const res = await fetch('https://pokeapi.co/api/v2/pokemon?limit=1025');
+    const res = await fetchWithTimeout(`${POKEAPI_BASE}/pokemon-species?limit=1025`, POKEAPI_TIMEOUT_MS);
     if (!res.ok) throw new Error('PokeAPI names failed');
     const data = await res.json();
     cachedPokemonNames = data.results.map(p => p.name.toLowerCase());
     return cachedPokemonNames;
   } catch (err) {
     console.warn('Failed to load full Pokemon list, using fallback:', err);
-    // fallback popular names
-    cachedPokemonNames = [
-      'charizard', 'pikachu', 'mewtwo', 'rayquaza', 'gengar', 'greninja',
-      'lucario', 'blastoise', 'umbreon', 'eevee', 'snorlax', 'lugia', 'arceus',
-      'mew', 'dragonite', 'bulbasaur', 'squirtle', 'charmander', 'gyarados',
-      'gardevoir', 'garchomp', 'tyranitar', 'salamence', 'metagross', 'dialga',
-      'palkia', 'giratina', 'reshiram', 'zekrom', 'kyogre', 'groudon', 'cinderace',
-      'infernappe', 'blaziken', 'sceptile', 'swampert', 'torterra'
-    ];
-    return cachedPokemonNames;
+    return FALLBACK_POKEMON_NAMES;
   }
 }
 
+/** Test helper: forget the cached name list. */
+export function resetPokemonNamesCache() {
+  cachedPokemonNames = null;
+}
+
 /**
- * Clean and find the best matching Pokemon name from OCR extracted text
+ * Find a Pokemon name hinted by free text such as an uploaded file name.
+ * Deliberately strict: a wrong hint skips OCR entirely, so short or loose matches
+ * ("hinh" -> shinx, "anh" -> carvanha) must return null.
  */
 export async function findBestPokemonNameFromText(rawText) {
   if (!rawText) return null;
   const clean = rawText.toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
-  const words = clean.split(/\s+/).filter(w => w.length >= 3);
+  const tokens = clean.split(/\s+/).filter(Boolean);
+  const words = tokens.filter(w => w.length >= 3);
 
   const allNames = await getAllPokemonNames();
+  const nameSet = new Set(allNames);
 
-  // 1. Direct word match
-  for (const word of words) {
-    if (allNames.includes(word)) {
-      return word;
+  // 1. Direct word match, including hyphenated names split by the cleanup ("ho oh" -> "ho-oh")
+  for (let i = 0; i < tokens.length; i++) {
+    if (tokens[i].length >= 3 && nameSet.has(tokens[i])) return tokens[i];
+    if (i + 1 < tokens.length && nameSet.has(`${tokens[i]}-${tokens[i + 1]}`)) {
+      return `${tokens[i]}-${tokens[i + 1]}`;
     }
   }
 
-  // 2. Substring match
+  // 2. A long name glued to other text ("pikachuvmax", "charizardex")
   for (const word of words) {
-    const found = allNames.find(n => n.includes(word) || (word.length >= 4 && word.includes(n)));
+    const found = allNames
+      .filter(n => n.length >= 5 && !n.includes('-') && word.includes(n))
+      .sort((a, b) => b.length - a.length)[0];
     if (found) return found;
   }
 
-  // 3. Levenshtein distance fuzzy match on words with length >= 4
+  // 3. Single-typo fuzzy match on long words only
   let closestName = null;
-  let minDistance = 999;
+  let minDistance = 2;
 
   for (const word of words) {
-    if (word.length < 4) continue;
+    if (word.length < 6) continue;
     for (const name of allNames) {
-      if (Math.abs(word.length - name.length) > 2) continue;
+      if (Math.abs(word.length - name.length) > 1) continue;
       const dist = levenshtein(word, name);
-      if (dist < minDistance && dist <= 2) {
+      if (dist < minDistance) {
         minDistance = dist;
         closestName = name;
       }
@@ -141,31 +187,58 @@ function levenshtein(a, b) {
  * - Authentic TCG Card Image from Pokemon TCG API
  * - Short YouTube Video Embed
  */
+async function fetchJsonOrNull(url) {
+  const res = await fetchWithTimeout(url, POKEAPI_TIMEOUT_MS);
+  if (!res.ok) return null;
+  return res.json();
+}
+
 export async function fetchPokemonOnline(query) {
-  if (!query) throw new Error('Vui lòng nhập tên Pokémon');
+  const cleanName = normalizePokemonQuery(query);
+  if (!cleanName) throw new Error('Vui lòng nhập tên Pokémon');
 
-  const cleanName = query.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+  const notFoundMessage = `Không tìm thấy dữ liệu online cho Pokémon "${String(query).trim()}". Vui lòng kiểm tra lại tên.`;
 
-  // 1. Fetch main PokeAPI data
-  const pokeRes = await fetch(`https://pokeapi.co/api/v2/pokemon/${cleanName}`);
-  if (!pokeRes.ok) {
-    throw new Error(`Không tìm thấy dữ liệu online cho Pokémon "${query}". Vui lòng kiểm tra lại tên.`);
+  // 1. Fetch main PokeAPI data. Species names with several forms ("giratina", "deoxys")
+  // have no /pokemon/{name} entry, so fall back to the species' default variety.
+  let poke = null;
+  let sp = null;
+  try {
+    poke = await fetchJsonOrNull(`${POKEAPI_BASE}/pokemon/${cleanName}`);
+    if (!poke) {
+      sp = await fetchJsonOrNull(`${POKEAPI_BASE}/pokemon-species/${cleanName}`);
+      const defaultVariety = sp?.varieties?.find(v => v.is_default)?.pokemon?.name;
+      if (defaultVariety) {
+        poke = await fetchJsonOrNull(`${POKEAPI_BASE}/pokemon/${defaultVariety}`);
+      }
+    }
+  } catch (err) {
+    console.warn('PokeAPI fetch error:', err);
+    throw new Error('Không thể kết nối tới PokeAPI. Vui lòng kiểm tra kết nối mạng và thử lại.');
   }
-  const poke = await pokeRes.json();
+  if (!poke) {
+    throw new Error(notFoundMessage);
+  }
 
   // 2. Fetch Species data (Lore, Japanese name, Genus)
   let speciesData = {
+    enName: null,
     jaName: poke.name.toUpperCase(),
     genus: 'Pokémon',
     lore: `Dữ liệu về ${poke.name} được ghi nhận chính thức trong hệ thống Pokédex toàn cầu.`
   };
 
   try {
-    const speciesRes = await fetch(`https://pokeapi.co/api/v2/pokemon-species/${poke.id}`);
-    if (speciesRes.ok) {
-      const sp = await speciesRes.json();
-      const jaObj = sp.names?.find(n => n.language?.name === 'ja' || n.language?.name === 'roomaji');
-      if (jaObj) speciesData.jaName = jaObj.name;
+    if (!sp) {
+      // Alternate forms have ids > 10000 that /pokemon-species/{id} does not know
+      const speciesUrl = poke.species?.url || `${POKEAPI_BASE}/pokemon-species/${poke.id}`;
+      sp = await fetchJsonOrNull(speciesUrl);
+    }
+    if (sp) {
+      const nameIn = (lang) => sp.names?.find(n => n.language?.name === lang)?.name;
+      const jaName = nameIn('ja-Hrkt') || nameIn('ja') || nameIn('roomaji');
+      if (jaName) speciesData.jaName = jaName;
+      speciesData.enName = nameIn('en') || null;
 
       const genusObj = sp.genera?.find(g => g.language?.name === 'en');
       if (genusObj) speciesData.genus = genusObj.genus;
@@ -179,6 +252,10 @@ export async function fetchPokemonOnline(query) {
     console.warn('Species fetch error:', e);
   }
 
+  // Media lookups are keyed by the real species name, never by the raw query ("25" -> "pikachu")
+  const baseName = sp?.name || poke.species?.name || poke.name;
+  const displayName = speciesData.enName || (poke.name.charAt(0).toUpperCase() + poke.name.slice(1));
+
   // 3. Try fetching real TCG card image from Pokemon TCG API
   let cardImage = null;
   let cardSet = 'Official Pokémon TCG';
@@ -186,7 +263,8 @@ export async function fetchPokemonOnline(query) {
   let illustrator = 'Ken Sugimori';
 
   try {
-    const tcgRes = await fetch(`https://api.pokemontcg.io/v2/cards?q=name:${cleanName}&pageSize=1`);
+    const tcgQuery = encodeURIComponent(`name:"${displayName}"`);
+    const tcgRes = await fetchWithTimeout(`https://api.pokemontcg.io/v2/cards?q=${tcgQuery}&pageSize=1`, TCG_TIMEOUT_MS);
     if (tcgRes.ok) {
       const tcgJson = await tcgRes.json();
       if (tcgJson.data && tcgJson.data.length > 0) {
@@ -201,8 +279,11 @@ export async function fetchPokemonOnline(query) {
     console.warn('TCG card fetch error:', e);
   }
 
-  const primaryType = poke.types[0]?.type?.name || 'normal';
-  const typeList = poke.types.map(t => t.type.name.charAt(0).toUpperCase() + t.type.name.slice(1));
+  const pokeTypes = poke.types || [];
+  const primaryType = pokeTypes[0]?.type?.name || 'normal';
+  const typeList = pokeTypes.length > 0
+    ? pokeTypes.map(t => t.type.name.charAt(0).toUpperCase() + t.type.name.slice(1))
+    : ['Normal'];
   const theme = TYPE_COLORS[primaryType] || TYPE_COLORS.normal;
 
   // Direct high-quality MP4 battle clips that NEVER fail or get blocked by YouTube embed rules
@@ -217,17 +298,21 @@ export async function fetchPokemonOnline(query) {
     lucario: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackSeeTheWorld.mp4",
   };
 
-  const directVideo = DIRECT_VIDEOS[cleanName] || "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4";
-  const youtubeSearchLink = `https://www.youtube.com/results?search_query=${encodeURIComponent(poke.name + ' pokemon battle anime short')}`;
+  const directVideo = DIRECT_VIDEOS[baseName] || "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4";
+  const youtubeSearchLink = `https://www.youtube.com/results?search_query=${encodeURIComponent(displayName + ' pokemon battle anime short')}`;
 
   // Extract Stats
-  const hpStat = poke.stats.find(s => s.stat.name === 'hp')?.base_stat || 100;
-  const attackStat = poke.stats.find(s => s.stat.name === 'attack')?.base_stat || 80;
-  const defenseStat = poke.stats.find(s => s.stat.name === 'defense')?.base_stat || 70;
-  const speedStat = poke.stats.find(s => s.stat.name === 'speed')?.base_stat || 90;
+  const stats = poke.stats || [];
+  const hpStat = stats.find(s => s.stat.name === 'hp')?.base_stat || 100;
+  const attackStat = stats.find(s => s.stat.name === 'attack')?.base_stat || 80;
+  const defenseStat = stats.find(s => s.stat.name === 'defense')?.base_stat || 70;
+  const speedStat = stats.find(s => s.stat.name === 'speed')?.base_stat || 90;
+
+  const artwork = poke.sprites?.other?.['official-artwork']?.front_default || poke.sprites?.front_default || null;
+  const abilities = poke.abilities || [];
 
   // Extract Top 2 Moves
-  const moves = poke.moves.slice(0, 2).map((m, idx) => ({
+  const moves = (poke.moves || []).slice(0, 2).map((m, idx) => ({
     name: m.move.name.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
     cost: [typeList[0] || 'Colorless', 'Colorless'],
     damage: String(idx === 0 ? attackStat * 2 : (attackStat + 40)),
@@ -238,7 +323,7 @@ export async function fetchPokemonOnline(query) {
   const normalizedPokemon = {
     id: poke.name,
     pokedexNumber: String(poke.id).padStart(3, '0'),
-    name: poke.name.charAt(0).toUpperCase() + poke.name.slice(1),
+    name: displayName,
     japaneseName: speciesData.jaName,
     species: speciesData.genus,
     types: typeList,
@@ -252,13 +337,13 @@ export async function fetchPokemonOnline(query) {
     cardNumber: cardNumber,
     illustrator: illustrator,
     themeColor: theme,
-    image: cardImage || poke.sprites.other['official-artwork']?.front_default || poke.sprites.front_default,
-    fallbackImage: poke.sprites.other['official-artwork']?.front_default || poke.sprites.front_default,
+    image: cardImage || artwork,
+    fallbackImage: artwork,
     directVideoUrl: directVideo,
-    youtubeUrl: CURATED_YOUTUBE_VIDEOS[cleanName] || null,
+    youtubeUrl: CURATED_YOUTUBE_VIDEOS[baseName] || null,
     youtubeSearchUrl: youtubeSearchLink,
     videoShowcase: {
-      title: `${poke.name.toUpperCase()} BATTLE AWAKENING`,
+      title: `${displayName.toUpperCase()} BATTLE AWAKENING`,
       duration: 6,
       soundEffect: primaryType,
       description: speciesData.lore,
@@ -269,8 +354,8 @@ export async function fetchPokemonOnline(query) {
     weakness: { type: getWeaknessType(primaryType), value: '×2' },
     resistance: { type: 'Colorless', value: '-30' },
     retreatCost: Math.min(4, Math.max(1, Math.round(poke.weight / 300))),
-    ability: poke.abilities[0] ? {
-      name: poke.abilities[0].ability.name.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+    ability: abilities[0] ? {
+      name: abilities[0].ability.name.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
       type: 'Khả Năng (Ability)',
       text: `Kích hoạt năng lượng nội tại của Pokémon khi bước vào trận chiến.`
     } : null,

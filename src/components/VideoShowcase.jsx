@@ -1,19 +1,33 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Play, SkipForward, Sparkles, Zap, Flame, ShieldAlert, Volume2, VolumeX, Video, ExternalLink, ArrowRight } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { SkipForward, Sparkles, Zap, ExternalLink, ArrowRight } from 'lucide-react';
 import { sounds } from '../utils/soundEffects';
 
-export function VideoShowcase({ pokemon, onComplete, isMuted, onToggleMute }) {
+export function VideoShowcase({ pokemon, onComplete, isMuted }) {
   const [progress, setProgress] = useState(0);
-  const [videoMode, setVideoMode] = useState('direct'); // 'direct' (HTML5 MP4) | 'youtube' | 'canvas'
+  const [videoMode] = useState('direct'); // 'direct' (HTML5 MP4) | 'youtube' | 'canvas'
   const [autoAdvance, setAutoAdvance] = useState(true);
   const [videoError, setVideoError] = useState(false);
   const videoRef = useRef(null);
   const duration = pokemon?.videoShowcase?.duration || 7;
+  const themeColor = pokemon.themeColor || {};
+
+  // Skip button, video end and the countdown can all fire; only the first one counts
+  const completedRef = useRef(false);
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
+
+  const finish = useCallback(() => {
+    if (completedRef.current) return;
+    completedRef.current = true;
+    onCompleteRef.current?.();
+  }, []);
 
   useEffect(() => {
     sounds.playEnergySurge();
     const cryTimer = setTimeout(() => {
-      sounds.playPokemonCry(pokemon.videoShowcase?.soundEffect || pokemon.types[0]);
+      sounds.playPokemonCry(pokemon.videoShowcase?.soundEffect || pokemon.types?.[0]);
     }, 350);
 
     return () => clearTimeout(cryTimer);
@@ -22,11 +36,21 @@ export function VideoShowcase({ pokemon, onComplete, isMuted, onToggleMute }) {
   // Attempt to play direct HTML5 video
   useEffect(() => {
     if (videoRef.current && videoMode === 'direct') {
-      videoRef.current.muted = isMuted;
-      videoRef.current.play().catch((e) => {
-        console.warn('HTML5 Video play issue:', e);
-        setVideoError(true);
-      });
+      const video = videoRef.current;
+      video.muted = isMuted;
+      const playPromise = video.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch((e) => {
+          console.warn('HTML5 Video play issue:', e);
+          if (e?.name === 'NotAllowedError' && !video.muted) {
+            // Autoplay with sound is blocked until user interaction: keep the clip, play it muted
+            video.muted = true;
+            video.play()?.catch?.(() => setVideoError(true));
+          } else if (e?.name !== 'AbortError') {
+            setVideoError(true);
+          }
+        });
+      }
     }
   }, [videoMode, isMuted]);
 
@@ -38,21 +62,18 @@ export function VideoShowcase({ pokemon, onComplete, isMuted, onToggleMute }) {
     const step = (intervalTime / (duration * 1000)) * 100;
 
     const timer = setInterval(() => {
-      setProgress((prev) => {
-        const next = prev + step;
-        if (next >= 100) {
-          clearInterval(timer);
-          setTimeout(() => {
-            onComplete();
-          }, 350);
-          return 100;
-        }
-        return next;
-      });
+      setProgress((prev) => Math.min(100, prev + step));
     }, intervalTime);
 
     return () => clearInterval(timer);
-  }, [autoAdvance, onComplete, duration]);
+  }, [autoAdvance, duration]);
+
+  // Advance shortly after the countdown reaches the end
+  useEffect(() => {
+    if (progress < 100 || !autoAdvance) return;
+    const timeout = setTimeout(finish, 350);
+    return () => clearTimeout(timeout);
+  }, [progress, autoAdvance, finish]);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/95 backdrop-blur-2xl overflow-y-auto p-4 py-6">
@@ -60,7 +81,7 @@ export function VideoShowcase({ pokemon, onComplete, isMuted, onToggleMute }) {
       <div
         className="absolute inset-0 opacity-40 blur-3xl pointer-events-none transition-all duration-700"
         style={{
-          background: `radial-gradient(circle at center, ${pokemon.themeColor.primary} 0%, ${pokemon.themeColor.secondary} 40%, transparent 75%)`,
+          background: `radial-gradient(circle at center, ${themeColor.primary} 0%, ${themeColor.secondary} 40%, transparent 75%)`,
         }}
       />
 
@@ -89,7 +110,7 @@ export function VideoShowcase({ pokemon, onComplete, isMuted, onToggleMute }) {
           )}
 
           <button
-            onClick={onComplete}
+            onClick={finish}
             className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-semibold text-white transition-colors cursor-pointer"
           >
             <span>Bỏ qua</span>
@@ -109,7 +130,7 @@ export function VideoShowcase({ pokemon, onComplete, isMuted, onToggleMute }) {
             autoPlay
             playsInline
             muted={isMuted}
-            onEnded={onComplete}
+            onEnded={finish}
             onError={() => setVideoError(true)}
             className="absolute inset-0 w-full h-full object-cover opacity-85"
           />
@@ -132,13 +153,13 @@ export function VideoShowcase({ pokemon, onComplete, isMuted, onToggleMute }) {
             {/* Spinning Holographic Light Ring */}
             <div
               className="absolute w-72 h-72 rounded-full border-2 border-dashed opacity-70 animate-spin-slow pointer-events-none"
-              style={{ borderColor: pokemon.themeColor.primary }}
+              style={{ borderColor: themeColor.primary }}
             />
 
             {/* Glowing Energy Aura */}
             <div
               className="absolute w-48 h-48 rounded-full blur-2xl opacity-60 animate-pulse pointer-events-none"
-              style={{ backgroundColor: pokemon.themeColor.primary }}
+              style={{ backgroundColor: themeColor.primary }}
             />
 
             {/* Pokemon Artwork */}
@@ -176,8 +197,8 @@ export function VideoShowcase({ pokemon, onComplete, isMuted, onToggleMute }) {
             className="h-full transition-all duration-100 rounded-full"
             style={{
               width: `${progress}%`,
-              backgroundColor: pokemon.themeColor.primary || '#FF4422',
-              boxShadow: `0 0 10px ${pokemon.themeColor.primary}`,
+              backgroundColor: themeColor.primary || '#FF4422',
+              boxShadow: `0 0 10px ${themeColor.primary}`,
             }}
           />
         </div>
@@ -193,7 +214,7 @@ export function VideoShowcase({ pokemon, onComplete, isMuted, onToggleMute }) {
         </button>
 
         <button
-          onClick={onComplete}
+          onClick={finish}
           className="w-full sm:w-auto py-3 px-6 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-bold text-xs shadow-xl shadow-red-600/40 flex items-center justify-center space-x-2 transition-transform active:scale-95 cursor-pointer"
         >
           <span>Xem Xong Video ➔ Khám Phá Thông Số Pokémon</span>

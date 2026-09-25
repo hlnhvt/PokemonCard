@@ -1,5 +1,5 @@
 import React from 'react';
-import { Camera, BookOpen, Volume2, VolumeX, Sparkles } from 'lucide-react';
+import { Camera, BookOpen, Volume2, VolumeX } from 'lucide-react';
 
 export function Header({ currentTab, setCurrentTab, collectionCount, isMuted, onToggleMute }) {
   return (
@@ -61,7 +61,7 @@ export function Header({ currentTab, setCurrentTab, collectionCount, isMuted, on
             <BookOpen className="w-4 h-4" />
             <span>Bộ Sưu Tập</span>
             {collectionCount > 0 && (
-              <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-400 text-slate-950 font-tech">
+              <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-400 text-slate-950 font-tech">
                 {collectionCount}
               </span>
             )}

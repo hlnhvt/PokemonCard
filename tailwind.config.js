@@ -43,6 +43,7 @@ export default {
         'float': 'float 3s ease-in-out infinite',
         'shimmer': 'shimmer 2.5s infinite linear',
         'spin-slow': 'spin 12s linear infinite',
+        'fadeIn': 'fadeIn 0.3s ease-out both',
       },
       keyframes: {
         scannerMove: {
@@ -52,6 +53,10 @@ export default {
         float: {
           '0%, 100%': { transform: 'translateY(0px)' },
           '50%': { transform: 'translateY(-8px)' },
+        },
+        fadeIn: {
+          '0%': { opacity: '0', transform: 'translateY(6px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
         },
         shimmer: {
           '0%': { backgroundPosition: '-200% 0' },

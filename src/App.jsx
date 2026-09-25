@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Header } from './components/Header';
 import { ScannerModal } from './components/ScannerModal';
 import { VideoShowcase } from './components/VideoShowcase';
@@ -12,18 +12,16 @@ export function App() {
   const [activePokemon, setActivePokemon] = useState(null);
   const [savedItem, setSavedItem] = useState(null);
   const [isPlayingVideo, setIsPlayingVideo] = useState(false);
-  const [collection, setCollection] = useState([]);
-  const [isMuted, setIsMuted] = useState(false);
-
-  // Load saved collection from localStorage on mount
-  useEffect(() => {
-    const list = getSavedCollection();
-    setCollection(list);
-  }, []);
+  // 'scan' saves the card once the video ends; 'replay' only shows it again
+  const [videoSource, setVideoSource] = useState('scan');
+  // Load saved collection from localStorage on first render
+  const [collection, setCollection] = useState(getSavedCollection);
+  const [isMuted, setIsMuted] = useState(() => sounds.isMuted());
 
   // Handler when a card is scanned or selected
   const handleCardDetected = (pokemon) => {
     setActivePokemon(pokemon);
+    setVideoSource('scan');
     setIsPlayingVideo(true); // Open video showcase first as requested!
   };
 
@@ -31,8 +29,8 @@ export function App() {
   const handleVideoCompleted = () => {
     setIsPlayingVideo(false);
 
-    // Save card into LocalStorage upon video completion
-    if (activePokemon) {
+    // Save card into LocalStorage upon video completion of a new scan only
+    if (activePokemon && videoSource === 'scan') {
       const saved = saveCardToPokedex(activePokemon);
       setSavedItem(saved);
       // Refresh collection state from localStorage
@@ -43,9 +41,10 @@ export function App() {
     setCurrentTab('detail');
   };
 
-  // Replay video for the active or selected card
+  // Replay video for the active or selected card without counting a new scan
   const handleReplayVideo = (pokemon = activePokemon) => {
     setActivePokemon(pokemon);
+    setVideoSource('replay');
     setIsPlayingVideo(true);
   };
 
@@ -102,8 +101,8 @@ export function App() {
             setCollection={setCollection}
             onSelectCard={handleSelectFromCollection}
             onReplayVideo={(card) => {
-              setActivePokemon(card);
-              setIsPlayingVideo(true);
+              setSavedItem(card);
+              handleReplayVideo(card);
             }}
             onScanNew={() => setCurrentTab('scan')}
           />
@@ -116,7 +115,6 @@ export function App() {
           pokemon={activePokemon}
           onComplete={handleVideoCompleted}
           isMuted={isMuted}
-          onToggleMute={handleToggleMute}
         />
       )}
 
