@@ -353,3 +353,49 @@ Lỗi phát hiện và đã sửa:
 - Đối thủ quá mạnh (thua sau 2 lượt): chọn ngẫu nhiên trong 40 Pokémon không xét sức mạnh → thêm ghép cặp và chỉnh hệ số cấp độ bằng mô phỏng dữ liệu thật.
 - Băng rôn cầu vồng lệch và bị cắt: class `rainbow-bg` có animation riêng, ghi đè hiệu ứng căn giữa.
 - Tầng khắc hệ, sát thương, chuỗi liên hoàn: kiểm tra bằng test đơn vị.
+---
+
+## 16. Chỉnh sửa theo phản hồi và 2 game mới (2026-09-26)
+
+**Game Chạy Nhảy**: bỏ hai nút NHẢY/CÚI. Chạm bất kỳ đâu trên màn hình để nhảy (giữ lâu thì nhảy cao hơn), vuốt xuống để cúi. Nếu cú vuốt bắt đầu bằng một cú chạm đã làm nhân vật nhảy lên, cú nhảy mới bắt đầu (<24px) sẽ bị hủy để cúi ngay. Màn dọc: khung cao 323px (trước đây 170px), phóng to (hiển thị 340/600 đơn vị chiều ngang, hình to hơn khoảng 45%), trời mở rộng phía trên; tốc độ màn dọc thấp hơn (230→460) để giữ khoảng 0,5 giây phản ứng ở tốc độ tối đa.
+
+**Đấu Pokémon**: mặc định chậm 1,5 lần (thời gian chờ, hoạt ảnh CSS và cả chuyển động hạt, quay chậm đồng bộ); nút 🐢 Chậm / 🐇 Nhanh, ghi nhớ lựa chọn.
+
+**Bếp Pokémon**: 5 khách mỗi lượt; công thức 3 nguyên liệu trước, 4 nguyên liệu sau; bấm sai 2 lần thì nguyên liệu đúng phát sáng; khuấy bằng cách vẽ vòng tròn trên nồi (3 vòng) hoặc bấm nút/chạm nồi; nấu, món ăn bật ra, khách ăn, chấm sao; thưởng quả mọng.
+
+**Cửa hàng Pokémon**: 6 khách, độ khó tăng dần (1 loại hàng tổng ≤5 xu → 3 loại tổng ≤10 xu); chọn hàng vào giỏ (bấm vào món trong giỏ để bỏ ra); chọn tổng tiền trong 3 đáp án, có hình đồng xu để đếm; thưởng quả mọng.
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| RU-19 | P1 | AUTO | Hủy cú nhảy vừa bắt đầu khi vuốt xuống; cú nhảy thật thì không hủy | Đúng |
+| RU-16b, RU-20 | P1 | AUTO | Bot vượt qua với tốc độ màn dọc; thời gian phản ứng ở tốc độ tối đa >0,5 giây | Đúng |
+| RG-04, RG-06 | P1 | AUTO | Không còn nút NHẢY/CÚI, có gợi ý cử chỉ; chạm (kể cả ngoài khung game) để nhảy; vuốt xuống thì cúi ngay, thả tay thì đứng lên; chạm nút đóng không bắt đầu game | Đúng |
+| BA-08 | P1 | AUTO | Mặc định chậm (tempo 1.5, lời thoại thứ hai sau ~1,95 giây thay vì 1,3 giây); nút đổi tốc độ và ghi nhớ | Đúng |
+| CK-01..06 | P1 | AUTO | Công thức, kệ luôn có đủ nguyên liệu, đúng thứ tự, gợi ý sau 2 lần sai, khuấy bằng vòng tròn/chạm, góc quay vòng, sao, thưởng | Đúng |
+| SH-01..04, SH-03b | P1 | AUTO | Đơn hàng theo cấp độ, tổng tiền, giỏ khớp, thêm/bớt, 3 đáp án khác nhau (kể cả khi random cố định), sao, câu mô tả, thưởng | Đúng |
+| CO-01..05 | P1 | AUTO | Bếp: khách vào, sai thì rung, gợi ý; nguyên liệu bay vào nồi; khuấy; nấu → món → ăn → khách tiếp theo; vẽ vòng tròn; trọn 5 khách thì tổng kết và thưởng 1 lần; nhân vật không chắn thao tác trên nồi | Đúng |
+| SG-01..03 | P1 | AUTO | Cửa hàng: từ chối món không mua, đủ giỏ thì tính tiền, sai thì nhắc đếm lại, đúng thì xu rơi đúng số lượng, sao; bỏ món khỏi giỏ; 6 khách thì tổng kết và thưởng 1 lần | Đúng |
+| UI-07 | P1 | MANUAL (Chrome) | Chạy Nhảy màn dọc (chạm, vuốt, kích thước), Bếp (vẽ vòng tròn bằng chuột), Cửa hàng | Không lỗi JS |
+
+Lỗi phát hiện và đã sửa:
+- `answerChoices` có thể lặp vô hạn (vòng thử lại với random cố định): test bị treo đã phát hiện ra; viết lại theo cách tất định.
+- Trong trình duyệt thật, khung khách hàng che nửa cái nồi nên vẽ vòng tròn không khuấy được (jsdom không phát hiện được): nhân vật không nhận chạm, nồi nằm lớp trên.
+- Khung chơi màn dọc lần đầu có quá nhiều khoảng trời trống: điều chỉnh tỉ lệ khung và độ phóng to.
+---
+
+## 17. Giao diện Pokédex, bảng chọn game, màn quét mới (2026-09-26)
+
+- **Giao diện Pokédex** (theme thứ 4): vỏ máy đỏ có vân và ánh sáng, khung nội dung như màn hình LCD xanh ngọc tối với viền xám dày, header như nắp máy. Nút giao diện ở header thành **menu chọn** 4 giao diện, mỗi giao diện có ô màu xem trước.
+- **Bảng chọn game**: khu "Pokémon của bé" chỉ còn 1 nút "Chơi cùng X · N trò", bấm vào mở bảng trượt từ dưới lên với 5 game (Ném bóng, Chạy nhảy, Đấu Pokémon nếu đã có thẻ, Bếp, Cửa hàng), mỗi game có biểu tượng, mô tả và thành tích. Đóng bằng cách chạm nền, nút X hoặc phím Esc.
+- **Màn quét**: icon Pokéball; nút chụp tròn hình Pokéball lớn ở giữa, hai bên là Tải ảnh và Đổi camera/Thử lại; ô tìm kiếm có gợi ý tên kèm ảnh và số Pokédex khi gõ từ 2 ký tự; hàng **Pokémon gần đây** (mới nhất trước) mở thẳng thẻ đã lưu, không cần tải lại; lưới **Pokémon nổi tiếng** có ảnh; bảng xác nhận "Có phải Pokémon này không?" với các thẻ gợi ý có ảnh, cùng 3 lối ra: **Quét lại** (đóng bảng và mở lại camera), **Nhập tên khác**, **Hủy**; khi đang tải có nút **Hủy tải** (kết quả về muộn sẽ bị bỏ qua).
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| TH-02, AP-12 | P1 | AUTO | 4 giao diện; chọn từ menu; chạm ngoài thì đóng menu, không đổi giao diện | Đúng |
+| BU-03, BU-08 | P1 | AUTO | Không còn danh sách nút game trên trang; bảng chọn mở/đóng (nền, X, Esc); chọn game thì chạy game và đóng bảng; hiện thành tích | Đúng |
+| SC-22 | P1 | AUTO | Gõ "pika" thì gợi ý Pikachu #025 có ảnh; chạm vào gợi ý thì tải | Đúng |
+| SC-23 | P1 | AUTO | Pokémon gần đây sắp xếp mới nhất trước; chạm thì mở thẻ, không gọi mạng | Đúng |
+| SC-24 | P1 | AUTO | Hủy khi đang tải; kết quả về muộn không mở video | Đúng |
+| SC-25 | P1 | AUTO | Quét lại: đóng bảng xác nhận, mở trình chọn camera | Đúng |
+| SC-26 | P1 | AUTO | Gợi ý từ OCR là thẻ có ảnh, chọn được | Đúng |
+| UI-08 | P1 | MANUAL (Chrome) | Pokédex ở màn quét, chi tiết, bộ sưu tập; menu giao diện; gợi ý tìm kiếm; bảng chọn game | Không lỗi JS |

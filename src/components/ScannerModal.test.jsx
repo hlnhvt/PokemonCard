@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react';
 import { speciesNames, jsonResponse, makeCard } from '../test/fixtures';
 
 const mocks = vi.hoisted(() => ({
@@ -109,7 +109,7 @@ describe('ScannerModal — camera', () => {
     const stream = makeStream();
     setMediaDevices(vi.fn(() => Promise.resolve(stream)));
     const { unmount } = render(<ScannerModal onCardDetected={vi.fn()} />);
-    expect(await screen.findByText('Chụp Quét Tên Thẻ')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Chụp quét tên thẻ' })).toBeInTheDocument();
     unmount();
     expect(stream.track.stop).toHaveBeenCalled();
   });
@@ -117,7 +117,7 @@ describe('ScannerModal — camera', () => {
   it('SC-05 refuses to OCR before the first video frame', async () => {
     setMediaDevices(vi.fn(() => Promise.resolve(makeStream())));
     render(<ScannerModal onCardDetected={vi.fn()} />);
-    fireEvent.click(await screen.findByText('Chụp Quét Tên Thẻ'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Chụp quét tên thẻ' }));
     expect(screen.getByRole('alert')).toHaveTextContent('Camera chưa sẵn sàng');
     expect(mocks.recognizeCardWithOCR).not.toHaveBeenCalled();
   });
@@ -130,7 +130,7 @@ describe('ScannerModal — camera capture crop', () => {
     const drawImage = vi.fn();
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({ drawImage });
     const { container } = render(<ScannerModal onCardDetected={vi.fn()} />);
-    const button = await screen.findByText('Chụp Quét Tên Thẻ');
+    const button = await screen.findByRole('button', { name: 'Chụp quét tên thẻ' });
 
     const video = container.querySelector('video');
     Object.defineProperty(video, 'videoWidth', { value: 720 });
@@ -171,8 +171,9 @@ describe('ScannerModal — image upload & OCR', () => {
     upload(imageFile('anh the bai.png'));
     expect(await screen.findByLabelText('Tên Pokémon cần xác nhận')).toHaveValue('gengar');
     expect(mocks.recognizeCardWithOCR).toHaveBeenCalledTimes(1);
-    expect(screen.getByText('Gengar')).toBeInTheDocument();
-    expect(screen.getByText('Haunter')).toBeInTheDocument();
+    const group = screen.getByRole('radiogroup', { name: 'Gợi ý từ ảnh' });
+    expect(within(group).getByText('Gengar')).toBeInTheDocument();
+    expect(within(group).getByText('Haunter')).toBeInTheDocument();
   });
 
   it('SC-08 resets the input so the same file can be chosen again', async () => {
@@ -232,7 +233,7 @@ describe('ScannerModal — online fetch', () => {
     const onCardDetected = vi.fn();
     render(<ScannerModal onCardDetected={onCardDetected} />);
     upload(imageFile('charizard.png'));
-    fireEvent.click(await screen.findByText(/Tải Dữ Liệu Online/));
+    fireEvent.click(await screen.findByText('Đúng rồi! Tải Pokémon'));
     await waitFor(() => expect(onCardDetected).toHaveBeenCalledWith(card));
     expect(mocks.fetchPokemonOnline).toHaveBeenCalledWith('charizard');
     expect(screen.queryByLabelText('Tên Pokémon cần xác nhận')).toBeNull();
@@ -256,8 +257,8 @@ describe('ScannerModal — online fetch', () => {
     fireEvent.change(input, { target: { value: 'mew' } });
     fireEvent.keyDown(input, { key: 'Enter' });
     fireEvent.keyDown(input, { key: 'Enter' });
-    fireEvent.click(screen.getByText('charizard'));
-    expect(screen.getByText('pikachu').closest('button')).toBeDisabled();
+    fireEvent.click(screen.getByText('Charizard'));
+    expect(screen.getByText('Pikachu').closest('button')).toBeDisabled();
     expect(mocks.fetchPokemonOnline).toHaveBeenCalledTimes(1);
     await act(async () => resolve(makeCard({ id: 'mew', name: 'Mew' })));
     expect(onCardDetected).toHaveBeenCalledTimes(1);
@@ -273,5 +274,78 @@ describe('ScannerModal — online fetch', () => {
     fireEvent.change(input, { target: { value: 'Rayquaza' } });
     fireEvent.keyDown(input, { key: 'Enter' });
     await waitFor(() => expect(mocks.fetchPokemonOnline).toHaveBeenCalledWith('Rayquaza'));
+  });
+});
+
+describe('ScannerModal — faster access & wrong names', () => {
+  it('SC-22 typing shows name suggestions with pictures; tapping one loads it', async () => {
+    mocks.fetchPokemonOnline.mockResolvedValue(makeCard({ id: 'pikachu', name: 'Pikachu' }));
+    render(<ScannerModal onCardDetected={vi.fn()} />);
+    const input = screen.getByLabelText('Tìm Pokémon theo tên');
+    await act(async () => {}); // names list loaded
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: 'pika' } });
+    const list = await screen.findByRole('listbox', { name: 'Gợi ý tên' });
+    const options = within(list).getAllByRole('option');
+    expect(options[0]).toHaveTextContent('Pikachu');
+    expect(options[0]).toHaveTextContent('#025');
+    expect(options[0].querySelector('img').getAttribute('src')).toContain('/25.png');
+    fireEvent.click(options[0]);
+    await waitFor(() => expect(mocks.fetchPokemonOnline).toHaveBeenCalledWith('pikachu'));
+  });
+
+  it('SC-23 recently scanned cards open directly without downloading', () => {
+    const onOpenCard = vi.fn();
+    const older = makeCard({ id: 'mew', name: 'Mew', lastScannedAt: '2026-09-01T00:00:00Z' });
+    const newer = makeCard({ id: 'eevee', name: 'Eevee', lastScannedAt: '2026-09-20T00:00:00Z' });
+    render(<ScannerModal onCardDetected={vi.fn()} recentCards={[older, newer]} onOpenCard={onOpenCard} />);
+    const section = screen.getByRole('region', { name: 'Pokémon gần đây' });
+    const buttons = within(section).getAllByRole('button');
+    expect(buttons.map((b) => b.getAttribute('aria-label'))).toEqual(['Mở Eevee', 'Mở Mew']);
+    fireEvent.click(buttons[0]);
+    expect(onOpenCard).toHaveBeenCalledWith(expect.objectContaining({ id: 'eevee' }));
+    expect(mocks.fetchPokemonOnline).not.toHaveBeenCalled();
+  });
+
+  it('SC-24 a download can be cancelled and its late result is ignored', async () => {
+    let resolve;
+    mocks.fetchPokemonOnline.mockImplementation(() => new Promise((r) => { resolve = r; }));
+    const onCardDetected = vi.fn();
+    render(<ScannerModal onCardDetected={onCardDetected} />);
+    upload(imageFile('charizard.png'));
+    fireEvent.click(await screen.findByText('Đúng rồi! Tải Pokémon'));
+    expect(await screen.findByText(/Đang tải Charizard/)).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Hủy tải'));
+    expect(screen.getByText('Đúng rồi! Tải Pokémon')).toBeInTheDocument();
+    await act(async () => resolve(makeCard()));
+    expect(onCardDetected).not.toHaveBeenCalled();
+  });
+
+  it('SC-25 "Quét lại" closes a wrong guess and reopens the camera picker', async () => {
+    render(<ScannerModal onCardDetected={vi.fn()} />);
+    upload(imageFile('pikachu.png'));
+    await screen.findByTestId('confirm-panel');
+    const picker = document.querySelectorAll('input[type="file"]')[0];
+    const click = vi.spyOn(picker, 'click');
+    fireEvent.click(screen.getByText('Quét lại'));
+    expect(screen.queryByTestId('confirm-panel')).toBeNull();
+    expect(click).toHaveBeenCalled();
+  });
+
+  it('SC-26 OCR candidates are picture cards the child can choose from', async () => {
+    mocks.recognizeCardWithOCR.mockResolvedValue({
+      success: true, rawText: 'x', bestMatch: 'gengar', confidence: 90,
+      candidates: [{ name: 'gengar', displayName: 'Gengar', score: 90 }, { name: 'haunter', displayName: 'Haunter', score: 60 }],
+    });
+    render(<ScannerModal onCardDetected={vi.fn()} />);
+    await act(async () => {});
+    upload(imageFile('photo.png'));
+    const group = await screen.findByRole('radiogroup', { name: 'Gợi ý từ ảnh' });
+    const [gengar, haunter] = within(group).getAllByRole('radio');
+    expect(gengar).toHaveAttribute('aria-checked', 'true');
+    expect(gengar.querySelector('img').getAttribute('src')).toContain('/94.png');
+    fireEvent.click(haunter);
+    expect(haunter).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByText('CÓ PHẢI POKÉMON NÀY KHÔNG?')).toBeInTheDocument();
   });
 });

@@ -21,6 +21,8 @@ import { EvolutionTree } from './EvolutionTree';
 import { CatchGame } from './CatchGame';
 import { RunnerGame } from './RunnerGame';
 import { BattleArena } from './BattleArena';
+import { CookingGame } from './kidgames/CookingGame';
+import { ShopGame } from './kidgames/ShopGame';
 import { getCardMedia } from '../services/pokemonOnlineService';
 import { fedToday } from '../utils/friendship';
 
@@ -51,6 +53,58 @@ export function PokemonCardDetail({
   const [isCatching, setIsCatching] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [isBattling, setIsBattling] = useState(false);
+  const [isCooking, setIsCooking] = useState(false);
+  const [isShopping, setIsShopping] = useState(false);
+
+  const buddyImage = (showShiny && getCardMedia(rawPokemon).shinyImage) || rawPokemon.fallbackImage || rawPokemon.image;
+  // All games for this Pokemon, shown in one picker instead of a long list of buttons
+  const canBattle = !isPreview && !!savedItem;
+  const games = [
+    {
+      id: 'catch',
+      title: 'Ném bóng bắt Pokémon',
+      description: 'Vuốt Pokéball để bắt bạn ấy!',
+      icon: '🎯',
+      gradient: 'from-red-500 to-rose-500',
+      badge: savedItem?.catchCount ? `Bắt ${savedItem.catchCount} lần` : null,
+      onPlay: () => setIsCatching(true),
+    },
+    {
+      id: 'runner',
+      title: 'Chạy nhảy',
+      description: 'Nhảy qua chướng ngại, nhặt quả mọng',
+      icon: '🏃',
+      gradient: 'from-emerald-500 to-teal-500',
+      onPlay: () => setIsRunning(true),
+    },
+    ...(canBattle
+      ? [{
+          id: 'battle',
+          title: 'Đấu Pokémon',
+          description: 'Tung chiêu thức và Tuyệt Kỹ Liên Hoàn',
+          icon: '⚔️',
+          gradient: 'from-orange-500 via-red-500 to-purple-600',
+          badge: savedItem?.battleWins ? `Thắng ${savedItem.battleWins}` : null,
+          onPlay: () => setIsBattling(true),
+        }]
+      : []),
+    {
+      id: 'cooking',
+      title: 'Bếp Pokémon',
+      description: 'Nấu món ngon cho khách Pokémon',
+      icon: '🍳',
+      gradient: 'from-amber-500 to-orange-500',
+      onPlay: () => setIsCooking(true),
+    },
+    {
+      id: 'shop',
+      title: 'Cửa hàng Pokémon',
+      description: 'Bán hàng và tập đếm tiền xu',
+      icon: '🏪',
+      gradient: 'from-sky-500 to-indigo-500',
+      onPlay: () => setIsShopping(true),
+    },
+  ];
   // Older or partially saved cards may miss fields; fill them so rendering never crashes
   const pokemon = {
     ...rawPokemon,
@@ -365,10 +419,7 @@ export function PokemonCardDetail({
               showShiny={showShiny}
               onToggleShiny={setShowShiny}
               catchCount={savedItem?.catchCount || 0}
-              onPlayCatch={() => setIsCatching(true)}
-              onPlayRunner={() => setIsRunning(true)}
-              onPlayBattle={!isPreview && savedItem ? () => setIsBattling(true) : undefined}
-              battleWins={savedItem?.battleWins || 0}
+              games={games}
               care={{
                 enabled: !isPreview && !!savedItem,
                 friendship: savedItem?.friendship || 0,
@@ -586,6 +637,9 @@ export function PokemonCardDetail({
 
         </div>
       </div>
+
+      {isCooking && <CookingGame chef={{ ...pokemon, fallbackImage: buddyImage }} onBerries={onBerries} onClose={() => setIsCooking(false)} />}
+      {isShopping && <ShopGame shopkeeper={{ ...pokemon, fallbackImage: buddyImage }} onBerries={onBerries} onClose={() => setIsShopping(false)} />}
 
       {isBattling && savedItem && (
         <BattleArena

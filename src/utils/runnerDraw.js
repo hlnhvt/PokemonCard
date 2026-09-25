@@ -2,12 +2,15 @@
 // unit is one logical pixel of the WORLD (see runnerGame.js).
 import { WORLD, PLAYER, isNight } from './runnerGame';
 
+const SKY_ABOVE = 600;
+
 const ready = (img) => !!img && img.complete && img.naturalWidth > 0;
 
 // Official artwork has transparent margins, so sprites are drawn larger than their hitbox
 const SPRITE_SCALE = 1.35;
 
-function drawSky(ctx, state, night) {
+function drawSky(ctx, state, night, viewWidth) {
+  const sunX = viewWidth - 70;
   const sky = ctx.createLinearGradient(0, 0, 0, WORLD.groundY);
   if (night) {
     sky.addColorStop(0, '#0b1438');
@@ -17,7 +20,8 @@ function drawSky(ctx, state, night) {
     sky.addColorStop(1, '#e0f2fe');
   }
   ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, WORLD.width, WORLD.groundY);
+  // Tall portrait canvases show extra sky above y = 0 (see RunnerGame resize)
+  ctx.fillRect(0, -SKY_ABOVE, WORLD.width, WORLD.groundY + SKY_ABOVE);
 
   if (night) {
     ctx.fillStyle = 'rgba(255,255,255,0.8)';
@@ -28,16 +32,16 @@ function drawSky(ctx, state, night) {
     }
     ctx.fillStyle = '#fef9c3';
     ctx.beginPath();
-    ctx.arc(520, 38, 16, 0, Math.PI * 2);
+    ctx.arc(sunX, 38, 16, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#27336b';
     ctx.beginPath();
-    ctx.arc(528, 33, 14, 0, Math.PI * 2);
+    ctx.arc(sunX + 8, 33, 14, 0, Math.PI * 2);
     ctx.fill();
   } else {
     ctx.fillStyle = '#fde047';
     ctx.beginPath();
-    ctx.arc(520, 40, 18, 0, Math.PI * 2);
+    ctx.arc(sunX, 40, 18, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -180,10 +184,10 @@ function drawBerry(ctx, o, time) {
 /**
  * Draw one frame. assets = { player: Image, pokemon: Map<id, Image> }.
  */
-export function drawRunner(ctx, state, assets) {
+export function drawRunner(ctx, state, assets, view = { width: WORLD.width }) {
   const night = isNight(state);
   const t = state.time;
-  drawSky(ctx, state, night);
+  drawSky(ctx, state, night, view.width);
   drawGround(ctx, state, night);
 
   for (const o of state.obstacles) {

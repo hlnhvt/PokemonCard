@@ -4,6 +4,7 @@ export const THEMES = [
   { id: 'dark', label: 'Tối', metaColor: '#0f172a' },
   { id: 'light', label: 'Sáng', metaColor: '#f8fbff' },
   { id: 'ocean', label: 'Xanh biển', metaColor: '#2563eb' },
+  { id: 'pokedex', label: 'Pokédex', metaColor: '#b91c1c' },
 ];
 
 const STORAGE_KEY = 'pokescan_theme';

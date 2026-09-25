@@ -1,8 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Camera, BookOpen, Gamepad2, Volume2, VolumeX, Moon, Sun, Waves } from 'lucide-react';
 import { THEMES } from '../utils/theme';
+import { PokeballIcon } from './PokeballIcon';
 
 const THEME_ICONS = { dark: Moon, light: Sun, ocean: Waves };
+// Preview colours in the theme menu
+const THEME_SWATCH = {
+  dark: 'bg-slate-950',
+  light: 'bg-gradient-to-br from-white to-sky-100',
+  ocean: 'bg-gradient-to-br from-sky-400 to-blue-800',
+  pokedex: 'bg-gradient-to-br from-red-500 to-red-800',
+};
 
 const TABS = [
   { id: 'scan', label: 'Quét Thẻ', Icon: Camera, active: 'bg-gradient-to-r from-red-600 to-rose-600 shadow-red-600/30 border-red-400/40' },
@@ -10,7 +18,8 @@ const TABS = [
   { id: 'games', label: 'Trò Chơi', Icon: Gamepad2, active: 'bg-gradient-to-r from-emerald-600 to-teal-600 shadow-emerald-600/30 border-emerald-400/40' },
 ];
 
-export function Header({ currentTab, setCurrentTab, collectionCount, isMuted, onToggleMute, theme = 'dark', onCycleTheme }) {
+export function Header({ currentTab, setCurrentTab, collectionCount, isMuted, onToggleMute, theme = 'dark', onSelectTheme }) {
+  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const currentTheme = THEMES.find((t) => t.id === theme) || THEMES[0];
   const ThemeIcon = THEME_ICONS[currentTheme.id] || Moon;
 
@@ -71,15 +80,47 @@ export function Header({ currentTab, setCurrentTab, collectionCount, isMuted, on
             </button>
           ))}
 
-          {/* Theme switcher: dark -> light -> ocean */}
-          <button
-            onClick={onCycleTheme}
-            aria-label={`Đổi giao diện (đang dùng: ${currentTheme.label})`}
-            title={`Giao diện: ${currentTheme.label}`}
-            className="p-2 rounded-xl text-slate-400 hover:text-amber-400 hover:bg-slate-900 border border-slate-800 transition-colors"
-          >
-            <ThemeIcon className="w-4 h-4 text-cyan-400" />
-          </button>
+          {/* Theme menu: each option shows a small preview swatch */}
+          <div className="relative">
+            <button
+              onClick={() => setThemeMenuOpen((open) => !open)}
+              aria-label={`Đổi giao diện (đang dùng: ${currentTheme.label})`}
+              aria-haspopup="menu"
+              aria-expanded={themeMenuOpen}
+              title={`Giao diện: ${currentTheme.label}`}
+              className="p-2 rounded-xl text-slate-400 hover:text-amber-400 hover:bg-slate-900 border border-slate-800 transition-colors"
+            >
+              {currentTheme.id === 'pokedex' ? <PokeballIcon className="w-4 h-4" /> : <ThemeIcon className="w-4 h-4 text-cyan-400" />}
+            </button>
+            {themeMenuOpen && (
+              <>
+                <button aria-label="Đóng menu giao diện" className="fixed inset-0 z-40 cursor-default" onClick={() => setThemeMenuOpen(false)} />
+                <div role="menu" aria-label="Chọn giao diện" className="absolute right-0 top-full mt-2 z-50 w-48 p-2 rounded-2xl bg-slate-900 border-2 border-slate-700 shadow-2xl sheet-item">
+                  {THEMES.map((t) => {
+                    const Icon = THEME_ICONS[t.id];
+                    return (
+                      <button
+                        key={t.id}
+                        role="menuitemradio"
+                        aria-checked={t.id === currentTheme.id}
+                        onClick={() => {
+                          onSelectTheme?.(t.id);
+                          setThemeMenuOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-xl text-sm font-bold text-slate-100 hover:bg-slate-800 ${t.id === currentTheme.id ? 'bg-slate-800' : ''}`}
+                      >
+                        <span className={`w-7 h-7 rounded-lg border-2 border-white/40 flex items-center justify-center ${THEME_SWATCH[t.id]}`}>
+                          {Icon ? <Icon className="w-3.5 h-3.5 text-white" /> : <PokeballIcon className="w-4 h-4" />}
+                        </span>
+                        {t.label}
+                        {t.id === currentTheme.id && <span className="ml-auto text-cyan-400">✓</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
 
           {/* Mute / Unmute Button */}
           <button

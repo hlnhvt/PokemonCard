@@ -144,6 +144,28 @@ class SoundManager {
     }
   }
 
+  // Cash register "cha-ching": two bright bell tones
+  playCoin() {
+    if (this.muted) return;
+    this.init();
+    if (!this.ctx) return;
+
+    const start = this.ctx.currentTime;
+    [[1318.5, 0], [1760, 0.09]].forEach(([freq, delay]) => {
+      const t = start + delay;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t);
+      gain.gain.setValueAtTime(0.18, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.35);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.35);
+    });
+  }
+
   // Short upward chirp for the runner's jump
   playJump() {
     if (this.muted) return;

@@ -19,6 +19,24 @@ import { pickOpponent } from '../utils/battle/matchmaking';
 import { sounds } from '../utils/soundEffects';
 import { playCry } from '../utils/cries';
 
+// Slow is the default: children asked to see the moves and effects properly
+const TEMPO = { slow: 1.5, normal: 1 };
+const SPEED_KEY = 'pokescan_battle_speed';
+function readSpeed() {
+  try {
+    return localStorage.getItem(SPEED_KEY) === 'normal' ? 'normal' : 'slow';
+  } catch {
+    return 'slow';
+  }
+}
+function saveSpeed(value) {
+  try {
+    localStorage.setItem(SPEED_KEY, value);
+  } catch {
+    // ignore
+  }
+}
+
 // Sprite centres as fractions of the arena (classic layout: opponent up-right, player low-left)
 const POS = { opponent: { x: 0.72, y: 0.34 }, player: { x: 0.28, y: 0.7 } };
 
@@ -47,8 +65,8 @@ function HpBox({ fighter, shown, ghost, align }) {
       </div>
       <div className="relative mt-1.5 h-2.5 rounded-full bg-slate-800 overflow-hidden" role="progressbar" aria-label={`Máu ${fighter.name}`} aria-valuemin={0} aria-valuemax={fighter.maxHp} aria-valuenow={shown}>
         {/* Red chip bar trails behind the real HP like in fighting games */}
-        <div className="absolute inset-y-0 left-0 bg-rose-300 transition-[width] duration-700 ease-out delay-300" style={{ width: `${ghostRatio * 100}%` }} />
-        <div className={`absolute inset-y-0 left-0 ${hpColor(ratio)} transition-[width] duration-500 ease-out`} style={{ width: `${ratio * 100}%` }} />
+        <div className="absolute inset-y-0 left-0 bg-rose-300 transition-[width] ease-out" style={{ width: `${ghostRatio * 100}%`, transitionDuration: 'calc(700ms * var(--battle-tempo, 1))', transitionDelay: 'calc(300ms * var(--battle-tempo, 1))' }} />
+        <div className={`absolute inset-y-0 left-0 ${hpColor(ratio)} transition-[width] ease-out`} style={{ width: `${ratio * 100}%`, transitionDuration: 'calc(500ms * var(--battle-tempo, 1))' }} />
       </div>
       {fighter.isPlayer && (
         <div className="text-right text-[11px] font-bold text-slate-200 tabular-nums mt-0.5">
@@ -65,7 +83,19 @@ function HpBox({ fighter, shown, ghost, align }) {
  * particle effects, hits shake the screen, damage numbers pop, HP bars drain smoothly,
  * and the combo finisher chains all four moves.
  */
-export function BattleArena({ card, onClose, onResult, random = Math.random }) {
+export function BattleArena({ card, onClose, onResult, random = Math.random, tempo: tempoOverride }) {
+  // Pace of the battle: 'slow' (default, easier to follow for children) or 'normal'
+  const [speed, setSpeed] = useState(readSpeed);
+  const tempo = tempoOverride ?? TEMPO[speed];
+  const tempoRef = useRef(tempo);
+  useEffect(() => {
+    tempoRef.current = tempo;
+  }, [tempo]);
+  const toggleSpeed = () => {
+    const next = speed === 'slow' ? 'normal' : 'slow';
+    setSpeed(next);
+    saveSpeed(next);
+  };
   const [phase, setPhase] = useState('loading'); // loading | intro | choose | animating | won | lost | error
   const [error, setError] = useState(null);
   const [battle, setBattle] = useState(null);
@@ -104,7 +134,9 @@ export function BattleArena({ card, onClose, onResult, random = Math.random }) {
     };
   }, []);
 
-  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  // Every delay scales with the tempo (slow motion), so animations stay in sync
+  const later = (fn, ms) => setTimeout(fn, ms * tempoRef.current);
+  const wait = (ms) => new Promise((resolve) => later(resolve, ms));
 
   // ---- Canvas: size to the arena and run the particle loop
   useEffect(() => {
@@ -128,7 +160,7 @@ export function BattleArena({ card, onClose, onResult, random = Math.random }) {
       const dt = last == null ? 16 : Math.min(50, now - last);
       last = now;
       const fx = fxRef.current;
-      fx.update(dt);
+      fx.update(dt / tempoRef.current);
       if (ctx) fx.draw(ctx, arena.clientWidth, arena.clientHeight);
       id = raf(loop);
     };
@@ -150,31 +182,31 @@ export function BattleArena({ card, onClose, onResult, random = Math.random }) {
     const id = ++idRef.current;
     const p = POS[side];
     setFloaters((list) => [...list, { id, text, style, left: `${p.x * 100}%`, top: `${(p.y - 0.12) * 100}%` }]);
-    setTimeout(() => alive.current && setFloaters((list) => list.filter((f) => f.id !== id)), 1000);
+    later(() => alive.current && setFloaters((list) => list.filter((f) => f.id !== id)), 1000);
   };
 
   const showBanner = (text, tone) => {
     const id = ++idRef.current;
     setBanner({ id, text, tone });
-    setTimeout(() => alive.current && setBanner((b) => (b?.id === id ? null : b)), 1000);
+    later(() => alive.current && setBanner((b) => (b?.id === id ? null : b)), 1000);
   };
 
   const doShake = (size) => {
     // Remove then re-add the class on the next tick so the shake restarts on every hit
     setShake(null);
     setTimeout(() => alive.current && setShake(size), 0);
-    setTimeout(() => alive.current && setShake(null), size === 'lg' ? 520 : 270);
+    later(() => alive.current && setShake(null), size === 'lg' ? 520 : 270);
   };
 
   const doFlash = (color) => {
     const id = ++idRef.current;
     setFlash({ id, color });
-    setTimeout(() => alive.current && setFlash((f) => (f?.id === id ? null : f)), 350);
+    later(() => alive.current && setFlash((f) => (f?.id === id ? null : f)), 350);
   };
 
   const spriteClass = (side, cls, ms) => {
     setSpriteFx((s) => ({ ...s, [side]: cls }));
-    if (ms) setTimeout(() => alive.current && setSpriteFx((s) => (s[side] === cls ? { ...s, [side]: 'battle-idle' } : s)), ms);
+    if (ms) later(() => alive.current && setSpriteFx((s) => (s[side] === cls ? { ...s, [side]: 'battle-idle' } : s)), ms);
   };
 
   // ---- Setup: load both Pokemon and play the intro
@@ -270,7 +302,7 @@ export function BattleArena({ card, onClose, onResult, random = Math.random }) {
           sounds.playPop();
           spriteClass(e.side, 'battle-hit', 400);
           setHp((h) => ({ ...h, [e.side]: e.hp }));
-          setTimeout(() => alive.current && setGhostHp((g) => ({ ...g, [e.side]: e.hp })), 50);
+          later(() => alive.current && setGhostHp((g) => ({ ...g, [e.side]: e.hp })), 50);
           const style = e.crit
             ? 'text-yellow-300 text-4xl'
             : superEffective
@@ -391,12 +423,19 @@ export function BattleArena({ card, onClose, onResult, random = Math.random }) {
   const comboReady = combo >= COMBO_MAX;
 
   return createPortal(
-    <div data-theme="dark" className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-2 sm:p-4" role="dialog" aria-label="Đấu Pokémon" data-phase={phase}>
+    <div data-theme="dark" className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-2 sm:p-4" role="dialog" aria-label="Đấu Pokémon" data-phase={phase} data-speed={speed} style={{ '--battle-tempo': tempo }}>
       <div className="w-full max-w-2xl max-h-full overflow-y-auto rounded-3xl border-4 border-white/70 shadow-2xl bg-slate-950">
         <div className="flex items-center justify-between px-4 py-2 bg-gradient-to-r from-red-600 via-rose-600 to-orange-500">
           <span className="flex items-center gap-2 text-white font-black">
             <Swords className="w-5 h-5" /> Đấu Pokémon!
           </span>
+          <button
+            onClick={toggleSpeed}
+            aria-label={speed === 'slow' ? 'Tốc độ: chậm (bấm để nhanh hơn)' : 'Tốc độ: nhanh (bấm để chậm lại)'}
+            className="ml-auto mr-2 px-3 py-1 rounded-full bg-white/20 hover:bg-white/30 text-white text-sm font-black"
+          >
+            {speed === 'slow' ? '🐢 Chậm' : '🐇 Nhanh'}
+          </button>
           <button onClick={onClose} aria-label="Đóng trận đấu" className="p-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white">
             <X className="w-5 h-5" />
           </button>

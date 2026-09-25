@@ -3,6 +3,8 @@ import { Footprints, Target, Sparkles, Swords } from 'lucide-react';
 import { GuessGame } from './GuessGame';
 import { RunnerGame } from './RunnerGame';
 import { BattleArena } from './BattleArena';
+import { CookingGame } from './kidgames/CookingGame';
+import { ShopGame } from './kidgames/ShopGame';
 import { artworkUrl, getCardMedia } from '../services/pokemonOnlineService';
 import { BERRY_TYPES, BERRIES } from '../utils/friendship';
 import { BerryIcon } from './BerryIcon';
@@ -18,6 +20,8 @@ export function GamesHub({ collection = [], berries, onBerries, onBattleResult, 
   const [selectedId, setSelectedId] = useState(choices[0].id);
   const [running, setRunning] = useState(false);
   const [battling, setBattling] = useState(false);
+  const [cooking, setCooking] = useState(false);
+  const [shopping, setShopping] = useState(false);
   const selected = choices.find((c) => c.id === selectedId) || choices[0];
 
   return (
@@ -80,6 +84,26 @@ export function GamesHub({ collection = [], berries, onBerries, onBattleResult, 
         </button>
       </div>
 
+      {/* Cooking and shop, with the selected Pokemon as chef / shopkeeper */}
+      <div className="grid grid-cols-2 gap-3">
+        <button
+          onClick={() => setCooking(true)}
+          className="glass-panel rounded-3xl p-4 flex flex-col items-center gap-1 text-center active:scale-95 transition-transform"
+        >
+          <span className="text-5xl" aria-hidden="true">🍳</span>
+          <span className="text-base font-black text-slate-50">Bếp Pokémon</span>
+          <span className="text-xs text-slate-300">{selected.name} làm đầu bếp</span>
+        </button>
+        <button
+          onClick={() => setShopping(true)}
+          className="glass-panel rounded-3xl p-4 flex flex-col items-center gap-1 text-center active:scale-95 transition-transform"
+        >
+          <span className="text-5xl" aria-hidden="true">🏪</span>
+          <span className="text-base font-black text-slate-50">Cửa hàng Pokémon</span>
+          <span className="text-xs text-slate-300">{selected.name} bán hàng</span>
+        </button>
+      </div>
+
       {/* Silhouette quiz */}
       <GuessGame collection={collection} />
 
@@ -101,6 +125,8 @@ export function GamesHub({ collection = [], berries, onBerries, onBattleResult, 
           onResult={(result) => collection.length > 0 && onBattleResult?.(selected.id, result)}
         />
       )}
+      {cooking && <CookingGame chef={{ ...selected, fallbackImage: runnerImage(selected) }} onBerries={onBerries} onClose={() => setCooking(false)} />}
+      {shopping && <ShopGame shopkeeper={{ ...selected, fallbackImage: runnerImage(selected) }} onBerries={onBerries} onClose={() => setShopping(false)} />}
       {running && <RunnerGame pokemon={selected} image={runnerImage(selected)} onBerries={onBerries} onClose={() => setRunning(false)} />}
     </div>
   );

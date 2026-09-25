@@ -51,7 +51,7 @@ const card = (over = {}) => makeCard({ speciesName: 'charizard', friendship: 60,
 describe('BattleArena', () => {
   it('BA-01 loads, introduces both Pokemon and offers 4 moves with hints', async () => {
     setupFetch(CHARIZARD, WEAK_FOE);
-    render(<BattleArena card={card()} onClose={vi.fn()} random={() => 0.3} />);
+    render(<BattleArena card={card()} onClose={vi.fn()} random={() => 0.3} tempo={1} />);
     expect(screen.getByText('Đang chuẩn bị trận đấu...')).toBeInTheDocument();
     await advance(100);
     expect(screen.getByRole('log')).toHaveTextContent('Một Caterpie hoang dã xuất hiện!');
@@ -69,7 +69,7 @@ describe('BattleArena', () => {
   it('BA-02 a winning move animates, shows the win screen and reports once', async () => {
     setupFetch(CHARIZARD, WEAK_FOE);
     const onResult = vi.fn();
-    render(<BattleArena card={card()} onClose={vi.fn()} onResult={onResult} random={() => 0.3} />);
+    render(<BattleArena card={card()} onClose={vi.fn()} onResult={onResult} random={() => 0.3} tempo={1} />);
     await advance(2600);
     fireEvent.click(screen.getByText('Flamethrower'));
     expect(phase()).toBe('animating');
@@ -87,7 +87,7 @@ describe('BattleArena', () => {
   it('BA-03 losing shows encouragement and reports the loss', async () => {
     setupFetch(data('Magikarp', 129, ['water'], { hp: 20, attack: 10, defense: 55, spAttack: 15, spDefense: 20, speed: 80 }, [mv('Splash Hit', 'water', 20), mv('Tackle', 'normal', 40), mv('Flail', 'normal', 30), mv('Bounce', 'flying', 85)]), STRONG_FOE);
     const onResult = vi.fn();
-    render(<BattleArena card={card({ speciesName: 'magikarp', name: 'Magikarp', friendship: 0 })} onClose={vi.fn()} onResult={onResult} random={() => 0.3} />);
+    render(<BattleArena card={card({ speciesName: 'magikarp', name: 'Magikarp', friendship: 0 })} onClose={vi.fn()} onResult={onResult} random={() => 0.3} tempo={1} />);
     await advance(2600);
     for (let turn = 0; turn < 6 && phase() !== 'lost'; turn++) {
       if (phase() === 'choose') fireEvent.click(moveButtons()[0]);
@@ -101,7 +101,7 @@ describe('BattleArena', () => {
   it('BA-04 combo energy fills up and the finisher chains all four moves', async () => {
     const hero = TANK('Snorlax', 143);
     setupFetch({ ...hero, key: 'snorlax' }, TANK('Chansey', 113));
-    render(<BattleArena card={card({ speciesName: 'snorlax', name: 'Snorlax' })} onClose={vi.fn()} random={() => 0.3} />);
+    render(<BattleArena card={card({ speciesName: 'snorlax', name: 'Snorlax' })} onClose={vi.fn()} random={() => 0.3} tempo={1} />);
     await advance(2600);
     const comboButton = () => screen.getByRole('button', { name: /Tuyệt Kỹ Liên Hoàn/ });
     let turns = 0;
@@ -131,7 +131,7 @@ describe('BattleArena', () => {
 
   it('BA-05 network failure shows a retry button', async () => {
     mocks.fetchBattlePokemon.mockRejectedValueOnce(new Error('Không tải được dữ liệu trận đấu.')).mockResolvedValue(CHARIZARD);
-    render(<BattleArena card={card()} onClose={vi.fn()} random={() => 0.3} />);
+    render(<BattleArena card={card()} onClose={vi.fn()} random={() => 0.3} tempo={1} />);
     await advance(200);
     expect(phase()).toBe('error');
     expect(screen.getByText('Không tải được dữ liệu trận đấu.')).toBeInTheDocument();
@@ -146,25 +146,42 @@ describe('BattleArena', () => {
   it('BA-07 parent re-renders do not restart the battle', async () => {
     setupFetch(CHARIZARD, WEAK_FOE);
     const onResult = vi.fn();
-    const { rerender } = render(<BattleArena card={card()} onClose={vi.fn()} onResult={onResult} random={() => 0.3} />);
+    const { rerender } = render(<BattleArena card={card()} onClose={vi.fn()} onResult={onResult} random={() => 0.3} tempo={1} />);
     await advance(2600);
-    rerender(<BattleArena card={card()} onClose={vi.fn()} onResult={onResult} random={() => 0.3} />);
+    rerender(<BattleArena card={card()} onClose={vi.fn()} onResult={onResult} random={() => 0.3} tempo={1} />);
     await advance(500);
     expect(phase()).toBe('choose');
     fireEvent.click(screen.getByText('Flamethrower'));
     await advance(4200);
     expect(phase()).toBe('won');
-    rerender(<BattleArena card={card({ battleWins: 1 })} onClose={vi.fn()} onResult={onResult} random={() => 0.3} />);
+    rerender(<BattleArena card={card({ battleWins: 1 })} onClose={vi.fn()} onResult={onResult} random={() => 0.3} tempo={1} />);
     await advance(3000);
     expect(phase()).toBe('won');
     expect(mocks.fetchBattlePokemon).toHaveBeenCalledTimes(2);
     expect(onResult).toHaveBeenCalledTimes(1);
   });
 
+  it('BA-08 battles are slower by default (x1.5) and the 🐢/🐇 button switches speed', async () => {
+    setupFetch(CHARIZARD, WEAK_FOE);
+    render(<BattleArena card={card()} onClose={vi.fn()} random={() => 0.3} />);
+    expect(screen.getByRole('dialog').dataset.speed).toBe('slow');
+    expect(screen.getByRole('dialog').style.getPropertyValue('--battle-tempo')).toBe('1.5');
+    await advance(1500);
+    // At normal speed the second intro line shows after 1.3s; slowed it waits ~1.95s
+    expect(screen.getByRole('log')).toHaveTextContent('hoang dã xuất hiện');
+    await advance(700);
+    expect(screen.getByRole('log')).toHaveTextContent('Tiến lên, Charizard!');
+
+    fireEvent.click(screen.getByRole('button', { name: /Tốc độ: chậm/ }));
+    expect(screen.getByRole('dialog').dataset.speed).toBe('normal');
+    expect(localStorage.getItem('pokescan_battle_speed')).toBe('normal');
+    expect(screen.getByText('🐇 Nhanh')).toBeInTheDocument();
+  });
+
   it('BA-06 close button and "Đấu tiếp" for a new opponent', async () => {
     setupFetch(CHARIZARD, WEAK_FOE);
     const onClose = vi.fn();
-    render(<BattleArena card={card()} onClose={onClose} random={() => 0.3} />);
+    render(<BattleArena card={card()} onClose={onClose} random={() => 0.3} tempo={1} />);
     await advance(2600);
     fireEvent.click(screen.getByText('Flamethrower'));
     await advance(4200);

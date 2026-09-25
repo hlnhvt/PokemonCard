@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Camera,
-  Upload,
   FlipHorizontal,
   Sparkles,
   AlertCircle,
@@ -9,22 +8,70 @@ import {
   RefreshCw,
   ShieldAlert,
   Smartphone,
-  ScanText,
-  Globe,
-  ArrowRight,
-  Edit3
+  Edit3,
+  X,
+  RotateCcw,
+  Search,
+  History,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { recognizeCardWithOCR } from '../utils/cardRecognizer';
 import { mapRectToVideoFrame } from '../utils/cardImage';
-import { findBestPokemonNameFromText, fetchPokemonOnline } from '../services/pokemonOnlineService';
+import { findBestPokemonNameFromText, fetchPokemonOnline, getAllPokemonNames, artworkUrl } from '../services/pokemonOnlineService';
 import { sounds } from '../utils/soundEffects';
+import { PokeballIcon } from './PokeballIcon';
+
+// Famous Pokemon children know, one tap away
+const QUICK_PICKS = [
+  { name: 'pikachu', label: 'Pikachu', id: 25 },
+  { name: 'charizard', label: 'Charizard', id: 6 },
+  { name: 'eevee', label: 'Eevee', id: 133 },
+  { name: 'mewtwo', label: 'Mewtwo', id: 150 },
+  { name: 'gengar', label: 'Gengar', id: 94 },
+  { name: 'lucario', label: 'Lucario', id: 448 },
+  { name: 'squirtle', label: 'Squirtle', id: 7 },
+  { name: 'snorlax', label: 'Snorlax', id: 143 },
+];
+const MAX_SUGGESTIONS = 6;
+const MAX_RECENT = 10;
+
+const labelOf = (name) => name.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join('-');
 
 function detectSecureContext() {
   if (typeof window === 'undefined') return true;
   return window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 }
 
-export function ScannerModal({ onCardDetected }) {
+export function ScannerModal({ onCardDetected, recentCards = [], onOpenCard }) {
+  // Species names for search suggestions and candidate pictures (list index + 1 = Pokedex number)
+  const [allNames, setAllNames] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [loadingName, setLoadingName] = useState('');
+  const confirmInputRef = useRef(null);
+  // Bumped when a download is cancelled, so its late result is ignored
+  const loadTokenRef = useRef(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    getAllPokemonNames().then((names) => {
+      if (!cancelled) setAllNames(names);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Only the full ordered list maps names to Pokedex numbers (the offline fallback is unordered)
+  const idOf = (name) => {
+    if (allNames.length < 1000) return null;
+    const index = allNames.indexOf(String(name).toLowerCase());
+    return index >= 0 ? index + 1 : null;
+  };
+  const thumbFor = (name) => {
+    const quick = QUICK_PICKS.find((q) => q.name === String(name).toLowerCase());
+    const id = quick?.id || idOf(name);
+    return id ? artworkUrl(id) : null;
+  };
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState(null);
   const [isSecure] = useState(detectSecureContext);
@@ -221,25 +268,70 @@ export function ScannerModal({ onCardDetected }) {
     }
 
     isLoadingOnlineRef.current = true;
+    const token = ++loadTokenRef.current;
     setIsLoadingOnline(true);
+    setLoadingName(labelOf(targetName.trim()));
     setOnlineError(null);
 
     try {
       console.log('[PokeScan] Fetching online data for:', targetName);
       const onlinePokemon = await fetchPokemonOnline(targetName.trim());
+      if (token !== loadTokenRef.current) return; // cancelled meanwhile
       setDetectedName('');
       setIsConfirmOpen(false);
 
       // Advance to Video Showcase and detail flow!
       onCardDetected(onlinePokemon);
     } catch (err) {
+      if (token !== loadTokenRef.current) return;
       console.error('Online fetch failed:', err);
       setOnlineError(err.message || 'Không tìm thấy Pokémon này trên cơ sở dữ liệu online.');
     } finally {
-      isLoadingOnlineRef.current = false;
-      setIsLoadingOnline(false);
+      if (token === loadTokenRef.current) {
+        isLoadingOnlineRef.current = false;
+        setIsLoadingOnline(false);
+      }
     }
   };
+
+  // Stop waiting for a download the child no longer wants (wrong name, too slow...)
+  const cancelLoading = () => {
+    loadTokenRef.current += 1;
+    isLoadingOnlineRef.current = false;
+    setIsLoadingOnline(false);
+    setOnlineError(null);
+  };
+
+  const closeConfirmation = () => {
+    cancelLoading();
+    setDetectedName('');
+    setDetectedCandidates([]);
+    setIsConfirmOpen(false);
+  };
+
+  // Wrong Pokemon recognised: close the panel and go straight back to taking a picture
+  const retakeScan = () => {
+    closeConfirmation();
+    setScanError(null);
+    if (!cameraActive) nativeCameraInputRef.current?.click();
+  };
+
+  // Suggestions while typing: names starting with the text first, then containing it
+  const query = manualInputName.trim().toLowerCase().replace(/\s+/g, '-');
+  const suggestions =
+    query.length >= 2
+      ? [
+          ...allNames.filter((n) => n.startsWith(query)),
+          ...allNames.filter((n) => !n.startsWith(query) && n.includes(query)),
+        ]
+          .slice(0, MAX_SUGGESTIONS)
+          .map((n) => ({ name: n, label: labelOf(n), id: idOf(n), thumb: thumbFor(n) }))
+      : [];
+
+  // Recently scanned cards, newest first
+  const recent = [...recentCards]
+    .sort((a, b) => String(b.lastScannedAt || '').localeCompare(String(a.lastScannedAt || '')))
+    .slice(0, MAX_RECENT);
 
   const captureCameraFrame = () => {
     if (!videoRef.current) return;
@@ -302,20 +394,16 @@ export function ScannerModal({ onCardDetected }) {
     reader.readAsDataURL(file);
   };
 
+
   return (
     <div className="w-full max-w-xl mx-auto px-4 py-4 sm:py-6 flex flex-col items-center">
-      
-      {/* Top Banner Guide */}
       <div className="w-full text-center mb-3">
-        <h2 className="text-xl sm:text-2xl font-black text-slate-50 font-tech uppercase tracking-wider flex items-center justify-center space-x-2">
-          <Globe className="w-6 h-6 text-cyan-400 animate-pulse" />
-          <span>QUÉT THẺ & ĐỒNG BỘ DỮ LIỆU ONLINE</span>
+        <h2 className="text-xl sm:text-2xl font-black text-slate-50 uppercase tracking-wide flex items-center justify-center gap-2">
+          <PokeballIcon className="w-7 h-7" />
+          <span>Quét thẻ Pokémon</span>
         </h2>
-        <p className="text-xs text-slate-400 mt-1">
-          Nhận diện tên Pokémon ➔ Lấy thông số PokeAPI & Video YouTube thời gian thực
-        </p>
+        <p className="text-sm text-slate-400 mt-1">Đưa tên trên thẻ vào khung rồi bấm Pokéball để chụp</p>
       </div>
-
       {/* Main Scanner Viewport Container */}
       <div data-theme="dark" className="relative w-full aspect-[4/5] sm:aspect-[3/4] max-w-sm rounded-3xl overflow-hidden border-2 border-slate-700/80 bg-slate-950 shadow-2xl shadow-cyan-950/20 flex items-center justify-center">
         
@@ -414,234 +502,273 @@ export function ScannerModal({ onCardDetected }) {
           </div>
         )}
 
-        {/* Top Controls Overlay on Camera */}
-        {cameraActive && (
-          <div className="absolute top-3 right-3 z-20 flex space-x-2">
-            <button
-              onClick={toggleCameraFacing}
-              className="p-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-700/80 backdrop-blur-md transition-colors"
-              title="Đổi camera trước / sau"
-            >
-              <FlipHorizontal className="w-4 h-4" />
-            </button>
-          </div>
-        )}
 
       </div>
 
-      {/* Confirmation & Online Fetch Modal (Displayed as soon as Name is recognized) */}
+      {/* Confirmation: "Is it this Pokemon?" with big picture choices and clear ways out */}
       {isConfirmOpen && (
-        <div className="w-full max-w-sm mt-3 p-4 rounded-2xl bg-slate-900 border-2 border-cyan-400/80 shadow-[0_0_25px_rgba(6,182,212,0.3)] flex flex-col items-center animate-fadeIn">
-
-          <div className="flex items-center space-x-1.5 text-cyan-400 text-xs font-bold mb-1">
-            {detectedCandidates.length > 0 ? <Check className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
-            <span>{detectedCandidates.length > 0 ? 'ĐÃ NHẬN DIỆN TÊN POKÉMON' : 'NHẬP TÊN POKÉMON'}</span>
+        <div className="w-full max-w-sm mt-3 p-4 rounded-3xl bg-slate-900 border-2 border-cyan-400/80 shadow-[0_0_25px_rgba(6,182,212,0.3)] flex flex-col gap-3 animate-fadeIn" data-testid="confirm-panel">
+          <div className="flex items-center justify-center gap-2 text-cyan-400 text-sm font-black">
+            {detectedCandidates.length > 0 ? <Check className="w-5 h-5" /> : <Edit3 className="w-5 h-5" />}
+            <span>{detectedCandidates.length > 0 ? 'CÓ PHẢI POKÉMON NÀY KHÔNG?' : 'NHẬP TÊN POKÉMON'}</span>
           </div>
 
-          <div className="w-full my-2">
-            <label className="text-[10px] font-tech text-slate-400 uppercase tracking-wider block mb-1">
-              Tên Pokémon (bạn có thể bấm để chỉnh sửa nếu cần):
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                aria-label="Tên Pokémon cần xác nhận"
-                value={manualInputName}
-                onChange={(e) => {
-                  setDetectedName(e.target.value);
-                  setManualInputName(e.target.value);
-                }}
-                placeholder="Nhập tên Pokemon (vd: Charizard, Pikachu, Lucario...)"
-                className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-cyan-500/50 text-slate-50 font-bold text-sm focus:outline-none focus:border-amber-400 uppercase tracking-wider"
-              />
-              <Edit3 className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-            </div>
-          </div>
-
-          {/* Quick AI OCR Candidate Chips */}
           {detectedCandidates.length > 0 && (
-            <div className="w-full my-1.5">
-              <span className="text-[10px] font-tech text-slate-400 uppercase tracking-wider block mb-1">
-                Gợi ý chuẩn xác từ AI OCR:
-              </span>
-              <div className="flex flex-wrap gap-1.5">
-                {detectedCandidates.map((cand) => (
+            <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Gợi ý từ ảnh">
+              {detectedCandidates.map((cand) => {
+                const active = (detectedName || manualInputName).toLowerCase() === cand.name.toLowerCase();
+                const thumb = thumbFor(cand.name);
+                return (
                   <button
                     key={cand.name}
                     type="button"
+                    role="radio"
+                    aria-checked={active}
                     onClick={() => {
                       setDetectedName(cand.name);
                       setManualInputName(cand.name);
                     }}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      (detectedName || manualInputName).toLowerCase() === cand.name.toLowerCase()
-                        ? 'bg-cyan-500 text-slate-950 shadow-md font-black'
-                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                    className={`relative flex items-center gap-2 p-2 rounded-2xl border-2 text-left transition-all active:scale-95 ${
+                      active ? 'border-cyan-400 bg-cyan-500/15 shadow-[0_0_14px_rgba(34,211,238,0.35)]' : 'border-slate-700 bg-slate-950'
                     }`}
                   >
-                    <span>{cand.displayName}</span>
-                    <span className="ml-1 text-[10px] opacity-75 font-tech">({cand.score}%)</span>
+                    {thumb ? (
+                      <img src={thumb} alt="" loading="lazy" className="w-12 h-12 object-contain" />
+                    ) : (
+                      <PokeballIcon className="w-10 h-10" />
+                    )}
+                    <span className="min-w-0">
+                      <span className="block text-sm font-black text-slate-50 truncate">{cand.displayName}</span>
+                      <span className="block text-[10px] font-bold text-slate-400">Khớp {cand.score}%</span>
+                    </span>
+                    {active && <Check className="absolute top-1 right-1 w-4 h-4 p-0.5 rounded-full bg-cyan-400 text-slate-950" />}
                   </button>
-                ))}
-              </div>
+                );
+              })}
             </div>
           )}
 
-          {onlineError && (
-            <p className="text-xs text-rose-400 mb-2 text-center">{onlineError}</p>
-          )}
-
-          <div className="flex w-full space-x-2 mt-1">
-            <button
-              onClick={() => handleFetchOnline()}
-              disabled={isLoadingOnline}
-              className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-cyan-600/40 flex items-center justify-center space-x-1.5 transition-transform active:scale-95 cursor-pointer disabled:opacity-50"
-            >
-              {isLoadingOnline ? (
-                <>
-                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Đang tải PokeAPI & YouTube...</span>
-                </>
-              ) : (
-                <>
-                  <Globe className="w-4 h-4" />
-                  <span>Tải Dữ Liệu Online & Video ➔</span>
-                </>
-              )}
-            </button>
-            <button
-              onClick={() => {
-                setDetectedName('');
-                setIsConfirmOpen(false);
-                setOnlineError(null);
+          <div className="relative">
+            <input
+              ref={confirmInputRef}
+              type="text"
+              aria-label="Tên Pokémon cần xác nhận"
+              value={manualInputName}
+              onChange={(e) => {
+                setDetectedName(e.target.value);
+                setManualInputName(e.target.value);
               }}
-              className="py-3 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs transition-colors"
-            >
-              Hủy
-            </button>
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleFetchOnline();
+              }}
+              placeholder="Gõ tên Pokémon, vd: Pikachu"
+              className="w-full pl-3 pr-10 py-3 rounded-2xl bg-slate-950 border-2 border-slate-700 focus:border-amber-400 text-slate-50 font-bold text-base focus:outline-none"
+            />
+            <Edit3 className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           </div>
 
+          {onlineError && (
+            <p className="text-sm font-bold text-rose-400 text-center" role="alert">
+              {onlineError}
+            </p>
+          )}
+
+          {isLoadingOnline ? (
+            <div className="flex gap-2">
+              <div className="flex-1 py-3.5 rounded-2xl bg-slate-800 text-slate-100 font-black text-sm flex items-center justify-center gap-2" role="status">
+                <PokeballIcon className="w-6 h-6" spin />
+                Đang tải {loadingName}...
+              </div>
+              <button onClick={cancelLoading} className="px-4 py-3.5 rounded-2xl bg-slate-700 hover:bg-slate-600 text-white font-black text-sm flex items-center gap-1.5">
+                <X className="w-4 h-4" /> Hủy tải
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => handleFetchOnline()}
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-red-500 via-rose-500 to-orange-500 text-white font-black text-base shadow-lg shadow-red-600/40 flex items-center justify-center gap-2 active:scale-95 transition-transform"
+            >
+              <PokeballIcon className="w-7 h-7" />
+              {detectedCandidates.length > 0 ? 'Đúng rồi! Tải Pokémon' : 'Tìm Pokémon này'}
+            </button>
+          )}
+
+          {/* Wrong guess? Three clear ways out */}
+          <div className="grid grid-cols-3 gap-2">
+            <button onClick={retakeScan} className="py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-black flex flex-col items-center gap-1">
+              <RotateCcw className="w-5 h-5 text-cyan-400" /> Quét lại
+            </button>
+            <button onClick={() => confirmInputRef.current?.focus()} className="py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-black flex flex-col items-center gap-1">
+              <Edit3 className="w-5 h-5 text-amber-400" /> Nhập tên khác
+            </button>
+            <button onClick={closeConfirmation} className="py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-black flex flex-col items-center gap-1">
+              <X className="w-5 h-5 text-rose-400" /> Hủy
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Main Action Buttons */}
-      <div className="w-full max-w-sm flex items-center justify-center gap-2.5 mt-4">
-        {cameraActive ? (
-          <button
-            onClick={captureCameraFrame}
-            disabled={isScanning || isLoadingOnline}
-            className="flex-1 py-3 px-3 rounded-2xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold text-xs shadow-xl shadow-red-600/30 flex items-center justify-center space-x-1.5 transition-all duration-200 active:scale-95 cursor-pointer"
-          >
-            <ScanText className="w-4 h-4" />
-            <span>Chụp Quét Tên Thẻ</span>
-          </button>
-        ) : (
-          <button
-            onClick={() => nativeCameraInputRef.current?.click()}
-            disabled={isScanning || isLoadingOnline}
-            className="flex-1 py-3 px-3 rounded-2xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold text-xs shadow-xl shadow-red-600/30 flex items-center justify-center space-x-1.5 transition-all duration-200 active:scale-95 cursor-pointer"
-          >
-            <Camera className="w-4 h-4" />
-            <span>Mở Camera Điện Thoại</span>
-          </button>
-        )}
-
+      {/* Capture bar: upload - big Pokeball shutter - flip camera */}
+      <div className="w-full max-w-sm flex items-center justify-between mt-4 px-2">
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={isScanning || isLoadingOnline}
-          className="flex-1 py-3 px-3 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs shadow-lg flex items-center justify-center space-x-1.5 transition-all active:scale-95 cursor-pointer"
+          aria-label="Tải ảnh thẻ lên"
+          className="w-16 flex flex-col items-center gap-1 text-slate-200 disabled:opacity-40"
         >
-          <Upload className="w-4 h-4 text-cyan-400" />
-          <span>Tải Ảnh Thẻ Lên</span>
+          <span className="w-14 h-14 rounded-2xl bg-slate-800 border-2 border-slate-700 flex items-center justify-center shadow-lg active:scale-90 transition-transform">
+            <ImageIcon className="w-6 h-6 text-cyan-400" />
+          </span>
+          <span className="text-[11px] font-bold">Tải ảnh</span>
         </button>
 
-        <input
-          ref={nativeCameraInputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          onChange={handleFileUpload}
-          className="hidden"
-        />
+        <button
+          onClick={cameraActive ? captureCameraFrame : () => nativeCameraInputRef.current?.click()}
+          disabled={isScanning || isLoadingOnline}
+          aria-label={cameraActive ? 'Chụp quét tên thẻ' : 'Mở camera điện thoại'}
+          className="group relative w-24 h-24 rounded-full bg-white/10 p-1.5 shadow-[0_0_30px_rgba(239,68,68,0.45)] disabled:opacity-50 active:scale-90 transition-transform"
+        >
+          <span className="absolute inset-0 rounded-full border-4 border-white/70 group-hover:border-white" />
+          <PokeballIcon className={`w-full h-full drop-shadow-xl ${isScanning ? 'animate-spin' : ''}`} />
+          <span className="absolute -bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap text-xs font-black text-slate-100">
+            {cameraActive ? 'Chụp' : 'Mở camera'}
+          </span>
+        </button>
 
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleFileUpload}
-          className="hidden"
-        />
+        <button
+          onClick={cameraActive ? toggleCameraFacing : () => startCamera()}
+          disabled={isScanning || isLoadingOnline}
+          aria-label={cameraActive ? 'Đổi camera trước / sau' : 'Thử kết nối lại camera'}
+          className="w-16 flex flex-col items-center gap-1 text-slate-200 disabled:opacity-40"
+        >
+          <span className="w-14 h-14 rounded-2xl bg-slate-800 border-2 border-slate-700 flex items-center justify-center shadow-lg active:scale-90 transition-transform">
+            {cameraActive ? <FlipHorizontal className="w-6 h-6 text-amber-400" /> : <RefreshCw className="w-6 h-6 text-amber-400" />}
+          </span>
+          <span className="text-[11px] font-bold">{cameraActive ? 'Đổi cam' : 'Thử lại'}</span>
+        </button>
+
+        <input ref={nativeCameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleFileUpload} className="hidden" />
+        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
       </div>
 
       {scanError && (
-        <p role="alert" className="w-full max-w-sm mt-2 text-xs text-rose-400 text-center flex items-center justify-center space-x-1">
-          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+        <p role="alert" className="w-full max-w-sm mt-8 text-sm font-bold text-rose-400 text-center flex items-center justify-center gap-1">
+          <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{scanError}</span>
         </p>
       )}
 
       {/* Error of a direct search shown here when the confirmation panel is closed */}
       {onlineError && !isConfirmOpen && (
-        <p role="alert" className="w-full max-w-sm mt-2 text-xs text-rose-400 text-center">{onlineError}</p>
+        <p role="alert" className="w-full max-w-sm mt-8 text-sm font-bold text-rose-400 text-center">{onlineError}</p>
       )}
 
-      {/* Direct Online Search for ANY Pokemon */}
-      <div className="w-full max-w-sm mt-4 p-3 rounded-2xl bg-slate-900/60 border border-slate-800">
-        <span className="text-[10px] font-tech text-slate-400 uppercase tracking-wider block mb-1.5">
-          HOẶC NHẬP BẤT KỲ TÊN POKÉMON ĐỂ TẢI DỮ LIỆU ONLINE & YOUTUBE:
-        </span>
-        <div className="flex gap-2">
+      {/* Search with live suggestions */}
+      <div className="relative w-full max-w-sm mt-9">
+        <div className="flex gap-2 p-1.5 rounded-2xl bg-slate-900/80 border-2 border-slate-700 focus-within:border-cyan-400 transition-colors">
+          <span className="flex items-center pl-2">
+            <Search className="w-5 h-5 text-slate-400" />
+          </span>
           <input
             type="text"
             aria-label="Tìm Pokémon theo tên"
-            placeholder="Ví dụ: rayquaza, mewtwo, garchomp..."
+            placeholder="Tìm Pokémon: Pikachu, Eevee..."
             value={manualInputName}
-            onChange={(e) => setManualInputName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleFetchOnline(manualInputName);
+            onChange={(e) => {
+              setManualInputName(e.target.value);
+              setShowSuggestions(true);
             }}
-            className="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-slate-50 placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+            onFocus={() => setShowSuggestions(true)}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                setShowSuggestions(false);
+                handleFetchOnline(manualInputName);
+              }
+            }}
+            className="flex-1 min-w-0 py-2 bg-transparent text-base text-slate-50 placeholder-slate-500 focus:outline-none"
           />
+          {manualInputName && (
+            <button onClick={() => setManualInputName('')} aria-label="Xóa ô tìm kiếm" className="px-1 text-slate-400 hover:text-slate-200">
+              <X className="w-4 h-4" />
+            </button>
+          )}
           <button
             onClick={() => handleFetchOnline(manualInputName)}
             disabled={isLoadingOnline || !manualInputName.trim()}
-            className="px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-md transition-colors cursor-pointer disabled:opacity-50 flex items-center space-x-1"
+            className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-red-500 to-rose-500 text-white font-black text-sm shadow-md disabled:opacity-40 flex items-center gap-1.5 active:scale-95"
           >
+            <PokeballIcon className="w-5 h-5" />
             <span>Tải</span>
-            <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
+
+        {showSuggestions && suggestions.length > 0 && !isConfirmOpen && (
+          <ul className="absolute z-20 left-0 right-0 mt-1 rounded-2xl bg-slate-900 border-2 border-slate-700 shadow-2xl overflow-hidden" role="listbox" aria-label="Gợi ý tên">
+            {suggestions.map((s) => (
+              <li key={s.name}>
+                <button
+                  role="option"
+                  aria-selected="false"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    setShowSuggestions(false);
+                    setManualInputName(s.label);
+                    handleFetchOnline(s.name);
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2 hover:bg-slate-800 text-left"
+                >
+                  {s.thumb ? <img src={s.thumb} alt="" loading="lazy" className="w-10 h-10 object-contain" /> : <PokeballIcon className="w-8 h-8" />}
+                  <span className="text-sm font-black text-slate-100">{s.label}</span>
+                  <span className="ml-auto text-xs font-bold text-slate-500">#{String(s.id || '').padStart(3, '0')}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
-      {/* Quick Test Demo Cards */}
-      <div className="w-full max-w-sm mt-4 p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center space-x-1.5">
-            <Sparkles className="w-4 h-4 text-amber-400" />
-            <h3 className="text-xs font-tech font-bold uppercase tracking-wider text-slate-200">
-              THẺ MẪU NHANH (TEST ONLINE NGAY)
-            </h3>
+      {/* Recently scanned: open the saved card straight away (no download) */}
+      {recent.length > 0 && (
+        <section className="w-full max-w-sm mt-4" aria-label="Pokémon gần đây">
+          <h3 className="mb-2 flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-slate-300">
+            <History className="w-4 h-4 text-cyan-400" /> Pokémon gần đây
+          </h3>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {recent.map((card) => (
+              <button
+                key={card.id}
+                onClick={() => onOpenCard?.(card)}
+                aria-label={`Mở ${card.name}`}
+                className="shrink-0 w-20 p-1.5 rounded-2xl bg-slate-900/80 border-2 border-slate-700 hover:border-cyan-400 flex flex-col items-center active:scale-95 transition-transform"
+              >
+                <img src={card.fallbackImage || card.image} alt="" loading="lazy" className="w-14 h-14 object-contain" />
+                <span className="w-full text-center text-[11px] font-black text-slate-100 truncate">{card.name}</span>
+              </button>
+            ))}
           </div>
-          <span className="text-[10px] text-slate-400 font-tech">1-Click Test</span>
-        </div>
+        </section>
+      )}
 
+      {/* Famous Pokemon, one tap away */}
+      <section className="w-full max-w-sm mt-4 p-3 rounded-3xl bg-slate-900/60 border border-slate-800" aria-label="Pokémon nổi tiếng">
+        <h3 className="mb-2 flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-slate-300">
+          <Sparkles className="w-4 h-4 text-amber-400" /> Pokémon nổi tiếng
+        </h3>
         <div className="grid grid-cols-4 gap-2">
-          {['charizard', 'pikachu', 'mewtwo', 'umbreon', 'gengar', 'greninja', 'lucario', 'blastoise'].map((name) => (
+          {QUICK_PICKS.map((p) => (
             <button
-              key={name}
-              onClick={() => handleFetchOnline(name)}
+              key={p.name}
+              onClick={() => handleFetchOnline(p.name)}
               disabled={isLoadingOnline}
-              className="disabled:opacity-50 disabled:cursor-not-allowed py-2 px-1 rounded-xl bg-slate-950/80 hover:bg-cyan-950/50 border border-slate-800 hover:border-cyan-500/50 text-center transition-all group cursor-pointer"
+              className="flex flex-col items-center p-1.5 rounded-2xl bg-slate-950/80 border border-slate-800 hover:border-cyan-500/60 disabled:opacity-50 active:scale-95 transition-transform"
             >
-              <span className="text-[11px] font-bold text-slate-300 capitalize group-hover:text-cyan-400 block truncate">
-                {name}
-              </span>
-              <span className="text-[9px] text-slate-500 font-tech">PokeAPI</span>
+              <img src={artworkUrl(p.id)} alt="" loading="lazy" className="w-12 h-12 object-contain" />
+              <span className="text-[11px] font-bold text-slate-200">{p.label}</span>
             </button>
           ))}
         </div>
-      </div>
-
+      </section>
     </div>
   );
 }

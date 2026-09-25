@@ -83,7 +83,7 @@ describe('App flows', () => {
 
   it('AP-05 tab navigation', async () => {
     render(<App />);
-    expect(screen.getByText('QUÉT THẺ & ĐỒNG BỘ DỮ LIỆU ONLINE')).toBeInTheDocument();
+    expect(screen.getByText('Quét thẻ Pokémon')).toBeInTheDocument();
     fireEvent.click(collectionTab());
     expect(screen.getByText('BỘ SƯU TẬP POKÉDEX')).toBeInTheDocument();
     await scan('pikachu');
@@ -91,7 +91,7 @@ describe('App flows', () => {
     fireEvent.click(screen.getByText('Pikachu'));
     expect(screen.getByRole('heading', { name: 'Pikachu' })).toBeInTheDocument();
     fireEvent.click(screen.getByText('Tiếp Tục Quét Thẻ Khác'));
-    expect(screen.getByText('QUÉT THẺ & ĐỒNG BỘ DỮ LIỆU ONLINE')).toBeInTheDocument();
+    expect(screen.getByText('Quét thẻ Pokémon')).toBeInTheDocument();
   });
 
   it('AP-06 mute toggle keeps the sound manager in sync', () => {
@@ -159,17 +159,29 @@ describe('App flows', () => {
     expect(screen.getByText('Câu 1/10')).toBeInTheDocument();
   });
 
-  it('AP-12 theme button cycles dark, light and ocean', () => {
+  it('AP-12 the theme menu offers dark, light, ocean and Pokédex', () => {
     render(<App />);
     const button = () => screen.getByLabelText(/Đổi giao diện/);
+    const choose = (label) => {
+      fireEvent.click(button());
+      const menu = screen.getByRole('menu', { name: 'Chọn giao diện' });
+      expect(within(menu).getAllByRole('menuitemradio')).toHaveLength(4);
+      fireEvent.click(within(menu).getByRole('menuitemradio', { name: new RegExp(label) }));
+      expect(screen.queryByRole('menu')).toBeNull();
+    };
     expect(document.documentElement.dataset.theme).toBe('dark');
-    fireEvent.click(button());
+    choose('Pokédex');
+    expect(document.documentElement.dataset.theme).toBe('pokedex');
+    expect(button()).toHaveAccessibleName(/Pokédex/);
+    choose('Sáng');
     expect(document.documentElement.dataset.theme).toBe('light');
-    expect(button()).toHaveAccessibleName(/Sáng/);
-    fireEvent.click(button());
+    choose('Xanh biển');
     expect(document.documentElement.dataset.theme).toBe('ocean');
+    // Tapping outside closes the menu without changing the theme
     fireEvent.click(button());
-    expect(document.documentElement.dataset.theme).toBe('dark');
+    fireEvent.click(screen.getByLabelText('Đóng menu giao diện'));
+    expect(screen.queryByRole('menu')).toBeNull();
+    expect(document.documentElement.dataset.theme).toBe('ocean');
   });
 
   it('AP-13 a catch in the minigame is recorded on the saved card', async () => {
@@ -181,7 +193,8 @@ describe('App flows', () => {
       render(<App />);
       fireEvent.click(collectionTab());
       fireEvent.click(screen.getByRole('heading', { name: 'Charizard' }));
-      fireEvent.click(screen.getByText(/Chơi Ném Bóng/));
+      fireEvent.click(screen.getByText(/Chơi cùng Charizard/));
+      fireEvent.click(screen.getByText('Ném bóng bắt Pokémon'));
       fireEvent.click(screen.getByText('NÉM!'));
       // flight + absorb + drop + 3 shakes
       for (let i = 0; i < 40; i++) {

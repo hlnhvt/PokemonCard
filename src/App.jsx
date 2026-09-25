@@ -11,7 +11,7 @@ import { getBerries, addBerries } from './utils/berries';
 import { fetchPokemonOnline } from './services/pokemonOnlineService';
 import { sounds } from './utils/soundEffects';
 import { rollShiny } from './utils/shiny';
-import { applyTheme, getInitialTheme, nextTheme } from './utils/theme';
+import { applyTheme, getInitialTheme } from './utils/theme';
 
 export function App() {
   const [currentTab, setCurrentTab] = useState('scan'); // 'scan' | 'collection' | 'games' | 'detail'
@@ -188,7 +188,7 @@ export function App() {
         isMuted={isMuted}
         onToggleMute={handleToggleMute}
         theme={theme}
-        onCycleTheme={() => setTheme((t) => nextTheme(t))}
+        onSelectTheme={setTheme}
       />
 
       {notice && (
@@ -202,7 +202,7 @@ export function App() {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col relative z-10 w-full">
         {currentTab === 'scan' && (
-          <ScannerModal onCardDetected={handleCardDetected} />
+          <ScannerModal onCardDetected={handleCardDetected} recentCards={collection} onOpenCard={handleSelectFromCollection} />
         )}
 
         {currentTab === 'detail' && activePokemon && (

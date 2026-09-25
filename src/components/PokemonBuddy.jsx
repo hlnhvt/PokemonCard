@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { Volume2, Music, Sparkles, Target, Footprints, Heart, Swords } from 'lucide-react';
+import { Volume2, Music, Sparkles, Heart, Gamepad2 } from 'lucide-react';
 import { getCardMedia } from '../services/pokemonOnlineService';
 import { playCry } from '../utils/cries';
 import { sounds } from '../utils/soundEffects';
@@ -14,6 +14,7 @@ import {
   levelProgress,
 } from '../utils/friendship';
 import { BerryIcon } from './BerryIcon';
+import { GamePicker } from './GamePicker';
 
 const EAT_DELAY_MS = 450;
 
@@ -37,10 +38,7 @@ export function PokemonBuddy({
   shinyUnlocked = false,
   showShiny,
   onToggleShiny,
-  onPlayCatch,
-  onPlayRunner,
-  onPlayBattle,
-  battleWins = 0,
+  games = [],
   catchCount = 0,
   care = { enabled: false },
   onFeed,
@@ -52,6 +50,7 @@ export function PokemonBuddy({
   const [floatText, setFloatText] = useState(null);
   const [message, setMessage] = useState(null);
   const [levelUp, setLevelUp] = useState(null);
+  const [showGames, setShowGames] = useState(false);
   const heartId = useRef(0);
   const timers = useRef([]);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
@@ -239,20 +238,21 @@ export function PokemonBuddy({
         ) : (
           <span />
         )}
-        <button onClick={onPlayCatch} className="col-span-2 py-3.5 rounded-xl bg-gradient-to-r from-red-500 to-rose-500 text-white text-base font-black flex items-center justify-center gap-2 shadow-lg active:scale-95">
-          <Target className="w-5 h-5" /> Chơi Ném Bóng Bắt {pokemon.name}!
-        </button>
-        {onPlayBattle && (
-          <button onClick={onPlayBattle} className="col-span-2 py-3.5 rounded-xl bg-gradient-to-r from-orange-500 via-red-500 to-purple-600 text-white text-base font-black flex items-center justify-center gap-2 shadow-lg active:scale-95">
-            <Swords className="w-5 h-5" /> Đấu Pokémon!{battleWins > 0 ? ` (thắng ${battleWins})` : ''}
-          </button>
-        )}
-        {onPlayRunner && (
-          <button onClick={onPlayRunner} className="col-span-2 py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-base font-black flex items-center justify-center gap-2 shadow-lg active:scale-95">
-            <Footprints className="w-5 h-5" /> Chạy Nhảy cùng {pokemon.name}!
+        {games.length > 0 && (
+          // One button instead of a long list: the games open in a bottom sheet
+          <button
+            onClick={() => setShowGames(true)}
+            className="col-span-2 py-4 rounded-2xl bg-gradient-to-r from-red-500 via-rose-500 to-orange-500 text-white text-lg font-black flex items-center justify-center gap-2 shadow-lg shadow-red-600/30 active:scale-95 transition-transform"
+          >
+            <Gamepad2 className="w-6 h-6" /> Chơi cùng {pokemon.name}
+            <span className="px-2 py-0.5 rounded-full bg-white/25 text-xs">{games.length} trò</span>
           </button>
         )}
       </div>
+
+      {showGames && (
+        <GamePicker pokemonName={pokemon.name} image={image} games={games} onClose={() => setShowGames(false)} />
+      )}
     </div>
   );
 }

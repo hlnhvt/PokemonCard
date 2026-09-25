@@ -181,11 +181,15 @@ describe('theme', () => {
     expect(getInitialTheme()).toBe('dark');
   });
 
-  it('TH-02 cycles dark -> light -> ocean -> dark', () => {
+  it('TH-02 four themes including Pokédex, in order', () => {
+    expect(THEMES.map((t) => t.id)).toEqual(['dark', 'light', 'ocean', 'pokedex']);
     expect(nextTheme('dark')).toBe('light');
-    expect(nextTheme('light')).toBe('ocean');
-    expect(nextTheme('ocean')).toBe('dark');
+    expect(nextTheme('ocean')).toBe('pokedex');
+    expect(nextTheme('pokedex')).toBe('dark');
     expect(THEMES.map((t) => t.id).every(isTheme)).toBe(true);
+    applyTheme('pokedex');
+    expect(document.documentElement.dataset.theme).toBe('pokedex');
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
   });
 
   it('TH-03 applies the theme to <html>, meta colour and storage', () => {

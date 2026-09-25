@@ -55,8 +55,8 @@ describe('RunnerGame', () => {
 
   it('RG-03 standing still loses the 3 lives, shows the result and saves the record', async () => {
     render(<RunnerGame pokemon={makeCard()} image="x.png" onClose={vi.fn()} random={() => 0.5} />);
-    fireEvent.pointerDown(screen.getByText('NHẢY'));
-    fireEvent.pointerUp(screen.getByText('NHẢY'));
+    fireEvent.pointerDown(dialog(), { pointerId: 1, clientY: 300 });
+    fireEvent.pointerUp(dialog(), { pointerId: 1, clientY: 300 });
     await advance(40000);
     expect(dialog().dataset.status).toBe('over');
     expect(dialog().dataset.lives).toBe('0');
@@ -70,13 +70,39 @@ describe('RunnerGame', () => {
     expect(dialog().dataset.lives).toBe('3');
   });
 
-  it('RG-04 hearts and buttons for small hands; close button', () => {
+  it('RG-04 shows hearts and gesture hints (no jump/duck buttons); close button', () => {
     const onClose = vi.fn();
     render(<RunnerGame pokemon={makeCard()} image="x.png" onClose={onClose} />);
     expect(screen.getByLabelText('Còn 3 mạng')).toBeInTheDocument();
-    expect(screen.getByText('CÚI')).toBeInTheDocument();
+    expect(screen.getByText(/Chạm màn hình để nhảy/)).toBeInTheDocument();
+    expect(screen.getByText(/Vuốt xuống để cúi/)).toBeInTheDocument();
+    expect(screen.queryByText('NHẢY')).toBeNull();
+    // Tapping the close button must not start the game
+    fireEvent.pointerDown(screen.getByLabelText('Đóng trò chơi'), { pointerId: 1 });
     fireEvent.click(screen.getByLabelText('Đóng trò chơi'));
     expect(onClose).toHaveBeenCalled();
+    expect(dialog().dataset.status).toBe('ready');
+  });
+
+  it('RG-06 tap anywhere jumps; swiping down ducks right away and stands up on release', async () => {
+    render(<RunnerGame pokemon={makeCard()} image="x.png" onClose={vi.fn()} random={() => 0.99} />);
+    // Tap starts the game and jumps
+    fireEvent.pointerDown(dialog(), { pointerId: 1, clientY: 400 });
+    await advance(100);
+    expect(dialog().dataset.status).toBe('running');
+    expect(dialog().dataset.pose).toBe('jump');
+    fireEvent.pointerUp(dialog(), { pointerId: 1, clientY: 400 });
+    await advance(1200);
+    expect(dialog().dataset.pose).toBe('run');
+
+    // Swipe down: the touch jumps for an instant, the swipe cancels it and ducks
+    fireEvent.pointerDown(dialog(), { pointerId: 2, clientY: 300 });
+    fireEvent.pointerMove(dialog(), { pointerId: 2, clientY: 360 });
+    await advance(200);
+    expect(dialog().dataset.pose).toBe('duck');
+    fireEvent.pointerUp(dialog(), { pointerId: 2, clientY: 360 });
+    await advance(200);
+    expect(dialog().dataset.pose).toBe('run');
   });
 });
 

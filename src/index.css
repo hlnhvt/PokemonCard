@@ -568,3 +568,220 @@
   .battle-idle, .battle-victory, .energy-full, .rainbow-bg { animation: none; }
   .battle-shake-sm, .battle-shake-lg { animation: none; }
 }
+/* Battle tempo: every arena animation stretches with --battle-tempo (set on the dialog) */
+.battle-lunge-player, .battle-lunge-opponent { animation-duration: calc(0.45s * var(--battle-tempo, 1)); }
+.battle-hit { animation-duration: calc(0.4s * var(--battle-tempo, 1)); }
+.battle-faint { animation-duration: calc(0.9s * var(--battle-tempo, 1)); }
+.battle-enter { animation-duration: calc(0.6s * var(--battle-tempo, 1)); }
+.battle-charge { animation-duration: calc(0.3s * var(--battle-tempo, 1)); }
+.battle-victory { animation-duration: calc(0.55s * var(--battle-tempo, 1)); }
+.battle-shake-sm { animation-duration: calc(0.25s * var(--battle-tempo, 1)); }
+.battle-shake-lg { animation-duration: calc(0.5s * var(--battle-tempo, 1)); }
+.banner-slam { animation-duration: calc(1s * var(--battle-tempo, 1)); }
+.damage-float { animation-duration: calc(1s * var(--battle-tempo, 1)); }
+.flash-fade { animation-duration: calc(0.35s * var(--battle-tempo, 1)); }
+.chain-pop { animation-duration: calc(0.4s * var(--battle-tempo, 1)); }
+.combo-vignette { animation-duration: calc(0.35s * var(--battle-tempo, 1)); }
+/* ---- Kids games: cooking & shop ---- */
+@keyframes customerEnter {
+  0% { transform: translateX(140%); }
+  60% { transform: translateX(-6%) translateY(0); }
+  75% { transform: translateX(0) translateY(-14px); }
+  100% { transform: translateX(0) translateY(0); }
+}
+.customer-enter { animation: customerEnter 0.8s cubic-bezier(0.3, 0.9, 0.4, 1) both; }
+
+@keyframes customerLeave {
+  0% { transform: translateX(0); opacity: 1; }
+  20% { transform: translateX(8%) translateY(-18px); }
+  100% { transform: translateX(160%) translateY(0); opacity: 0; }
+}
+.customer-leave { animation: customerLeave 0.7s ease-in forwards; }
+
+@keyframes bubblePop {
+  0% { transform: scale(0); opacity: 0; }
+  70% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.bubble-pop { animation: bubblePop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both; transform-origin: bottom center; }
+
+/* Ingredient / product flies in an arc from its tile to --dx/--dy */
+@keyframes arcFly {
+  0% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+  50% { transform: translate(calc(-50% + var(--dx) * 0.5), calc(-50% + var(--dy) * 0.5 - 90px)) scale(1.25) rotate(160deg); opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.45) rotate(330deg); opacity: 0; }
+}
+.arc-fly { animation: arcFly 0.6s cubic-bezier(0.45, 0, 0.55, 1) forwards; }
+
+@keyframes splashDrop {
+  0% { transform: rotate(var(--angle)) translateY(0) scale(1); opacity: 1; }
+  100% { transform: rotate(var(--angle)) translateY(-56px) scale(0.3); opacity: 0; }
+}
+.splash-drop { animation: splashDrop 0.55s ease-out forwards; }
+
+@keyframes potBubble {
+  0% { transform: translateY(0) scale(0.4); opacity: 0; }
+  20% { opacity: 1; }
+  80% { transform: translateY(-26px) scale(1); opacity: 1; }
+  100% { transform: translateY(-30px) scale(1.4); opacity: 0; }
+}
+.pot-bubble { animation: potBubble 1.2s ease-in infinite; }
+
+@keyframes steamPuff {
+  0% { transform: translate(-50%, 0) scale(0.5); opacity: 0; }
+  30% { opacity: 0.8; }
+  100% { transform: translate(-50%, -70px) scale(1.6); opacity: 0; }
+}
+.steam-puff { animation: steamPuff 1.4s ease-out infinite; }
+
+@keyframes potShake {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-4deg) translateY(-2px); }
+  75% { transform: rotate(4deg) translateY(-2px); }
+}
+.pot-shake { animation: potShake 0.18s linear infinite; }
+
+@keyframes dishPop {
+  0% { transform: translate(-50%, 0) scale(0) rotate(-30deg); }
+  60% { transform: translate(-50%, -60px) scale(1.35) rotate(8deg); }
+  100% { transform: translate(-50%, -48px) scale(1) rotate(0deg); }
+}
+.dish-pop { animation: dishPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+@keyframes sparkleRing {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(2.4); opacity: 0; }
+}
+.sparkle-ring { animation: sparkleRing 0.7s ease-out forwards; }
+
+@keyframes wrongShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-9px) rotate(-3deg); }
+  40% { transform: translateX(8px) rotate(3deg); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(4px); }
+}
+.wrong-shake { animation: wrongShake 0.45s ease-out; }
+
+@keyframes hintGlow {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.9), 0 0 12px 2px rgba(250, 204, 21, 0.5); transform: scale(1); }
+  50% { box-shadow: 0 0 0 5px rgba(250, 204, 21, 1), 0 0 26px 8px rgba(250, 204, 21, 0.8); transform: scale(1.06); }
+}
+.hint-glow { animation: hintGlow 0.9s ease-in-out infinite; }
+
+@keyframes coinDrop {
+  0% { transform: translateY(-160px) rotateY(0deg); opacity: 0; }
+  15% { opacity: 1; }
+  70% { transform: translateY(0) rotateY(540deg); }
+  82% { transform: translateY(-12px) rotateY(600deg); }
+  100% { transform: translateY(0) rotateY(720deg); opacity: 1; }
+}
+.coin-drop { animation: coinDrop 0.8s cubic-bezier(0.5, 0, 0.5, 1) both; }
+
+@keyframes starPop {
+  0% { transform: scale(0) rotate(-90deg); opacity: 0; }
+  70% { transform: scale(1.3) rotate(10deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+.star-pop { animation: starPop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+@keyframes floatUp {
+  0% { transform: translate(-50%, 0); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translate(-50%, -50px); opacity: 0; }
+}
+.float-up { animation: floatUp 1.1s ease-out forwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .customer-enter, .customer-leave, .arc-fly, .splash-drop, .pot-bubble, .steam-puff, .pot-shake,
+  .dish-pop, .sparkle-ring, .wrong-shake, .hint-glow, .coin-drop, .star-pop, .float-up, .bubble-pop {
+    animation-duration: 0.01s;
+    animation-iteration-count: 1;
+  }
+}
+/* Game picker bottom sheet */
+@keyframes sheetUp {
+  0% { transform: translateY(100%); }
+  100% { transform: translateY(0); }
+}
+.sheet-up { animation: sheetUp 0.35s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+
+@keyframes backdropFade {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+.backdrop-fade { animation: backdropFade 0.25s ease-out both; }
+
+@keyframes sheetItem {
+  0% { transform: translateY(16px) scale(0.96); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+.sheet-item { animation: sheetItem 0.35s cubic-bezier(0.34, 1.4, 0.64, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-up, .backdrop-fade, .sheet-item { animation-duration: 0.01s; }
+}
+/* Pokédex: red device shell, content panels look like teal LCD screens set in grey bezels */
+[data-theme='pokedex'] {
+  --slate-50: 236 254 255;
+  --slate-100: 207 250 254;
+  --slate-200: 186 236 244;
+  --slate-300: 160 216 226;
+  --slate-400: 130 190 202;
+  --slate-500: 95 150 162;
+  --slate-600: 62 104 115;
+  --slate-700: 44 80 90;
+  --slate-800: 29 58 68;
+  --slate-900: 17 40 48;
+  --slate-950: 9 26 32;
+  --amber-300: 252 211 77;
+  --amber-400: 251 191 36;
+  --cyan-300: 103 232 249;
+  --cyan-400: 34 211 238;
+  --rose-300: 253 164 175;
+  --rose-400: 251 113 133;
+  --red-300: 252 165 165;
+  --red-400: 248 113 113;
+  --emerald-300: 110 231 183;
+  --emerald-400: 52 211 153;
+  --indigo-300: 165 180 252;
+  --indigo-400: 129 140 248;
+  --blue-300: 147 197 253;
+  --blue-400: 96 165 250;
+  --yellow-300: 253 224 71;
+  --yellow-400: 250 204 21;
+  --glass-bg: 12 32 40;
+  --glass-alpha: 0.96;
+  --glass-border: 209 213 219;
+  --glass-border-alpha: 1;
+  --app-bg:
+    radial-gradient(ellipse at 15% -10%, rgba(255, 255, 255, 0.22), transparent 45%),
+    repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.035) 0 3px, transparent 3px 7px),
+    linear-gradient(180deg, #e11d2a 0%, #c81e1e 45%, #991b1b 100%);
+  --app-bg-end: #7f1d1d;
+  color-scheme: dark;
+}
+
+/* Screens: thick grey bezel, dark outline, faint scanlines and a raised edge */
+[data-theme='pokedex'] .glass-panel {
+  background:
+    repeating-linear-gradient(0deg, rgba(34, 211, 238, 0.035) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, rgb(17 44 52), rgb(8 24 30));
+  border: 5px solid #d1d5db;
+  box-shadow:
+    inset 0 0 0 2px #0f172a,
+    inset 0 0 28px rgba(34, 211, 238, 0.14),
+    0 6px 0 #7f1d1d,
+    0 10px 18px rgba(0, 0, 0, 0.35);
+}
+
+/* The header becomes the device's top shell with its hinge line */
+[data-theme='pokedex'] header {
+  background: linear-gradient(180deg, #b91c1c, #991b1b) !important;
+  border-bottom: 5px solid #450a0a !important;
+  box-shadow: 0 3px 0 #7f1d1d;
+}
+[data-theme='pokedex'] header nav button[aria-current='page'] {
+  box-shadow: inset 0 0 0 2px #fde047, 0 3px 0 #450a0a;
+}

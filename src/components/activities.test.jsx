@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, act, waitFor, within } from '@testing-library/react';
 import { makeCard } from '../test/fixtures';
 
 const mocks = vi.hoisted(() => ({ fetchEvolutionChain: vi.fn() }));
@@ -247,7 +247,7 @@ describe('EvolutionTree', () => {
 
 describe('PokemonBuddy', () => {
   it('BU-01 tapping plays the cry and shows hearts', () => {
-    render(<PokemonBuddy pokemon={makeCard()} onPlayCatch={vi.fn()} />);
+    render(<PokemonBuddy pokemon={makeCard()} />);
     fireEvent.click(screen.getByLabelText('Chạm vào Charizard'));
     expect(sounds.playPokemonCry).toHaveBeenCalled();
     expect(screen.getAllByText('❤️').length).toBeGreaterThan(0);
@@ -264,13 +264,41 @@ describe('PokemonBuddy', () => {
     expect(screen.getByAltText('Charizard')).toHaveAttribute('src', expect.stringContaining('/shiny/6.png'));
   });
 
-  it('BU-03 shows catches, legacy cry button and starts the minigame', () => {
-    const onPlayCatch = vi.fn();
-    render(<PokemonBuddy pokemon={makeCard({ cryLegacyUrl: 'l.ogg' })} catchCount={3} onPlayCatch={onPlayCatch} />);
+  it('BU-03 shows catches, legacy cry button and one "play" button opening the game picker', () => {
+    const onPlay = vi.fn();
+    const games = [
+      { id: 'catch', title: 'Ném bóng bắt Pokémon', description: 'd', icon: '🎯', gradient: 'from-red-500 to-rose-500', badge: 'Bắt 3 lần', onPlay },
+      { id: 'runner', title: 'Chạy nhảy', description: 'd', icon: '🏃', gradient: 'from-emerald-500 to-teal-500', onPlay: vi.fn() },
+    ];
+    render(<PokemonBuddy pokemon={makeCard({ cryLegacyUrl: 'l.ogg' })} catchCount={3} games={games} />);
     expect(screen.getByText('Đã bắt 3 lần')).toBeInTheDocument();
     expect(screen.getByText('Tiếng kêu cổ điển')).toBeInTheDocument();
-    fireEvent.click(screen.getByText(/Chơi Ném Bóng/));
-    expect(onPlayCatch).toHaveBeenCalled();
+    // No long list of game buttons on the page itself
+    expect(screen.queryByText('Ném bóng bắt Pokémon')).toBeNull();
+    fireEvent.click(screen.getByText(/Chơi cùng Charizard/));
+    const picker = screen.getByRole('dialog', { name: 'Chọn trò chơi' });
+    expect(within(picker).getByText('Chạy nhảy')).toBeInTheDocument();
+    expect(within(picker).getByText('Bắt 3 lần')).toBeInTheDocument();
+    fireEvent.click(within(picker).getByText('Ném bóng bắt Pokémon'));
+    expect(onPlay).toHaveBeenCalled();
+    expect(screen.queryByRole('dialog', { name: 'Chọn trò chơi' })).toBeNull();
+  });
+
+  it('BU-08 the game picker closes with the backdrop, the X button or Escape', () => {
+    const games = [{ id: 'runner', title: 'Chạy nhảy', description: 'd', icon: '🏃', gradient: 'from-emerald-500 to-teal-500', onPlay: vi.fn() }];
+    render(<PokemonBuddy pokemon={makeCard()} games={games} />);
+    const open = () => fireEvent.click(screen.getByText(/Chơi cùng Charizard/));
+    const picker = () => screen.queryByRole('dialog', { name: 'Chọn trò chơi' });
+    open();
+    fireEvent.click(screen.getByLabelText('Đóng danh sách trò chơi'));
+    expect(picker()).toBeNull();
+    open();
+    fireEvent.click(screen.getByLabelText('Đóng'));
+    expect(picker()).toBeNull();
+    open();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(picker()).toBeNull();
+    expect(games[0].onPlay).not.toHaveBeenCalled();
   });
 });
 

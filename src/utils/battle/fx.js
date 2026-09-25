@@ -35,14 +35,21 @@ export class BattleFx {
     this.beams = [];
     this.rings = [];
     this.emitters = [];
+    this.scheduled = []; // callbacks due at an effect time (slow motion keeps them in sync)
     this.time = 0;
   }
 
+  /** Run fn after ms of effect time (not wall time, so slow motion stays consistent). */
+  later(ms, fn) {
+    this.scheduled.push({ at: this.time + ms, fn });
+  }
+
   get busy() {
-    return this.particles.length + this.bolts.length + this.beams.length + this.rings.length + this.emitters.length > 0;
+    return this.particles.length + this.bolts.length + this.beams.length + this.rings.length + this.emitters.length + this.scheduled.length > 0;
   }
 
   clear() {
+    this.scheduled = [];
     this.particles = [];
     this.bolts = [];
     this.beams = [];
@@ -123,7 +130,7 @@ export class BattleFx {
       }
       case 'bolts': {
         for (let i = 0; i < 3; i++) {
-          setTimeout(() => this.bolt(to.x + rand(-30, 30), -20, to.x + rand(-12, 12), to.y, pick(fx.colors.slice(0, 2))), i * 110);
+          this.later(i * 110, () => this.bolt(to.x + rand(-30, 30), -20, to.x + rand(-12, 12), to.y, pick(fx.colors.slice(0, 2))));
         }
         this.emit(300, 20, () => ({
           x: to.x + rand(-40, 40), y: to.y + rand(-40, 20), vx: rand(-120, 120), vy: rand(-160, 60),
@@ -170,7 +177,7 @@ export class BattleFx {
       }
       case 'slashes': {
         for (let i = 0; i < 3; i++) {
-          setTimeout(() => {
+          this.later(i * 90, () => {
             const a = rand(-0.9, 0.9) + (i % 2 ? Math.PI / 2 : 0);
             for (let k = -3; k <= 3; k++) {
               this.add({
@@ -178,16 +185,16 @@ export class BattleFx {
                 size: 14 - Math.abs(k) * 2, shape: 'spark', color: pick(fx.colors), life: 320,
               });
             }
-          }, i * 90);
+          });
         }
         return 260;
       }
       case 'rings': {
         for (let i = 0; i < 4; i++) {
-          setTimeout(() => {
-            this.ring(from.x, from.y, pick(fx.colors.slice(1)), { size: 14, grow: 0, life: 520, width: 6, travel: to });
+          this.later(i * 100, () => {
+            this.ring(from.x, from.y, pick(fx.colors.slice(1)), { size: 14, grow: 0, life: 520, width: 6 });
             this.rings[this.rings.length - 1].travel = { from, to };
-          }, i * 100);
+          });
         }
         return 560;
       }
@@ -243,6 +250,12 @@ export class BattleFx {
   update(dtMs) {
     const dt = dtMs / 1000;
     this.time += dtMs;
+
+    const due = this.scheduled.filter((s) => s.at <= this.time);
+    if (due.length) {
+      this.scheduled = this.scheduled.filter((s) => s.at > this.time);
+      for (const s of due) s.fn();
+    }
 
     for (const e of this.emitters) {
       e.age += dtMs;

@@ -17,6 +17,9 @@ export const PHYSICS = {
   fastFallFactor: 2.4,
 };
 export const SPEED = { start: 250, accel: 6, max: 580 };
+// Zoomed-in portrait view shows less of the track ahead, so it runs slower to leave the same
+// reaction time (about half a second at top speed)
+export const PORTRAIT_SPEED = { start: 230, accel: 5, max: 460 };
 export const LIVES = 3;
 export const INVINCIBLE_MS = 1500;
 export const FLYERS_FROM_SCORE = 150;
@@ -52,14 +55,15 @@ const FLYER_SIZE = { w: 42, h: 34 };
 
 const PROPS = ['rock', 'bush', 'stump', 'rocks'];
 
-export function createRunner({ random = Math.random } = {}) {
+export function createRunner({ random = Math.random, speed = SPEED } = {}) {
   return {
     status: 'ready', // 'ready' | 'running' | 'over'
     random,
     time: 0,
     distance: 0,
     bonus: 0,
-    speed: SPEED.start,
+    speed: speed.start,
+    speedProfile: speed,
     lives: LIVES,
     invincibleMs: 0,
     lastMilestone: 0,
@@ -96,6 +100,23 @@ export function jump(state) {
   p.holdMs = 0;
   p.ducking = false;
   state.events.push('jump');
+  return true;
+}
+
+// A jump this young (still below this height and rising) can be taken back
+export const CANCEL_JUMP_HEIGHT = 24;
+
+/**
+ * Swipe-down gestures start with a touch, which already jumped. If that jump has only just
+ * begun, undo it so the runner ducks right away. Returns true when it was cancelled.
+ */
+export function cancelJump(state) {
+  const p = state.player;
+  if (p.onGround || p.vy <= 0 || p.y >= CANCEL_JUMP_HEIGHT) return false;
+  p.y = 0;
+  p.vy = 0;
+  p.onGround = true;
+  p.holding = false;
   return true;
 }
 
@@ -195,7 +216,8 @@ export function step(state, dtMs) {
   const ms = Math.max(0, Math.min(dtMs, 50)); // avoid tunnelling after a tab switch
   const dt = ms / 1000;
   state.time += ms;
-  state.speed = Math.min(SPEED.max, state.speed + SPEED.accel * dt);
+  const profile = state.speedProfile || SPEED;
+  state.speed = Math.min(profile.max, state.speed + profile.accel * dt);
 
   const dx = state.speed * dt;
   state.distance += dx;

@@ -5,6 +5,7 @@ import {
   step,
   jump,
   releaseJump,
+  cancelJump,
   setDuck,
   score,
   isNight,
@@ -15,6 +16,7 @@ import {
   PLAYER,
   PHYSICS,
   SPEED,
+  PORTRAIT_SPEED,
   LIVES,
   INVINCIBLE_MS,
   FLYERS_FROM_SCORE,
@@ -87,6 +89,20 @@ describe('runner physics', () => {
     expect(playerBox(s).h).toBe(PLAYER.duckH);
     setDuck(s, false);
     expect(playerBox(s).h).toBe(PLAYER.h);
+  });
+
+  it('RU-19 a just-started jump can be cancelled for a swipe-down, a real jump cannot', () => {
+    const s = start(createRunner());
+    s.nextSpawnIn = 1e9;
+    jump(s);
+    step(s, 8);
+    expect(cancelJump(s)).toBe(true);
+    expect(s.player).toMatchObject({ y: 0, onGround: true });
+    jump(s);
+    run(s, 150);
+    expect(cancelJump(s)).toBe(false);
+    expect(s.player.onGround).toBe(false);
+    expect(cancelJump(start(createRunner()))).toBe(false);
   });
 
   it('RU-04 does nothing before start or after game over', () => {
@@ -272,6 +288,23 @@ describe('runner fairness', () => {
     }
     expect(s.lives).toBe(LIVES);
     expect(score(s)).toBeGreaterThan(2500);
+  });
+
+  it.each([1, 2, 3])('RU-16b portrait speed profile is fair too (seed %i)', (seed) => {
+    const s = start(createRunner({ random: seeded(seed), speed: PORTRAIT_SPEED }));
+    for (let t = 0; t < 90000 && s.status === 'running'; t += 16) {
+      botStep(s);
+      step(s, 16);
+    }
+    expect(s.lives).toBe(LIVES);
+    expect(s.speed).toBeLessThanOrEqual(PORTRAIT_SPEED.max);
+  });
+
+  it('RU-20 portrait leaves at least as much reaction time at top speed as landscape', () => {
+    // Obstacles become visible at the right edge of the view; the runner's front is at 102
+    const reaction = (visibleWidth, max) => (visibleWidth - (PLAYER.x + PLAYER.w)) / max;
+    expect(reaction(340, PORTRAIT_SPEED.max)).toBeGreaterThanOrEqual(reaction(600, SPEED.max) * 0.5);
+    expect(reaction(340, PORTRAIT_SPEED.max)).toBeGreaterThan(0.5);
   });
 
   it('RU-17 standing still loses all lives quickly', () => {
