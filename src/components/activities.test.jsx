@@ -1,0 +1,249 @@
+import React from 'react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
+import { makeCard } from '../test/fixtures';
+
+const mocks = vi.hoisted(() => ({ fetchEvolutionChain: vi.fn() }));
+vi.mock('../services/pokemonOnlineService', async (importOriginal) => ({
+  ...(await importOriginal()),
+  fetchEvolutionChain: mocks.fetchEvolutionChain,
+}));
+
+import { CatchGame } from './CatchGame';
+import { GuessGame } from './GuessGame';
+import { EvolutionTree, SCANS_TO_EVOLVE } from './EvolutionTree';
+import { PokemonBuddy } from './PokemonBuddy';
+import { EvolutionScene, EVOLVE_GLOW_MS } from './EvolutionScene';
+import { sounds } from '../utils/soundEffects';
+import { ROUNDS } from '../utils/guessGame';
+
+beforeEach(() => {
+  for (const s of ['playShutter', 'playScanBeep', 'playSuccessFanfare', 'playPokemonCry', 'playEnergySurge']) {
+    vi.spyOn(sounds, s).mockImplementation(() => {});
+  }
+  mocks.fetchEvolutionChain.mockReset();
+});
+
+async function advance(ms) {
+  for (let t = 0; t < ms; t += 100) {
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(100);
+    });
+  }
+}
+
+describe('CatchGame', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  // Frozen clock: the Pokemon sits in the centre and the ring is at its largest
+  const frozen = () => 0;
+
+  it('CA-01 a centred throw that succeeds catches the Pokemon', async () => {
+    const onCaught = vi.fn();
+    render(<CatchGame pokemon={makeCard({ captureRate: 45 })} image="x.png" onClose={vi.fn()} onCaught={onCaught} now={frozen} random={() => 0} />);
+    fireEvent.click(screen.getByText('NÉM!'));
+    expect(screen.getByLabelText('Còn 4 quả bóng')).toBeInTheDocument();
+    await advance(2500);
+    expect(onCaught).toHaveBeenCalledTimes(1);
+    expect(screen.getByText(/Bé đã bắt được Charizard/)).toBeInTheDocument();
+  });
+
+  it('CA-02 an escape costs a ball and lets the child try again', async () => {
+    const onCaught = vi.fn();
+    render(<CatchGame pokemon={makeCard()} image="x.png" onClose={vi.fn()} onCaught={onCaught} now={frozen} random={() => 0.999} />);
+    fireEvent.click(screen.getByText('NÉM!'));
+    await advance(2400);
+    expect(screen.getByRole('status')).toHaveTextContent('thoát ra');
+    await advance(1500);
+    expect(screen.getByText('NÉM!')).not.toBeDisabled();
+    expect(onCaught).not.toHaveBeenCalled();
+  });
+
+  it('CA-03 a swipe aimed at the edge misses; running out of balls offers a replay', async () => {
+    render(<CatchGame pokemon={makeCard()} image="x.png" onClose={vi.fn()} now={frozen} random={() => 0} />);
+    const arena = screen.getByTestId('catch-arena');
+    arena.getBoundingClientRect = () => ({ left: 0, top: 0, width: 400, height: 320 });
+    for (let i = 0; i < 5; i++) {
+      fireEvent.pointerDown(arena, { clientX: 395, clientY: 300 });
+      fireEvent.pointerUp(arena, { clientX: 395, clientY: 100 });
+      await advance(800);
+      expect(screen.getByRole('status')).toHaveTextContent('Trượt');
+      await advance(1500);
+    }
+    expect(screen.getByText('Chơi lại')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Chơi lại'));
+    expect(screen.getByLabelText('Còn 5 quả bóng')).toBeInTheDocument();
+  });
+
+  it('CA-04 ignores taps and tiny drags that are not upward swipes, and closes', () => {
+    const onClose = vi.fn();
+    render(<CatchGame pokemon={makeCard()} image="x.png" onClose={onClose} now={frozen} />);
+    const arena = screen.getByTestId('catch-arena');
+    fireEvent.pointerDown(arena, { clientX: 200, clientY: 300 });
+    fireEvent.pointerUp(arena, { clientX: 200, clientY: 290 });
+    expect(screen.getByLabelText('Còn 5 quả bóng')).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Đóng trò chơi'));
+    expect(onClose).toHaveBeenCalled();
+  });
+});
+
+describe('GuessGame', () => {
+  it('GU-01 plays 10 rounds, scores correct answers and shows stars', () => {
+    render(<GuessGame collection={[]} random={() => 0} />);
+    expect(screen.getByAltText('Pokémon bí ẩn').className).toContain('silhouette');
+    for (let round = 1; round <= ROUNDS; round++) {
+      expect(screen.getByText(`Câu ${round}/${ROUNDS}`)).toBeInTheDocument();
+      expect(screen.getByAltText('Pokémon bí ẩn')).toBeInTheDocument();
+      const options = screen.getAllByRole('button').filter((b) => b.className.includes('py-4'));
+      expect(options).toHaveLength(4);
+      fireEvent.click(options[0]);
+      options.forEach((o) => expect(o).toBeDisabled());
+      fireEvent.click(screen.getByText(round === ROUNDS ? 'Xem kết quả' : 'Câu tiếp theo'));
+    }
+    expect(screen.getByText('Hoàn thành!')).toBeInTheDocument();
+    expect(screen.getByText(/Kỷ lục/)).toBeInTheDocument();
+  });
+
+  it('GU-02 reveals the answer, marks right and wrong, and offers a hint', () => {
+    render(<GuessGame collection={[makeCard()]} random={() => 0} />);
+    fireEvent.click(screen.getByText('Xem gợi ý'));
+    const hint = screen.getByLabelText('Gợi ý').textContent;
+    const options = screen.getAllByRole('button').filter((b) => b.className.includes('py-4'));
+    const correct = options.find((b) => b.textContent.charAt(0).toUpperCase() === hint.charAt(0) && hint.replace(/[^_]/g, '').length === b.textContent.replace(/[^A-Za-z]/g, '').length - 1);
+    fireEvent.click(correct);
+    expect(screen.getByRole('status')).toHaveTextContent('Đúng rồi!');
+    expect(correct.className).toContain('bg-emerald-500');
+    expect(screen.getByAltText(correct.textContent).className).not.toContain('silhouette');
+    expect(screen.getByText('1', { selector: 'span' })).toBeInTheDocument();
+  });
+
+  it('GU-03 a wrong answer shows the correct name', () => {
+    render(<GuessGame collection={[]} random={() => 0} />);
+    const options = screen.getAllByRole('button').filter((b) => b.className.includes('py-4'));
+    fireEvent.click(options[0]);
+    const status = screen.getByRole('status').textContent;
+    if (status.startsWith('Chưa đúng')) {
+      expect(options[0].className).toContain('bg-rose-500');
+      expect(options.some((b) => b.className.includes('bg-emerald-500'))).toBe(true);
+    } else {
+      expect(status).toContain('Đúng rồi!');
+    }
+  });
+});
+
+const EEVEE_NODES = [
+  { name: 'eevee', id: 133, image: 'e.png', stage: 0, from: null, how: null },
+  { name: 'vaporeon', id: 134, image: 'v.png', stage: 1, from: 'eevee', how: 'Dùng Đá Nước' },
+  { name: 'umbreon', id: 197, image: 'u.png', stage: 1, from: 'eevee', how: 'Rất thân thiết (ban đêm)' },
+];
+
+describe('EvolutionTree', () => {
+  const eevee = makeCard({ id: 'eevee', name: 'Eevee', speciesName: 'eevee', pokedexNumber: '133' });
+
+  it('EV-01 shows the family with how each form evolves', async () => {
+    mocks.fetchEvolutionChain.mockResolvedValue(EEVEE_NODES);
+    render(<EvolutionTree pokemon={eevee} scanCount={1} />);
+    expect(screen.getByText('Đang tải cây tiến hóa...')).toBeInTheDocument();
+    expect(await screen.findByText('Vaporeon')).toBeInTheDocument();
+    expect(screen.getByText('Dùng Đá Nước')).toBeInTheDocument();
+    expect(screen.getByText('Eevee').closest('button')).toHaveAttribute('aria-current', 'true');
+  });
+
+  it('EV-02 asks for more scans before evolving', async () => {
+    mocks.fetchEvolutionChain.mockResolvedValue(EEVEE_NODES);
+    render(<EvolutionTree pokemon={eevee} scanCount={1} />);
+    expect(await screen.findByText(`${SCANS_TO_EVOLVE - 1}`)).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '1');
+    expect(screen.queryByText(/Tiến hóa thành/)).toBeNull();
+  });
+
+  it('EV-03 offers each branch once enough scans are made', async () => {
+    mocks.fetchEvolutionChain.mockResolvedValue(EEVEE_NODES);
+    const onEvolve = vi.fn();
+    render(<EvolutionTree pokemon={eevee} scanCount={SCANS_TO_EVOLVE} onEvolve={onEvolve} />);
+    fireEvent.click(await screen.findByText('Tiến hóa thành Umbreon!'));
+    expect(screen.getByText('Tiến hóa thành Vaporeon!')).toBeInTheDocument();
+    expect(onEvolve).toHaveBeenCalledWith('umbreon');
+  });
+
+  it('EV-04 tapping another form explores it; final forms and previews cannot evolve', async () => {
+    mocks.fetchEvolutionChain.mockResolvedValue(EEVEE_NODES);
+    const onExplore = vi.fn();
+    const umbreon = makeCard({ id: 'umbreon', name: 'Umbreon', speciesName: 'umbreon', pokedexNumber: '197' });
+    render(<EvolutionTree pokemon={umbreon} scanCount={9} onExplore={onExplore} />);
+    expect(await screen.findByText(/dạng tiến hóa cuối cùng/)).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Eevee'));
+    expect(onExplore).toHaveBeenCalledWith('eevee');
+  });
+
+  it('EV-05 single-stage Pokemon and failed loads', async () => {
+    mocks.fetchEvolutionChain.mockResolvedValueOnce([{ name: 'tauros', id: 128, image: 't.png', stage: 0, from: null, how: null }]);
+    const { unmount } = render(<EvolutionTree pokemon={makeCard({ speciesName: 'tauros' })} />);
+    expect(await screen.findByText(/không tiến hóa/)).toBeInTheDocument();
+    unmount();
+    mocks.fetchEvolutionChain.mockResolvedValueOnce([]);
+    const { container } = render(<EvolutionTree pokemon={makeCard({ speciesName: 'x' })} />);
+    await waitFor(() => expect(container).toBeEmptyDOMElement());
+  });
+
+  it('EV-06 cards of alternate forms without a species name show nothing', () => {
+    const { container } = render(<EvolutionTree pokemon={makeCard({ speciesName: undefined, pokedexNumber: '10034' })} />);
+    expect(container).toBeEmptyDOMElement();
+    expect(mocks.fetchEvolutionChain).not.toHaveBeenCalled();
+  });
+});
+
+describe('PokemonBuddy', () => {
+  it('BU-01 tapping plays the cry and shows hearts', () => {
+    render(<PokemonBuddy pokemon={makeCard()} onPlayCatch={vi.fn()} />);
+    fireEvent.click(screen.getByLabelText('Chạm vào Charizard'));
+    expect(sounds.playPokemonCry).toHaveBeenCalled();
+    expect(screen.getAllByText('❤️').length).toBeGreaterThan(0);
+  });
+
+  it('BU-02 shiny toggle appears only once a shiny was found', () => {
+    const onToggle = vi.fn();
+    const { rerender } = render(<PokemonBuddy pokemon={makeCard()} showShiny={false} onToggleShiny={onToggle} />);
+    expect(screen.queryByText('Shiny')).toBeNull();
+    rerender(<PokemonBuddy pokemon={makeCard()} shinyUnlocked showShiny={false} onToggleShiny={onToggle} />);
+    fireEvent.click(screen.getByText('Shiny'));
+    expect(onToggle).toHaveBeenCalledWith(true);
+    rerender(<PokemonBuddy pokemon={makeCard()} shinyUnlocked showShiny onToggleShiny={onToggle} />);
+    expect(screen.getByAltText('Charizard')).toHaveAttribute('src', expect.stringContaining('/shiny/6.png'));
+  });
+
+  it('BU-03 shows catches, legacy cry button and starts the minigame', () => {
+    const onPlayCatch = vi.fn();
+    render(<PokemonBuddy pokemon={makeCard({ cryLegacyUrl: 'l.ogg' })} catchCount={3} onPlayCatch={onPlayCatch} />);
+    expect(screen.getByText('Đã bắt 3 lần')).toBeInTheDocument();
+    expect(screen.getByText('Tiếng kêu cổ điển')).toBeInTheDocument();
+    fireEvent.click(screen.getByText(/Chơi Ném Bóng/));
+    expect(onPlayCatch).toHaveBeenCalled();
+  });
+});
+
+describe('EvolutionScene', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it('ES-01 glows first, then reveals the evolved Pokemon', async () => {
+    const onDone = vi.fn();
+    const from = makeCard({ name: 'Eevee' });
+    const { rerender } = render(<EvolutionScene from={from} to={null} onDone={onDone} />);
+    expect(screen.getByRole('status')).toHaveTextContent('Eevee đang tiến hóa');
+    rerender(<EvolutionScene from={from} to={makeCard({ id: 'umbreon', name: 'Umbreon' })} onDone={onDone} />);
+    expect(screen.queryByText('Xem Umbreon')).toBeNull();
+    await advance(EVOLVE_GLOW_MS + 100);
+    fireEvent.click(screen.getByText('Xem Umbreon'));
+    expect(onDone).toHaveBeenCalled();
+    expect(sounds.playSuccessFanfare).toHaveBeenCalled();
+  });
+
+  it('ES-02 shows a friendly error', () => {
+    const onDone = vi.fn();
+    render(<EvolutionScene from={makeCard()} to={null} error="offline" onDone={onDone} />);
+    fireEvent.click(screen.getByText('Quay lại'));
+    expect(onDone).toHaveBeenCalled();
+  });
+});

@@ -75,7 +75,7 @@ export function PokedexCollection({ collection, onSelectCard, onReplayVideo, onS
       <div className="mb-6">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div>
-            <h2 className="text-xl sm:text-2xl font-black text-white font-tech uppercase tracking-wider flex items-center space-x-2">
+            <h2 className="text-xl sm:text-2xl font-black text-slate-50 font-tech uppercase tracking-wider flex items-center space-x-2">
               <BookOpen className="w-6 h-6 text-indigo-400" />
               <span>BỘ SƯU TẬP POKÉDEX</span>
             </h2>
@@ -245,9 +245,14 @@ export function PokedexCollection({ collection, onSelectCard, onReplayVideo, onS
                 />
 
                 {/* Scan count pill */}
-                <div className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-sm text-[9px] font-tech text-amber-400 border border-white/10">
-                  Quét {card.scanCount || 1}x
+                <div className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-sm text-[9px] font-tech text-amber-300 border border-white/10">
+                  Quét {card.scanCount || 1}x{card.catchCount > 0 ? ` • Bắt ${card.catchCount}x` : ''}
                 </div>
+                {card.shinyUnlocked && (
+                  <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-yellow-300 to-pink-300 text-[9px] font-black text-slate-900 shadow" title="Đã tìm thấy bản Shiny">
+                    ✨ SHINY
+                  </div>
+                )}
               </div>
 
               {/* Card Info */}

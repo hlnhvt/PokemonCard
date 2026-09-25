@@ -1,3 +1,16 @@
+import defaultColors from 'tailwindcss/colors'
+
+// Theme-aware colours: the neutral `slate` scale and the light accent shades read CSS
+// variables set per theme in src/index.css (dark / light / ocean), so existing classes
+// such as bg-slate-900 or text-amber-400 adapt without touching every component.
+const themed = (name) => `rgb(var(--${name}) / <alpha-value>)`
+const SLATE_SHADES = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950]
+const slate = Object.fromEntries(SLATE_SHADES.map((s) => [s, themed(`slate-${s}`)]))
+const ACCENTS = ['amber', 'cyan', 'rose', 'red', 'emerald', 'indigo', 'blue', 'yellow']
+const accents = Object.fromEntries(
+  ACCENTS.map((c) => [c, { ...defaultColors[c], 300: themed(`${c}-300`), 400: themed(`${c}-400`) }])
+)
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -7,6 +20,8 @@ export default {
   theme: {
     extend: {
       colors: {
+        slate,
+        ...accents,
         poke: {
           red: '#EE1515',
           darkred: '#CC0000',

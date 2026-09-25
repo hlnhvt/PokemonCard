@@ -243,3 +243,30 @@ Các kiểu lỗi còn lại: font tên cách điệu trên thẻ V/VMAX/holo, t
 | OC-15 | P1 | AUTO | `mapRectToVideoFrame` với `object-fit: cover` và lề | Đúng toạ độ khung video |
 | SC-21 | P1 | AUTO | Chụp camera | Chỉ vùng khung ngắm (+6% lề) được gửi vào OCR |
 | OC-16 | P1 | EVAL | `npm run eval:ocr` trên 3 tập | Không thấp hơn bảng trên |
+---
+
+## 12. Tính năng tương tác đợt 1 & giao diện (2026-09-25)
+
+Đối tượng: trẻ em. Minigame là phần thêm, việc lưu thẻ vào Pokédex vẫn tự động như trước.
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| CR-01..04 | P1 | AUTO | Tiếng kêu thật: trình duyệt không hỗ trợ Ogg / hỗ trợ / tải lỗi / đang tắt tiếng | Âm thanh tổng hợp / tiếng thật (URL tính từ số Pokédex với thẻ cũ) / dự phòng / im lặng |
+| SH-01..02 | P1 | AUTO | Shiny xác suất 1/8 khi quét; quét lại bản thường | Hiện banner "SHINY siêu hiếm", nút chuyển sang Shiny; `shinyUnlocked` được giữ vĩnh viễn |
+| CG-01..04 | P1 | AUTO | Luật ném bóng: tỉ lệ bắt theo `capture_rate` thật, dễ hơn cho trẻ (30–95%) | Pokémon nào cũng bắt được; ném lúc vòng nhỏ → tỉ lệ cao hơn, nhiều sao hơn |
+| CA-01..04 | P1 | AUTO | Minigame: ném trúng + bắt được / thoát ra / vuốt trượt đến hết 5 bóng / chạm nhẹ không phải vuốt | Ghi nhận lần bắt / còn bóng thì chơi tiếp / nút "Chơi lại" / không ném |
+| ST-12 | P1 | AUTO | `recordCatch` | Cộng số lần bắt, giữ nguyên khi quét lại |
+| GG-01..04, GU-01..03 | P1 | AUTO | Đoán bóng đen: 40 Pokémon phổ biến khớp đúng số Pokédex; 4 lựa chọn khác nhau, không lặp; 10 câu; gợi ý; đúng/sai | Hiện màu + tên sau khi chọn, tính điểm, sao, kỷ lục |
+| SV-17..21 | P1 | AUTO | Dữ liệu mới từ PokeAPI; mô tả điều kiện tiến hóa tiếng Việt; chuỗi rẽ nhánh (Eevee); cache; lỗi mạng | Đúng trường; "Đạt cấp 16", "Dùng Đá Sấm", "Rất thân thiết (ban đêm)"...; trả `[]` khi lỗi |
+| EV-01..06 | P1 | AUTO | Cây tiến hóa: tải, chưa đủ 3 lần quét, đủ lần quét (mỗi nhánh 1 nút), dạng cuối, không tiến hóa, form không có species | Đúng thông báo / thanh tiến độ / nút "Tiến hóa thành X!" |
+| ES-01..02 | P2 | AUTO | Màn tiến hóa: phát sáng tối thiểu 2,6 giây rồi lộ dạng mới; lỗi mạng | Nút "Xem X"; thông báo thân thiện |
+| BU-01..03 | P2 | AUTO | "Pokémon của bé": chạm vào → nhảy lên, bay tim, phát tiếng kêu; nút Shiny; nút minigame | Đúng |
+| AP-08..13 | P1 | AUTO | Tích hợp: quét trúng shiny; tiến hóa thêm thẻ mới; xem thử Pokémon chưa có (không lưu); tab Trò chơi; đổi theme; lần bắt được ghi lại | Đúng |
+| TH-01..04 | P1 | AUTO | Theme: mặc định Tối, nhớ lựa chọn, chuyển vòng Tối → Sáng → Xanh biển, vẫn hoạt động khi storage bị chặn | `data-theme`, meta theme-color, localStorage đúng |
+| UI-01 | P1 | MANUAL (Chrome headless) | Chụp 4 màn × 3 theme ở 412×915, cùng minigame và màn tiến hóa | Chữ đọc được, nền xanh phủ toàn trang, minigame phủ header, không có lỗi JS |
+| UI-02 | P1 | MANUAL | iPhone Safari: tiếng kêu `.ogg`, thao tác vuốt, gradient | **Chưa thực hiện** |
+
+Lỗi phát hiện khi chụp màn hình thật và đã sửa:
+- Nền Xanh biển chỉ phủ một màn hình (`background-attachment: fixed`).
+- Minigame bị header và nút nổi đè lên (stacking context của `<main>`; đã chuyển sang render qua portal).
+- Vị trí Pokémon khi bóng tới được tính bằng công thức dự đoán, lệch với vị trí đang hiển thị (phát hiện qua test CA-01).

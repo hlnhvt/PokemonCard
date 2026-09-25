@@ -307,7 +307,7 @@ export function ScannerModal({ onCardDetected }) {
       
       {/* Top Banner Guide */}
       <div className="w-full text-center mb-3">
-        <h2 className="text-xl sm:text-2xl font-black text-white font-tech uppercase tracking-wider flex items-center justify-center space-x-2">
+        <h2 className="text-xl sm:text-2xl font-black text-slate-50 font-tech uppercase tracking-wider flex items-center justify-center space-x-2">
           <Globe className="w-6 h-6 text-cyan-400 animate-pulse" />
           <span>QUÉT THẺ & ĐỒNG BỘ DỮ LIỆU ONLINE</span>
         </h2>
@@ -317,7 +317,7 @@ export function ScannerModal({ onCardDetected }) {
       </div>
 
       {/* Main Scanner Viewport Container */}
-      <div className="relative w-full aspect-[4/5] sm:aspect-[3/4] max-w-sm rounded-3xl overflow-hidden border-2 border-slate-700/80 bg-slate-950 shadow-2xl shadow-cyan-950/20 flex items-center justify-center">
+      <div data-theme="dark" className="relative w-full aspect-[4/5] sm:aspect-[3/4] max-w-sm rounded-3xl overflow-hidden border-2 border-slate-700/80 bg-slate-950 shadow-2xl shadow-cyan-950/20 flex items-center justify-center">
         
         {/* Live Camera Video Feed */}
         <video
@@ -452,7 +452,7 @@ export function ScannerModal({ onCardDetected }) {
                   setManualInputName(e.target.value);
                 }}
                 placeholder="Nhập tên Pokemon (vd: Charizard, Pikachu, Lucario...)"
-                className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-cyan-500/50 text-white font-bold text-sm focus:outline-none focus:border-amber-400 uppercase tracking-wider"
+                className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-cyan-500/50 text-slate-50 font-bold text-sm focus:outline-none focus:border-amber-400 uppercase tracking-wider"
               />
               <Edit3 className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             </div>
@@ -600,7 +600,7 @@ export function ScannerModal({ onCardDetected }) {
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleFetchOnline(manualInputName);
             }}
-            className="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
+            className="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-slate-50 placeholder-slate-500 focus:outline-none focus:border-cyan-400"
           />
           <button
             onClick={() => handleFetchOnline(manualInputName)}

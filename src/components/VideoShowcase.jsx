@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { SkipForward, Sparkles, Zap, ExternalLink, ArrowRight } from 'lucide-react';
 import { sounds } from '../utils/soundEffects';
+import { playCry } from '../utils/cries';
+import { getCardMedia } from '../services/pokemonOnlineService';
 
 export function VideoShowcase({ pokemon, onComplete, isMuted }) {
   const [progress, setProgress] = useState(0);
@@ -27,7 +29,7 @@ export function VideoShowcase({ pokemon, onComplete, isMuted }) {
   useEffect(() => {
     sounds.playEnergySurge();
     const cryTimer = setTimeout(() => {
-      sounds.playPokemonCry(pokemon.videoShowcase?.soundEffect || pokemon.types?.[0]);
+      playCry(pokemon, { type: pokemon.videoShowcase?.soundEffect || pokemon.types?.[0] });
     }, 350);
 
     return () => clearTimeout(cryTimer);
@@ -76,7 +78,7 @@ export function VideoShowcase({ pokemon, onComplete, isMuted }) {
   }, [progress, autoAdvance, finish]);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/95 backdrop-blur-2xl overflow-y-auto p-4 py-6">
+    <div data-theme="dark" className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/95 backdrop-blur-2xl overflow-y-auto p-4 py-6">
       {/* Background Ambience Glow */}
       <div
         className="absolute inset-0 opacity-40 blur-3xl pointer-events-none transition-all duration-700"
@@ -164,7 +166,7 @@ export function VideoShowcase({ pokemon, onComplete, isMuted }) {
 
             {/* Pokemon Artwork */}
             <img
-              src={pokemon.fallbackImage || pokemon.image}
+              src={(pokemon.isShiny && getCardMedia(pokemon).shinyImage) || pokemon.fallbackImage || pokemon.image}
               alt={pokemon.name}
               className="w-48 h-48 sm:w-60 sm:h-60 object-contain drop-shadow-[0_0_40px_rgba(255,255,255,0.7)] animate-float relative z-10"
             />

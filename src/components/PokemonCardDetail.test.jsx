@@ -77,7 +77,8 @@ describe('PokemonCardDetail', () => {
 
   it('DT-08 swaps a broken card image for the artwork', () => {
     renderDetail();
-    const img = screen.getByAltText('Charizard');
+    // First image with this alt text is the TCG card; the second is the buddy artwork
+    const img = screen.getAllByAltText('Charizard')[0];
     fireEvent.error(img);
     expect(img).toHaveAttribute('src', 'https://example.test/charizard-art.png');
   });

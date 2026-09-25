@@ -8,12 +8,141 @@
     --font-mono: 'Rajdhani', sans-serif;
   }
 
+  /* Theme palettes (RGB channels). Tailwind's slate-* and accent 300/400 shades read these. */
+
+  /* Dark (default): Tailwind's own values */
+  :root,
+  [data-theme='dark'] {
+    --slate-50: 248 250 252;
+    --slate-100: 241 245 249;
+    --slate-200: 226 232 240;
+    --slate-300: 203 213 225;
+    --slate-400: 148 163 184;
+    --slate-500: 100 116 139;
+    --slate-600: 71 85 105;
+    --slate-700: 51 65 85;
+    --slate-800: 30 41 59;
+    --slate-900: 15 23 42;
+    --slate-950: 2 6 23;
+    --amber-300: 252 211 77;
+    --amber-400: 251 191 36;
+    --cyan-300: 103 232 249;
+    --cyan-400: 34 211 238;
+    --rose-300: 253 164 175;
+    --rose-400: 251 113 133;
+    --red-300: 252 165 165;
+    --red-400: 248 113 113;
+    --emerald-300: 110 231 183;
+    --emerald-400: 52 211 153;
+    --indigo-300: 165 180 252;
+    --indigo-400: 129 140 248;
+    --blue-300: 147 197 253;
+    --blue-400: 96 165 250;
+    --yellow-300: 253 224 71;
+    --yellow-400: 250 204 21;
+    --glass-bg: 15 23 42;
+    --glass-alpha: 0.75;
+    --glass-border: 255 255 255;
+    --glass-border-alpha: 0.08;
+    --app-bg: #030712;
+    --app-bg-end: #030712;
+    color-scheme: dark;
+  }
+
+  /* Light: neutral scale inverted, accents darkened so text stays readable on white */
+  [data-theme='light'] {
+    --slate-50: 15 23 42;
+    --slate-100: 30 41 59;
+    --slate-200: 51 65 85;
+    --slate-300: 71 85 105;
+    --slate-400: 90 104 125;
+    --slate-500: 130 145 165;
+    --slate-600: 190 201 214;
+    --slate-700: 210 219 230;
+    --slate-800: 226 232 240;
+    --slate-900: 241 245 249;
+    --slate-950: 255 255 255;
+    --amber-300: 217 119 6;
+    --amber-400: 180 83 9;
+    --cyan-300: 8 145 178;
+    --cyan-400: 14 116 144;
+    --rose-300: 225 29 72;
+    --rose-400: 190 18 60;
+    --red-300: 220 38 38;
+    --red-400: 185 28 28;
+    --emerald-300: 5 150 105;
+    --emerald-400: 4 120 87;
+    --indigo-300: 79 70 229;
+    --indigo-400: 67 56 202;
+    --blue-300: 37 99 235;
+    --blue-400: 29 78 216;
+    --yellow-300: 202 138 4;
+    --yellow-400: 161 98 7;
+    --glass-bg: 255 255 255;
+    --glass-alpha: 0.85;
+    --glass-border: 15 23 42;
+    --glass-border-alpha: 0.1;
+    --app-bg: linear-gradient(180deg, #f8fbff 0%, #eef4fb 100%);
+    --app-bg-end: #eef4fb;
+    color-scheme: light;
+  }
+
+  /* Ocean: bright sky-to-navy gradient with a blue-tinted neutral scale */
+  [data-theme='ocean'] {
+    --slate-50: 240 249 255;
+    --slate-100: 224 242 254;
+    --slate-200: 204 234 254;
+    --slate-300: 178 222 252;
+    --slate-400: 160 206 245;
+    --slate-500: 110 165 220;
+    --slate-600: 70 125 190;
+    --slate-700: 45 100 170;
+    --slate-800: 30 80 150;
+    --slate-900: 22 62 128;
+    --slate-950: 14 45 105;
+    --amber-300: 253 224 110;
+    --amber-400: 252 211 77;
+    --cyan-300: 165 243 252;
+    --cyan-400: 103 232 249;
+    --rose-300: 254 205 211;
+    --rose-400: 253 164 175;
+    --red-300: 254 202 202;
+    --red-400: 252 165 165;
+    --emerald-300: 167 243 208;
+    --emerald-400: 110 231 183;
+    --indigo-300: 199 210 254;
+    --indigo-400: 165 180 252;
+    --blue-300: 191 219 254;
+    --blue-400: 147 197 253;
+    --yellow-300: 254 240 138;
+    --yellow-400: 253 224 71;
+    --glass-bg: 18 55 120;
+    --glass-alpha: 0.55;
+    --glass-border: 255 255 255;
+    --glass-border-alpha: 0.18;
+    --app-bg: linear-gradient(160deg, #38bdf8 0%, #2563eb 45%, #1e3a8a 100%);
+    --app-bg-end: #1e3a8a;
+    color-scheme: dark;
+  }
+
+  /* Overscroll and areas past the content use the gradient's last colour */
+  html {
+    background-color: var(--app-bg-end);
+  }
+
   body {
-    background-color: #030712;
-    color: #f8fafc;
+    background: var(--app-bg);
+    color: rgb(var(--slate-50));
     font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     overflow-x: hidden;
   }
+}
+
+/* Page background of the app shell for the active theme */
+.app-bg {
+  /* Not background-attachment: fixed, which iOS Safari ignores and which only
+     covers one screen height; the gradient stretches over the whole page instead */
+  background: var(--app-bg);
 }
 
 /* Custom Holographic & Pokedex UI styles */
@@ -50,10 +179,10 @@
 
 /* Glassmorphism styling */
 .glass-panel {
-  background: rgba(15, 23, 42, 0.75);
+  background: rgb(var(--glass-bg) / var(--glass-alpha));
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgb(var(--glass-border) / var(--glass-border-alpha));
 }
 
 .glass-pill {
@@ -108,7 +237,7 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.6);
+  background: rgb(var(--slate-900) / 0.6);
 }
 
 ::-webkit-scrollbar-thumb {
@@ -118,4 +247,67 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.8);
+}
+
+/* Pokeball wobble while a catch is being decided */
+@keyframes ballShake {
+  0%, 100% { transform: rotate(0deg); }
+  20% { transform: rotate(-22deg); }
+  40% { transform: rotate(18deg); }
+  60% { transform: rotate(-10deg); }
+  80% { transform: rotate(6deg); }
+}
+.ball-shake {
+  animation: ballShake 0.55s ease-in-out infinite;
+  transform-origin: 50% 90%;
+}
+
+/* Floating hearts when a child taps their Pokemon */
+@keyframes heartFloat {
+  0% { transform: translate(-50%, 0) scale(0.6); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translate(-50%, -90px) scale(1.2); opacity: 0; }
+}
+.heart-float {
+  animation: heartFloat 1.1s ease-out forwards;
+}
+
+/* Happy hop on tap */
+@keyframes pokeHop {
+  0%, 100% { transform: translateY(0) scale(1); }
+  30% { transform: translateY(-18px) scale(1.05, 0.95); }
+  60% { transform: translateY(0) scale(0.95, 1.05); }
+}
+.poke-hop {
+  animation: pokeHop 0.5s ease-out;
+}
+
+/* Evolution: glowing white silhouette pulsing faster */
+@keyframes evolveGlow {
+  0%, 100% { filter: brightness(1) drop-shadow(0 0 0 #fff); }
+  50% { filter: brightness(0) invert(1) drop-shadow(0 0 30px #fff); }
+}
+.evolve-glow {
+  animation: evolveGlow 0.6s ease-in-out infinite;
+}
+
+/* Sparkles around shiny Pokemon */
+@keyframes shinyTwinkle {
+  0%, 100% { opacity: 0; transform: scale(0.4) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1) rotate(45deg); }
+}
+.shiny-twinkle {
+  animation: shinyTwinkle 1.6s ease-in-out infinite;
+}
+
+/* The silhouette quiz hides colours until the answer is revealed */
+.silhouette {
+  filter: brightness(0);
+  transition: filter 0.6s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ball-shake, .heart-float, .poke-hop, .evolve-glow, .shiny-twinkle {
+    animation: none;
+  }
 }

@@ -36,6 +36,9 @@ export function saveCardToPokedex(card) {
         scanCount: (current.scanCount || 1) + 1,
         firstScannedAt: current.firstScannedAt || now,
         isFavorite: !!current.isFavorite,
+        // A shiny found once stays unlocked, and catches from the minigame are kept
+        shinyUnlocked: !!(current.shinyUnlocked || card.isShiny),
+        catchCount: current.catchCount || 0,
         lastScannedAt: now,
       };
       updatedList = [...list];
@@ -48,6 +51,8 @@ export function saveCardToPokedex(card) {
         firstScannedAt: now,
         lastScannedAt: now,
         isFavorite: false,
+        shinyUnlocked: !!card.isShiny,
+        catchCount: 0,
       };
       updatedList = [savedItem, ...list];
     }
@@ -75,6 +80,23 @@ export function toggleCardFavorite(cardId) {
     console.error('Error toggling favorite:', err);
     // Keep showing what is actually persisted instead of wiping the UI
     return list;
+  }
+}
+
+/** Count a successful catch in the Pokeball minigame. Returns the updated card or null. */
+export function recordCatch(cardId) {
+  const list = getSavedCollection();
+  const index = list.findIndex((item) => item.id === cardId);
+  if (index < 0) return null;
+  try {
+    const updatedItem = { ...list[index], catchCount: (list[index].catchCount || 0) + 1 };
+    const updated = [...list];
+    updated[index] = updatedItem;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    return updatedItem;
+  } catch (err) {
+    console.error('Error recording catch:', err);
+    return null;
   }
 }
 

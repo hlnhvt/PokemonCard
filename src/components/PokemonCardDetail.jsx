@@ -11,13 +11,36 @@ import {
   Bookmark,
   Share2,
   Flame,
-  Award
+  Award,
+  Search
 } from 'lucide-react';
 import { sounds } from '../utils/soundEffects';
+import { playCry } from '../utils/cries';
+import { PokemonBuddy } from './PokemonBuddy';
+import { EvolutionTree } from './EvolutionTree';
+import { CatchGame } from './CatchGame';
+import { getCardMedia } from '../services/pokemonOnlineService';
 
 const DEFAULT_THEME = { primary: '#AAAA99', secondary: '#777766', accent: '#CCCCBB', glow: 'rgba(170, 170, 153, 0.6)' };
 
-export function PokemonCardDetail({ pokemon: rawPokemon, savedItem, onScanNext, onReplayVideo, onViewCollection }) {
+/**
+ * mode 'saved': a card from the child's collection (just scanned or opened from it).
+ * mode 'preview': a Pokemon opened from the evolution tree that is not collected yet.
+ */
+export function PokemonCardDetail({
+  pokemon: rawPokemon,
+  savedItem,
+  mode = 'saved',
+  onScanNext,
+  onReplayVideo,
+  onViewCollection,
+  onEvolve,
+  onExplore,
+  onCaught,
+}) {
+  const isPreview = mode === 'preview';
+  const [showShiny, setShowShiny] = useState(!!rawPokemon.isShiny);
+  const [isCatching, setIsCatching] = useState(false);
   // Older or partially saved cards may miss fields; fill them so rendering never crashes
   const pokemon = {
     ...rawPokemon,
@@ -159,18 +182,41 @@ export function PokemonCardDetail({ pokemon: rawPokemon, savedItem, onScanNext, 
       bug: 'bg-lime-500 text-slate-950 border-lime-400',
       ghost: 'bg-violet-700 text-white border-violet-500',
     };
-    return map[t] || 'bg-slate-700 text-white border-slate-600';
+    return map[t] || 'bg-slate-500 text-slate-50 border-slate-400';
   };
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 py-4 sm:py-6 pb-20 animate-fadeIn">
+      {/* Shiny celebration */}
+      {pokemon.isShiny && !isPreview && (
+        <div role="status" className="mb-3 p-3 rounded-2xl bg-gradient-to-r from-yellow-300 via-amber-300 to-pink-300 text-slate-900 text-center font-black text-base sm:text-lg shadow-lg flex items-center justify-center gap-2">
+          <Sparkles className="w-6 h-6" /> WOW! Bé tìm được {pokemon.name} SHINY siêu hiếm! <Sparkles className="w-6 h-6" />
+        </div>
+      )}
+
       {/* Top Banner: Success notice (or warning when LocalStorage refused the save) */}
       <div className={`mb-4 sm:mb-6 p-3 sm:p-4 rounded-2xl border shadow-lg flex flex-wrap items-center justify-between gap-3 ${
-        savedItem
-          ? 'bg-gradient-to-r from-emerald-950/80 via-slate-900/90 to-emerald-950/80 border-emerald-500/40 shadow-emerald-950/40'
-          : 'bg-gradient-to-r from-amber-950/80 via-slate-900/90 to-amber-950/80 border-amber-500/40 shadow-amber-950/40'
+        isPreview
+          ? 'bg-gradient-to-r from-cyan-500/15 via-slate-900/90 to-cyan-500/15 border-cyan-500/40'
+          : savedItem
+            ? 'bg-gradient-to-r from-emerald-500/15 via-slate-900/90 to-emerald-500/15 border-emerald-500/40'
+            : 'bg-gradient-to-r from-amber-500/15 via-slate-900/90 to-amber-500/15 border-amber-500/40'
       }`}>
-        {savedItem ? (
+        {isPreview ? (
+        <div className="flex items-center space-x-3">
+          <div className="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400">
+            <Search className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="text-xs font-tech font-bold uppercase tracking-wider text-cyan-400">
+              BÉ CHƯA CÓ POKÉMON NÀY
+            </span>
+            <p className="text-xs text-slate-300">
+              Hãy tìm thẻ {pokemon.name} và quét để thêm vào bộ sưu tập nhé!
+            </p>
+          </div>
+        </div>
+        ) : savedItem ? (
         <div className="flex items-center space-x-3">
           <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
             <CheckCircle className="w-5 h-5" />
@@ -207,12 +253,13 @@ export function PokemonCardDetail({ pokemon: rawPokemon, savedItem, onScanNext, 
 
         <div className="flex items-center space-x-2 ml-auto">
           <button
-            onClick={() => sounds.playPokemonCry(pokemon.types[0])}
+            onClick={() => playCry(pokemon)}
             className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition-colors"
           >
             <Volume2 className="w-3.5 h-3.5 text-amber-400" />
             <span>Tiếng gầm</span>
           </button>
+          {!isPreview && (
           <button
             onClick={onReplayVideo}
             className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-red-600/30 hover:bg-red-600/50 border border-red-500/40 text-xs font-semibold text-red-300 transition-colors"
@@ -220,6 +267,7 @@ export function PokemonCardDetail({ pokemon: rawPokemon, savedItem, onScanNext, 
             <Play className="w-3.5 h-3.5" />
             <span>Xem lại Video</span>
           </button>
+          )}
         </div>
       </div>
 
@@ -299,11 +347,30 @@ export function PokemonCardDetail({ pokemon: rawPokemon, savedItem, onScanNext, 
               <span>Bộ sưu tập</span>
             </button>
           </div>
+
+          <div className="w-full max-w-[320px] mt-4">
+            <PokemonBuddy
+              pokemon={pokemon}
+              shinyUnlocked={!!savedItem?.shinyUnlocked}
+              showShiny={showShiny}
+              onToggleShiny={setShowShiny}
+              catchCount={savedItem?.catchCount || 0}
+              onPlayCatch={() => setIsCatching(true)}
+            />
+          </div>
         </div>
 
         {/* Right Column: Pokemon Technical Specs & Attacks */}
         <div className="md:col-span-7 flex flex-col space-y-4">
-          
+
+          <EvolutionTree
+            pokemon={pokemon}
+            scanCount={savedItem?.scanCount || 0}
+            canEvolve={!isPreview && !!savedItem}
+            onEvolve={onEvolve}
+            onExplore={onExplore}
+          />
+
           {/* Identity Box */}
           <div className="glass-panel p-4 sm:p-5 rounded-2xl">
             <div className="flex items-start justify-between">
@@ -316,7 +383,7 @@ export function PokemonCardDetail({ pokemon: rawPokemon, savedItem, onScanNext, 
                     {pokemon.species}
                   </span>
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-black text-white tracking-wide mt-1">
+                <h2 className="text-2xl sm:text-3xl font-black text-slate-50 tracking-wide mt-1">
                   {pokemon.name}
                 </h2>
                 <p className="text-xs text-slate-400 font-tech">{pokemon.japaneseName}</p>
@@ -496,6 +563,15 @@ export function PokemonCardDetail({ pokemon: rawPokemon, savedItem, onScanNext, 
 
         </div>
       </div>
+
+      {isCatching && (
+        <CatchGame
+          pokemon={pokemon}
+          image={(showShiny && getCardMedia(pokemon).shinyImage) || pokemon.fallbackImage || pokemon.image}
+          onClose={() => setIsCatching(false)}
+          onCaught={isPreview ? undefined : onCaught}
+        />
+      )}
     </div>
   );
 }

@@ -247,6 +247,10 @@ export async function fetchPokemonOnline(query) {
       if (loreObj) {
         speciesData.lore = loreObj.flavor_text.replace(/\f|\n|\r/g, ' ');
       }
+
+      if (typeof sp.capture_rate === 'number') speciesData.captureRate = sp.capture_rate;
+      speciesData.isLegendary = !!sp.is_legendary;
+      speciesData.isMythical = !!sp.is_mythical;
     }
   } catch (e) {
     console.warn('Species fetch error:', e);
@@ -368,11 +372,134 @@ export async function fetchPokemonOnline(query) {
       }
     ],
     lore: speciesData.lore,
+    // Extras for the interactive activities (cries, shiny art, catch game, evolution tree)
+    speciesName: baseName,
+    cryUrl: poke.cries?.latest || null,
+    cryLegacyUrl: poke.cries?.legacy || null,
+    shinyImage: poke.sprites?.other?.['official-artwork']?.front_shiny || poke.sprites?.front_shiny || null,
+    animatedSprite: poke.sprites?.other?.showdown?.front_default || null,
+    captureRate: speciesData.captureRate ?? 120,
+    isLegendary: !!speciesData.isLegendary,
+    isMythical: !!speciesData.isMythical,
     isOnlineFetched: true,
     scannedAt: new Date().toISOString()
   };
 
   return normalizedPokemon;
+}
+
+const SPRITES_BASE = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon';
+
+export function artworkUrl(id, shiny = false) {
+  return `${SPRITES_BASE}/other/official-artwork/${shiny ? 'shiny/' : ''}${id}.png`;
+}
+
+/**
+ * Media for a saved card. Cards saved before cries/shiny existed only have a
+ * Pokedex number, from which the PokeAPI asset URLs can be derived.
+ */
+export function getCardMedia(card) {
+  const id = Number(card?.pokedexNumber);
+  const validId = Number.isInteger(id) && id > 0;
+  return {
+    cryUrl: card?.cryUrl || (validId ? `https://raw.githubusercontent.com/PokeAPI/cries/main/cries/pokemon/latest/${id}.ogg` : null),
+    shinyImage: card?.shinyImage || (validId ? artworkUrl(id, true) : null),
+    animatedSprite: card?.animatedSprite || null,
+  };
+}
+
+const STONE_NAMES = {
+  'fire-stone': 'Đá Lửa',
+  'water-stone': 'Đá Nước',
+  'thunder-stone': 'Đá Sấm',
+  'leaf-stone': 'Đá Lá',
+  'moon-stone': 'Đá Mặt Trăng',
+  'sun-stone': 'Đá Mặt Trời',
+  'shiny-stone': 'Đá Lấp Lánh',
+  'dusk-stone': 'Đá Hoàng Hôn',
+  'dawn-stone': 'Đá Bình Minh',
+  'ice-stone': 'Đá Băng',
+};
+
+const TYPE_NAMES_VI = {
+  normal: 'Thường', fire: 'Lửa', water: 'Nước', grass: 'Cỏ', electric: 'Điện', ice: 'Băng',
+  fighting: 'Giác Đấu', poison: 'Độc', ground: 'Đất', flying: 'Bay', psychic: 'Siêu Linh',
+  bug: 'Côn Trùng', rock: 'Đá', ghost: 'Ma', dragon: 'Rồng', dark: 'Bóng Tối', steel: 'Thép', fairy: 'Tiên',
+};
+
+const prettify = (slug) => slug.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
+/** Child-friendly Vietnamese description of how a Pokemon evolves. */
+export function describeEvolution(details) {
+  const list = Array.isArray(details) ? details : [];
+  const describe = (d) => {
+    if (!d) return null;
+    const time = d.time_of_day === 'day' ? ' (ban ngày)' : d.time_of_day === 'night' ? ' (ban đêm)' : '';
+    if (d.item?.name) return `Dùng ${STONE_NAMES[d.item.name] || prettify(d.item.name)}${time}`;
+    if (d.trigger?.name === 'trade') return d.held_item?.name ? `Trao đổi khi cầm ${prettify(d.held_item.name)}` : 'Trao đổi với bạn';
+    if (d.min_level) return `Đạt cấp ${d.min_level}${time}`;
+    if (d.min_happiness) return `Rất thân thiết${time}`;
+    if (d.min_affection) return `Rất yêu quý${d.known_move_type?.name ? ` và biết chiêu hệ ${TYPE_NAMES_VI[d.known_move_type.name] || prettify(d.known_move_type.name)}` : ''}`;
+    if (d.known_move_type?.name) return `Biết chiêu hệ ${TYPE_NAMES_VI[d.known_move_type.name] || prettify(d.known_move_type.name)}`;
+    if (d.known_move?.name) return `Học chiêu ${prettify(d.known_move.name)}`;
+    if (d.location?.name) return `Lên cấp ở nơi đặc biệt`;
+    return null;
+  };
+  // Prefer the easiest-to-explain condition (items first), then any other known one
+  return describe(list.find((d) => d?.item?.name)) || list.map(describe).find(Boolean) || 'Điều kiện đặc biệt';
+}
+
+function speciesIdFromUrl(url) {
+  const match = /\/pokemon-species\/(\d+)\/?$/.exec(url || '');
+  return match ? Number(match[1]) : null;
+}
+
+/** Flatten a PokeAPI chain link into nodes { name, id, image, stage, from, how }. */
+export function parseEvolutionChain(chainLink) {
+  const nodes = [];
+  const walk = (link, stage, from) => {
+    if (!link?.species?.name) return;
+    const id = speciesIdFromUrl(link.species.url);
+    nodes.push({
+      name: link.species.name,
+      id,
+      image: id ? artworkUrl(id) : null,
+      stage,
+      from,
+      how: from ? describeEvolution(link.evolution_details) : null,
+    });
+    for (const next of link.evolves_to || []) walk(next, stage + 1, link.species.name);
+  };
+  walk(chainLink, 0, null);
+  return nodes;
+}
+
+const evolutionCache = new Map();
+
+/**
+ * Evolution family of a Pokemon as flat nodes (see parseEvolutionChain).
+ * Accepts a species name or Pokedex number; returns [] when unavailable.
+ */
+export async function fetchEvolutionChain(speciesNameOrId) {
+  const key = String(speciesNameOrId || '').toLowerCase();
+  if (!key) return [];
+  if (evolutionCache.has(key)) return evolutionCache.get(key);
+  try {
+    const species = await fetchJsonOrNull(`${POKEAPI_BASE}/pokemon-species/${key}`);
+    if (!species?.evolution_chain?.url) return [];
+    const chain = await fetchJsonOrNull(species.evolution_chain.url);
+    const nodes = chain?.chain ? parseEvolutionChain(chain.chain) : [];
+    evolutionCache.set(key, nodes);
+    return nodes;
+  } catch (err) {
+    console.warn('Evolution chain fetch error:', err);
+    return [];
+  }
+}
+
+/** Test helper: forget cached evolution chains. */
+export function resetEvolutionCache() {
+  evolutionCache.clear();
 }
 
 function getWeaknessType(type) {
