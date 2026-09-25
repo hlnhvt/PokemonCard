@@ -270,3 +270,19 @@ Lỗi phát hiện khi chụp màn hình thật và đã sửa:
 - Nền Xanh biển chỉ phủ một màn hình (`background-attachment: fixed`).
 - Minigame bị header và nút nổi đè lên (stacking context của `<main>`; đã chuyển sang render qua portal).
 - Vị trí Pokémon khi bóng tới được tính bằng công thức dự đoán, lệch với vị trí đang hiển thị (phát hiện qua test CA-01).
+### 12.1 Sửa lỗi "ném thế nào cũng trượt" và thêm hiệu ứng ném bóng
+
+Nguyên nhân (đo bằng mô phỏng theo đúng code cũ): bóng bay mất 650ms và luôn nhắm vào giữa, trong khi Pokémon vẫn di chuyển. Bấm NÉM khi Pokémon ở giữa (đúng như hướng dẫn trên màn hình) thì trúng **0%**, bấm bất kỳ lúc nào thì trúng 19%. Vùng tính trúng chỉ ±36px trong khi hình Pokémon rộng ±64px.
+
+Sửa: nút NÉM nhắm vào vị trí Pokémon lúc bấm; bóng tự lượn 30% quãng lệch về phía Pokémon; vùng trúng khớp với thân Pokémon; Pokémon chạy chậm hơn; bóng luôn đáp ở đúng vị trí mà phần tính toán dùng để quyết định trúng/trượt.
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| CG-05 | P1 | AUTO | Mô phỏng bấm NÉM ở mọi thời điểm | Trúng ≥90% (Pokémon dễ), ≥65% (capture rate 45), 40–80% (huyền thoại) |
+| CG-06 | P1 | AUTO | Bấm khi Pokémon ở giữa / ở hai bên | >30% / 100% |
+| CG-07..08 | P2 | AUTO | Hỗ trợ nhắm, ném quá xa; quỹ đạo vòng cung, thu nhỏ, xoay 3 vòng | Đúng |
+| CA-01 | P1 | AUTO | Chuỗi hiệu ứng khi trúng: bay (vệt sáng) → bùng sáng + Pokémon hóa ánh đỏ thu vào bóng, nắp mở → rơi nảy → lắc 3 lần → tia sao + nút sáng | Đúng thứ tự phase |
+| CA-02 | P1 | AUTO | Thoát ra: Pokémon bật ra, mất 1 bóng, chơi tiếp | Đúng |
+| CA-03 | P1 | AUTO | Vuốt quá xa: bóng bay vụt qua và mờ dần, hết 5 bóng thì hiện "Chơi lại" | Đúng |
+| CA-05 | P2 | AUTO | Bóng thay đổi vị trí theo từng khung hình, có vệt sáng | Đúng |
+| UI-03 | P1 | MANUAL (Chrome, đồng hồ thật) | Bấm NÉM ở thời điểm ngẫu nhiên, 3 ván × 3 Pokémon | Lần chạy cuối: Pikachu 4/4, Charmander 4/5, Mewtwo 5/8 lần trúng; không có lỗi JS |

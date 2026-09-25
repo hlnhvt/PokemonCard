@@ -183,9 +183,12 @@ describe('App flows', () => {
       fireEvent.click(screen.getByRole('heading', { name: 'Charizard' }));
       fireEvent.click(screen.getByText(/Chơi Ném Bóng/));
       fireEvent.click(screen.getByText('NÉM!'));
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(3000);
-      });
+      // flight + absorb + drop + 3 shakes
+      for (let i = 0; i < 40; i++) {
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(100);
+        });
+      }
       expect(getSavedCollection()[0].catchCount).toBe(1);
       expect(screen.getByText('Đã bắt 1 lần')).toBeInTheDocument();
     } finally {

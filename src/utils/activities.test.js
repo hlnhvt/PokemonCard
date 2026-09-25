@@ -6,7 +6,11 @@ import {
   ringScaleAt,
   movementSpeed,
   isHit,
+  planThrow,
+  flightPoint,
   BALLS_PER_ROUND,
+  FLIGHT_MS,
+  AIM_ASSIST,
 } from './catchGame';
 import { POPULAR_POKEMON, buildPool, makeQuestion, starsFor, ROUNDS } from './guessGame';
 import { rollShiny, SHINY_CHANCE } from './shiny';
@@ -50,6 +54,58 @@ describe('catch game rules', () => {
     expect(isHit(-0.9, 0.5)).toBe(false);
     expect(movementSpeed({ captureRate: 3, isLegendary: true })).toBeGreaterThan(movementSpeed({ captureRate: 255 }));
     expect(BALLS_PER_ROUND).toBe(5);
+  });
+
+  // Regression: throws always missed (0% when tapping as the Pokemon passed the centre),
+  // because the ball flew to the centre while the Pokemon kept moving during the flight.
+  function hitRate(pokemon, shouldTap = () => true) {
+    const speed = movementSpeed(pokemon);
+    let taps = 0;
+    let hits = 0;
+    for (let t = 0; t < 300; t += 0.01) {
+      const now = pokemonX(t, speed);
+      if (!shouldTap(now)) continue;
+      taps++;
+      // The NÉM button aims at where the Pokemon is when tapped
+      if (planThrow(now, pokemonX(t + FLIGHT_MS / 1000, speed)).hit) hits++;
+    }
+    return hits / taps;
+  }
+
+  it('CG-05 tapping NÉM at any moment hits often enough for children', () => {
+    expect(hitRate({ captureRate: 190 })).toBeGreaterThanOrEqual(0.9);
+    expect(hitRate({ captureRate: 45 })).toBeGreaterThanOrEqual(0.65);
+    expect(hitRate({ captureRate: 3, isLegendary: true })).toBeGreaterThanOrEqual(0.4);
+    // ...but it is still a game, not an automatic hit
+    expect(hitRate({ captureRate: 3, isLegendary: true })).toBeLessThan(0.8);
+  });
+
+  it('CG-06 tapping when the Pokemon passes the middle is no longer a guaranteed miss', () => {
+    expect(hitRate({ captureRate: 45 }, (x) => Math.abs(x) < 0.15)).toBeGreaterThan(0.3);
+    // Waiting until it slows down at the sides is the winning strategy
+    expect(hitRate({ captureRate: 45 }, (x) => Math.abs(x) > 0.9)).toBe(1);
+  });
+
+  it('CG-07 the ball curves part of the way and a far throw still misses', () => {
+    expect(planThrow(0, 1).landX).toBeCloseTo(AIM_ASSIST, 5);
+    expect(planThrow(-1, 0.4).hit).toBe(false);
+    expect(planThrow(0.2, 0.3).hit).toBe(true);
+    expect(planThrow(5, 0).landX).toBeLessThanOrEqual(1.3);
+  });
+
+  it('CG-08 the flight arcs upwards, shrinks and spins from start to target', () => {
+    const from = { x: 0, y: 270 };
+    const to = { x: 60, y: 120 };
+    const start = flightPoint(0, from, to);
+    const middle = flightPoint(0.5, from, to);
+    const end = flightPoint(1, from, to);
+    expect(start).toMatchObject({ x: 0, y: 270, scale: 1, rotate: 0 });
+    expect(end.x).toBeCloseTo(60, 5);
+    expect(end.y).toBeCloseTo(120, 5);
+    expect(end.scale).toBeCloseTo(0.6, 5);
+    expect(end.rotate).toBeCloseTo(1080, 5);
+    // Higher than the straight line between start and target
+    expect(middle.y).toBeLessThan(from.y + (to.y - from.y) * 0.875 - 50);
   });
 });
 

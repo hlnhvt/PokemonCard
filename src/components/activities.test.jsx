@@ -18,7 +18,7 @@ import { sounds } from '../utils/soundEffects';
 import { ROUNDS } from '../utils/guessGame';
 
 beforeEach(() => {
-  for (const s of ['playShutter', 'playScanBeep', 'playSuccessFanfare', 'playPokemonCry', 'playEnergySurge']) {
+  for (const s of ['playShutter', 'playScanBeep', 'playSuccessFanfare', 'playPokemonCry', 'playEnergySurge', 'playWhoosh', 'playPop']) {
     vi.spyOn(sounds, s).mockImplementation(() => {});
   }
   mocks.fetchEvolutionChain.mockReset();
@@ -36,46 +36,97 @@ describe('CatchGame', () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
-  // Frozen clock: the Pokemon sits in the centre and the ring is at its largest
+  // Frozen clock: the Pokemon stays at the centre, so every throw is deterministic.
+  // A slow Pokemon (capture rate 255) is hit by the NÉM button; a swipe to the far left misses.
   const frozen = () => 0;
+  const easy = () => makeCard({ captureRate: 255 });
+  const phaseOf = () => screen.getByRole('dialog').dataset.phase;
 
-  it('CA-01 a centred throw that succeeds catches the Pokemon', async () => {
+  it('CA-01 a throw that hits plays the whole catch sequence and catches', async () => {
     const onCaught = vi.fn();
-    render(<CatchGame pokemon={makeCard({ captureRate: 45 })} image="x.png" onClose={vi.fn()} onCaught={onCaught} now={frozen} random={() => 0} />);
+    render(<CatchGame pokemon={easy()} image="x.png" onClose={vi.fn()} onCaught={onCaught} now={frozen} random={() => 0} />);
     fireEvent.click(screen.getByText('NÉM!'));
+    expect(phaseOf()).toBe('flying');
+    expect(screen.getByTestId('flying-ball')).toBeInTheDocument();
     expect(screen.getByLabelText('Còn 4 quả bóng')).toBeInTheDocument();
-    await advance(2500);
+    expect(sounds.playWhoosh).toHaveBeenCalled();
+
+    await advance(700);
+    expect(phaseOf()).toBe('absorbing');
+    expect(document.querySelector('.impact-burst')).not.toBeNull();
+    expect(document.querySelector('.ball-lid-open')).not.toBeNull();
+    expect(screen.getByAltText('Charizard').className).toContain('poke-absorb');
+
+    await advance(500);
+    expect(phaseOf()).toBe('dropping');
+    expect(document.querySelector('.ball-drop')).not.toBeNull();
+    expect(screen.queryByAltText('Charizard')).toBeNull();
+
+    await advance(500);
+    expect(phaseOf()).toBe('shaking');
+    expect(document.querySelector('.ball-shake')).not.toBeNull();
+
+    await advance(1800);
+    expect(phaseOf()).toBe('caught');
+    expect(document.querySelectorAll('.star-ray')).toHaveLength(8);
+    expect(document.querySelector('.ball-click')).not.toBeNull();
     expect(onCaught).toHaveBeenCalledTimes(1);
     expect(screen.getByText(/Bé đã bắt được Charizard/)).toBeInTheDocument();
   });
 
-  it('CA-02 an escape costs a ball and lets the child try again', async () => {
+  it('CA-02 an escape bursts the Pokemon back out, costs a ball and lets the child retry', async () => {
     const onCaught = vi.fn();
-    render(<CatchGame pokemon={makeCard()} image="x.png" onClose={vi.fn()} onCaught={onCaught} now={frozen} random={() => 0.999} />);
+    render(<CatchGame pokemon={easy()} image="x.png" onClose={vi.fn()} onCaught={onCaught} now={frozen} random={() => 0.999} />);
     fireEvent.click(screen.getByText('NÉM!'));
-    await advance(2400);
+    await advance(3200);
+    expect(phaseOf()).toBe('escaping');
+    expect(screen.getByAltText('Charizard').className).toContain('poke-escape');
+    await advance(600);
     expect(screen.getByRole('status')).toHaveTextContent('thoát ra');
-    await advance(1500);
+    await advance(1400);
+    expect(phaseOf()).toBe('aim');
     expect(screen.getByText('NÉM!')).not.toBeDisabled();
+    expect(screen.getByLabelText('Còn 4 quả bóng')).toBeInTheDocument();
     expect(onCaught).not.toHaveBeenCalled();
   });
 
-  it('CA-03 a swipe aimed at the edge misses; running out of balls offers a replay', async () => {
+  it('CA-03 a swipe aimed far away misses with a fly-past; running out of balls offers a replay', async () => {
     render(<CatchGame pokemon={makeCard()} image="x.png" onClose={vi.fn()} now={frozen} random={() => 0} />);
     const arena = screen.getByTestId('catch-arena');
     arena.getBoundingClientRect = () => ({ left: 0, top: 0, width: 400, height: 320 });
     for (let i = 0; i < 5; i++) {
-      fireEvent.pointerDown(arena, { clientX: 395, clientY: 300 });
-      fireEvent.pointerUp(arena, { clientX: 395, clientY: 100 });
-      await advance(800);
+      fireEvent.pointerDown(arena, { clientX: 5, clientY: 300 });
+      fireEvent.pointerUp(arena, { clientX: 5, clientY: 100 });
+      await advance(700);
+      expect(phaseOf()).toBe('missed');
+      expect(document.querySelector('.ball-miss')).not.toBeNull();
       expect(screen.getByRole('status')).toHaveTextContent('Trượt');
-      await advance(1500);
+      await advance(1400);
     }
     expect(screen.getByText('Chơi lại')).toBeInTheDocument();
     fireEvent.click(screen.getByText('Chơi lại'));
     expect(screen.getByLabelText('Còn 5 quả bóng')).toBeInTheDocument();
   });
 
+  it('CA-05 the flying ball moves along its arc with a trail', async () => {
+    const clock = { t: 0 };
+    render(<CatchGame pokemon={easy()} image="x.png" onClose={vi.fn()} now={() => clock.t} random={() => 0} />);
+    const arena = screen.getByTestId('catch-arena');
+    Object.defineProperty(arena, 'clientWidth', { value: 400 });
+    Object.defineProperty(arena, 'clientHeight', { value: 320 });
+    fireEvent.click(screen.getByText('NÉM!'));
+    const ball = screen.getByTestId('flying-ball');
+    const positions = [];
+    for (const t of [50, 300, 550]) {
+      clock.t = t;
+      await advance(100);
+      positions.push(ball.style.transform);
+    }
+    expect(new Set(positions).size).toBe(3);
+    expect(positions[2]).toMatch(/rotate\((?!0deg)/);
+    const visibleTrail = [...document.querySelectorAll('.blur-\\[2px\\].rounded-full')].filter((el) => el.style.opacity !== '0');
+    expect(visibleTrail.length).toBeGreaterThan(0);
+  });
   it('CA-04 ignores taps and tiny drags that are not upward swipes, and closes', () => {
     const onClose = vi.fn();
     render(<CatchGame pokemon={makeCard()} image="x.png" onClose={onClose} now={frozen} />);

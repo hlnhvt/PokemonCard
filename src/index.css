@@ -311,3 +311,88 @@
     animation: none;
   }
 }
+/* ---- Pokeball throw animation ---- */
+
+/* White shock ring where the ball hits */
+@keyframes impactBurst {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(2.6); opacity: 0; }
+}
+.impact-burst {
+  animation: impactBurst 0.45s ease-out forwards;
+}
+
+/* Pokemon turns into red light and is pulled into the ball */
+@keyframes pokeAbsorb {
+  0% { transform: scale(1); filter: none; opacity: 1; }
+  35% { transform: scale(1.08); filter: brightness(0.7) sepia(1) hue-rotate(-50deg) saturate(8); opacity: 1; }
+  100% { transform: scale(0.05) translateY(40px); filter: brightness(0.7) sepia(1) hue-rotate(-50deg) saturate(8); opacity: 0; }
+}
+.poke-absorb {
+  animation: pokeAbsorb 0.45s ease-in forwards;
+}
+
+/* Pokemon bursts back out when it escapes */
+@keyframes pokeEscape {
+  0% { transform: scale(0.05); opacity: 0; filter: brightness(0.7) sepia(1) hue-rotate(-50deg) saturate(8); }
+  60% { transform: scale(1.2); opacity: 1; filter: none; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.poke-escape {
+  animation: pokeEscape 0.5s ease-out forwards;
+}
+
+/* Ball lid flips open while absorbing */
+.ball-lid {
+  transform-origin: 8% 100%;
+  transition: transform 0.18s ease-out;
+}
+.ball-lid-open {
+  transform: rotate(-38deg);
+}
+
+/* Ball falls to the ground and bounces */
+@keyframes ballDrop {
+  0% { transform: translateY(-90px); }
+  60% { transform: translateY(0); }
+  75% { transform: translateY(-18px); }
+  88% { transform: translateY(0); }
+  94% { transform: translateY(-5px); }
+  100% { transform: translateY(0); }
+}
+.ball-drop {
+  animation: ballDrop 0.4s ease-in forwards;
+}
+
+/* Missed ball keeps flying past, shrinking and fading */
+@keyframes ballMiss {
+  0% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; }
+  100% { transform: translate(var(--miss-dx, 40px), -70px) scale(0.3) rotate(540deg); opacity: 0; }
+}
+.ball-miss {
+  animation: ballMiss 0.5s ease-out forwards;
+}
+
+/* Stars shooting out of the ball on a catch */
+@keyframes starRay {
+  0% { transform: rotate(var(--angle)) translateY(0) scale(0.4); opacity: 1; }
+  100% { transform: rotate(var(--angle)) translateY(-70px) scale(1.1); opacity: 0; }
+}
+.star-ray {
+  animation: starRay 0.8s ease-out forwards;
+}
+
+/* Centre button flashes when the catch clicks */
+@keyframes ballClick {
+  0%, 100% { background-color: #fff; box-shadow: none; }
+  50% { background-color: #fde047; box-shadow: 0 0 16px 6px rgba(253, 224, 71, 0.9); }
+}
+.ball-click {
+  animation: ballClick 0.5s ease-in-out 2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .impact-burst, .poke-absorb, .poke-escape, .ball-drop, .ball-miss, .star-ray, .ball-click {
+    animation-duration: 0.01s;
+  }
+}
