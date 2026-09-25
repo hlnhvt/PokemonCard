@@ -315,6 +315,34 @@ export function PokemonCardDetail({ pokemon, savedItem, onScanNext, onReplayVide
             </div>
           </div>
 
+          {/* Online Combat Base Stats (From PokeAPI) */}
+          {pokemon.attack && (
+            <div className="glass-panel p-3.5 rounded-2xl space-y-2">
+              <div className="flex items-center justify-between text-xs font-tech font-bold uppercase text-cyan-400">
+                <span>Chỉ Số Chiến Đấu Gốc (PokéAPI)</span>
+                <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">Online Synced</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-center font-tech">
+                <div className="p-2 rounded-xl bg-slate-900/90 border border-slate-800">
+                  <span className="text-[10px] text-slate-400 block">BASE HP</span>
+                  <span className="text-sm font-bold text-rose-400">{pokemon.baseHp || pokemon.hp}</span>
+                </div>
+                <div className="p-2 rounded-xl bg-slate-900/90 border border-slate-800">
+                  <span className="text-[10px] text-slate-400 block">ATTACK</span>
+                  <span className="text-sm font-bold text-amber-400">{pokemon.attack}</span>
+                </div>
+                <div className="p-2 rounded-xl bg-slate-900/90 border border-slate-800">
+                  <span className="text-[10px] text-slate-400 block">DEFENSE</span>
+                  <span className="text-sm font-bold text-blue-400">{pokemon.defense}</span>
+                </div>
+                <div className="p-2 rounded-xl bg-slate-900/90 border border-slate-800">
+                  <span className="text-[10px] text-slate-400 block">SPEED</span>
+                  <span className="text-sm font-bold text-emerald-400">{pokemon.speed}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Special Ability (if exists) */}
           {pokemon.ability && (
             <div className="p-3.5 rounded-xl bg-gradient-to-r from-red-950/40 to-slate-900 border border-red-500/30">
