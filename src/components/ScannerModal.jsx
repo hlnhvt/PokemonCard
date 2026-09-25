@@ -10,7 +10,8 @@ import {
   Check,
   RefreshCw,
   HelpCircle,
-  QrCode
+  ShieldAlert,
+  Smartphone
 } from 'lucide-react';
 import { POKEMON_CARDS, matchPokemonCard } from '../data/pokemonCards';
 import { sounds } from '../utils/soundEffects';
@@ -18,47 +19,84 @@ import { sounds } from '../utils/soundEffects';
 export function ScannerModal({ onCardDetected }) {
   const [cameraActive, setCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState(null);
+  const [isSecure, setIsSecure] = useState(true);
   const [facingMode, setFacingMode] = useState('environment'); // environment (back) or user (front)
   const [isScanning, setIsScanning] = useState(false);
-  const [selectedDemoCard, setSelectedDemoCard] = useState(null);
-  const [showQrHelper, setShowQrHelper] = useState(false);
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const fileInputRef = useRef(null);
+  const nativeCameraInputRef = useRef(null);
 
-  // Initialize camera stream
+  // Check secure context on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const secure = window.isSecureContext || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      setIsSecure(secure);
+    }
+  }, []);
+
+  // Multi-tier robust camera initialization
   const startCamera = async (mode = facingMode) => {
     setCameraError(null);
     try {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+
+      // Check browser security restriction on HTTP
+      if (!window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        throw new Error('SECURE_CONTEXT_REQUIRED');
       }
 
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Trình duyệt không hỗ trợ truy cập Camera trực tiếp.');
+        throw new Error('MEDIA_DEVICES_NOT_SUPPORTED');
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: mode,
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-        },
-        audio: false,
-      });
+      let stream = null;
+
+      // Tier 1: Try with ideal facing mode
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: mode },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: false,
+        });
+      } catch (err1) {
+        console.warn('Tier 1 camera failed, trying Tier 2:', err1);
+        // Tier 2: Try basic video constraints
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false,
+        });
+      }
 
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.play();
+        videoRef.current.setAttribute('playsinline', 'true');
+        videoRef.current.setAttribute('autoplay', 'true');
+        videoRef.current.setAttribute('muted', 'true');
+        try {
+          await videoRef.current.play();
+        } catch (playErr) {
+          console.warn('video.play() auto-play prevented:', playErr);
+        }
         setCameraActive(true);
       }
     } catch (err) {
       console.warn('Camera access issue:', err);
-      setCameraError(
-        'Không thể mở Camera (quyền bị chặn hoặc không có webcam). Bạn vẫn có thể tải ảnh thẻ hoặc dùng Thẻ Mẫu bên dưới để quét thử nghiệm!'
-      );
+      if (err.message === 'SECURE_CONTEXT_REQUIRED' || err.name === 'SecurityError') {
+        setCameraError('BẢO MẬT: Trình duyệt điện thoại (iOS Safari/Android Chrome) bắt buộc kết nối HTTPS để mở Camera trực tiếp qua IP.');
+      } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setCameraError('QUYỀN TRUY CẬP: Bạn cần cho phép quyền truy cập Máy ảnh trong cài đặt trình duyệt của điện thoại.');
+      } else {
+        setCameraError('Không thể mở luồng Video Camera trực tiếp.');
+      }
       setCameraActive(false);
     }
   };
@@ -140,7 +178,6 @@ export function ScannerModal({ onCardDetected }) {
           // Purple/Pink -> Mewtwo or Gengar
           detected = POKEMON_CARDS.find((p) => p.id === 'mewtwo-vstar') || POKEMON_CARDS[2];
         } else {
-          // Randomly match one of the top cards for a pleasant demo experience
           const randomIndex = Math.floor(Math.random() * POKEMON_CARDS.length);
           detected = POKEMON_CARDS[randomIndex];
         }
@@ -168,7 +205,7 @@ export function ScannerModal({ onCardDetected }) {
     processImageForPokemon(canvas, '');
   };
 
-  // Handle file upload
+  // Handle file upload or native camera snapshot
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -198,13 +235,13 @@ export function ScannerModal({ onCardDetected }) {
     <div className="w-full max-w-xl mx-auto px-4 py-4 sm:py-6 flex flex-col items-center">
       
       {/* Top Banner Guide */}
-      <div className="w-full text-center mb-4">
+      <div className="w-full text-center mb-3">
         <h2 className="text-xl sm:text-2xl font-black text-white font-tech uppercase tracking-wider flex items-center justify-center space-x-2">
           <Camera className="w-6 h-6 text-red-500 animate-pulse" />
           <span>QUÉT THẺ BÀI POKÉMON</span>
         </h2>
         <p className="text-xs text-slate-400 mt-1">
-          Đưa thẻ bài vào khung ngắm camera hoặc bấm vào thẻ mẫu để trải nghiệm video & Pokedex
+          Chụp ảnh thẻ thật trên điện thoại hoặc bấm Thẻ Mẫu để xem video và mở Pokedex
         </p>
       </div>
 
@@ -212,26 +249,46 @@ export function ScannerModal({ onCardDetected }) {
       <div className="relative w-full aspect-[4/5] sm:aspect-[3/4] max-w-sm rounded-3xl overflow-hidden border-2 border-slate-700/80 bg-slate-950 shadow-2xl shadow-red-950/20 flex items-center justify-center">
         
         {/* Live Camera Video Feed */}
-        {cameraActive ? (
-          <video
-            ref={videoRef}
-            playsInline
-            muted
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="flex flex-col items-center justify-center p-6 text-center text-slate-400">
+        <video
+          ref={videoRef}
+          playsInline
+          autoPlay
+          muted
+          className={`w-full h-full object-cover ${cameraActive ? 'block' : 'hidden'}`}
+        />
+
+        {/* Fallback View when camera cannot be opened directly */}
+        {!cameraActive && (
+          <div className="flex flex-col items-center justify-center p-5 text-center text-slate-400">
             <div className="w-16 h-16 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center mb-3">
-              <Camera className="w-8 h-8 text-slate-500" />
+              <Camera className="w-8 h-8 text-slate-400" />
             </div>
-            <p className="text-xs text-slate-400 mb-2">
-              {cameraError || 'Camera đang tắt'}
-            </p>
+
+            <div className="p-3 rounded-xl bg-slate-900/90 border border-slate-800 text-xs text-slate-300 max-w-xs mb-3 leading-relaxed">
+              <div className="flex items-center justify-center space-x-1 text-amber-400 font-bold mb-1">
+                <ShieldAlert className="w-4 h-4" />
+                <span>Trình duyệt yêu cầu HTTPS</span>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                Để bảo vệ quyền riêng tư, Safari/Chrome trên điện thoại chặn camera trực tiếp khi truy cập bằng <code>http://IP</code>.
+              </p>
+            </div>
+
+            {/* Native Mobile Camera Button (Always Works 100% on phones!) */}
+            <button
+              onClick={() => nativeCameraInputRef.current?.click()}
+              className="w-full max-w-xs py-3 px-4 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold text-xs shadow-lg shadow-red-600/40 flex items-center justify-center space-x-2 transition-transform active:scale-95 mb-2 cursor-pointer"
+            >
+              <Smartphone className="w-4 h-4" />
+              <span>Chụp Bằng Camera Điện Thoại</span>
+            </button>
+
             <button
               onClick={() => startCamera()}
-              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white border border-slate-600 transition-colors"
+              className="text-[11px] text-cyan-400 hover:underline flex items-center space-x-1"
             >
-              Kích hoạt lại Camera
+              <RefreshCw className="w-3 h-3" />
+              <span>Thử kích hoạt lại luồng Video</span>
             </button>
           </div>
         )}
@@ -290,44 +347,61 @@ export function ScannerModal({ onCardDetected }) {
       </div>
 
       {/* Main Action Buttons */}
-      <div className="w-full max-w-sm flex items-center justify-center gap-3 mt-4">
-        {/* Shutter / Scan Button */}
-        <button
-          onClick={captureCameraFrame}
-          disabled={!cameraActive || isScanning}
-          className={`flex-1 py-3 px-4 rounded-2xl font-bold text-sm shadow-xl flex items-center justify-center space-x-2 transition-all duration-200 active:scale-95 ${
-            cameraActive && !isScanning
-              ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-red-600/30 hover:from-red-500 hover:to-rose-500 border border-red-400/40 cursor-pointer'
-              : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
-          }`}
-        >
-          <Camera className="w-5 h-5" />
-          <span>Chụp Quét Thẻ</span>
-        </button>
+      <div className="w-full max-w-sm flex items-center justify-center gap-2.5 mt-4">
+        {/* Shutter / Scan Button (if live video active) OR Native Phone Camera button */}
+        {cameraActive ? (
+          <button
+            onClick={captureCameraFrame}
+            disabled={isScanning}
+            className="flex-1 py-3 px-3 rounded-2xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold text-xs shadow-xl shadow-red-600/30 flex items-center justify-center space-x-1.5 transition-all duration-200 active:scale-95 cursor-pointer"
+          >
+            <Camera className="w-4 h-4" />
+            <span>Chụp Quét Thẻ</span>
+          </button>
+        ) : (
+          <button
+            onClick={() => nativeCameraInputRef.current?.click()}
+            disabled={isScanning}
+            className="flex-1 py-3 px-3 rounded-2xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold text-xs shadow-xl shadow-red-600/30 flex items-center justify-center space-x-1.5 transition-all duration-200 active:scale-95 cursor-pointer"
+          >
+            <Camera className="w-4 h-4" />
+            <span>Mở Camera Điện Thoại</span>
+          </button>
+        )}
 
-        {/* File Upload Button */}
+        {/* Upload Existing Photo Button */}
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={isScanning}
-          className="flex-1 py-3 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-sm shadow-lg flex items-center justify-center space-x-2 transition-all active:scale-95 cursor-pointer"
+          className="flex-1 py-3 px-3 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs shadow-lg flex items-center justify-center space-x-1.5 transition-all active:scale-95 cursor-pointer"
         >
           <Upload className="w-4 h-4 text-cyan-400" />
-          <span>Tải Ảnh Thẻ</span>
+          <span>Tải Ảnh Từ Thư Viện</span>
         </button>
 
+        {/* Hidden File Input for Native Mobile Camera */}
         <input
-          ref={fileInputRef}
+          ref={nativeCameraInputRef}
           type="file"
           accept="image/*"
           capture="environment"
           onChange={handleFileUpload}
           className="hidden"
         />
+
+        {/* Hidden File Input for Gallery Upload */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileUpload}
+          className="hidden"
+        />
       </div>
 
-      {/* Quick Test Demo Deck Section (Crucial for instant testing) */}
-      <div className="w-full max-w-sm mt-6 p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md">
-        <div className="flex items-center justify-between mb-2.5">
+      {/* Quick Test Demo Deck Section */}
+      <div className="w-full max-w-sm mt-5 p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md">
+        <div className="flex items-center justify-between mb-2">
           <div className="flex items-center space-x-1.5">
             <Sparkles className="w-4 h-4 text-amber-400" />
             <h3 className="text-xs font-tech font-bold uppercase tracking-wider text-slate-200">
@@ -338,7 +412,7 @@ export function ScannerModal({ onCardDetected }) {
         </div>
 
         <p className="text-[11px] text-slate-400 mb-3">
-          Không có thẻ thật bên cạnh? Bấm chọn thẻ bên dưới để xem trực tiếp video intro ấn tượng và thông tin chi tiết:
+          Bấm bất kỳ thẻ mẫu bên dưới để xem ngay video ngắn ấn tượng & thông tin chi tiết:
         </p>
 
         {/* Demo card pills */}

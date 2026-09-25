@@ -58,7 +58,7 @@ export function VideoShowcase({ pokemon, onComplete, isMuted, onToggleMute }) {
       ctx.clearRect(0, 0, width, height);
 
       // Radial energy shockwave
-      const waveRadius = ((elapsed * 250) % (Math.max(width, height) * 0.7));
+      const waveRadius = Math.max(0.1, (elapsed * 250) % (Math.max(width, height) * 0.7));
       ctx.save();
       ctx.beginPath();
       ctx.arc(width / 2, height / 2, waveRadius, 0, Math.PI * 2);
