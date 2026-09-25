@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:live": "vitest run --config vitest.live.config.js"
+    "test:live": "vitest run --config vitest.live.config.js",
+    "eval:ocr": "vitest run --config vitest.ocr.config.js"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",
@@ -20,6 +21,7 @@
     "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
+    "@napi-rs/canvas": "^1.0.9",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",

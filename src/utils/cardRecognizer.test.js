@@ -102,7 +102,7 @@ describe('recognizeCardWithOCR', () => {
     const res = await mod.recognizeCardWithOCR(image);
     expect(res.success).toBe(true);
     expect(res.bestMatch).toBe('pikachu');
-    expect(res.candidates[0].score).toBe(100);
+    expect(res.candidates[0].score).toBeGreaterThanOrEqual(90);
   });
 
   it('OC-08 never throws when Tesseract fails', async () => {

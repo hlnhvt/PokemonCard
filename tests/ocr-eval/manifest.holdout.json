@@ -1,0 +1,422 @@
+[
+  {
+    "id": "base2-1",
+    "set": "base2",
+    "file": "base2-1.png",
+    "cardName": "Clefable",
+    "expected": "clefable"
+  },
+  {
+    "id": "base2-13",
+    "set": "base2",
+    "file": "base2-13.png",
+    "cardName": "Venomoth",
+    "expected": "venomoth"
+  },
+  {
+    "id": "base2-25",
+    "set": "base2",
+    "file": "base2-25.png",
+    "cardName": "Pinsir",
+    "expected": "pinsir"
+  },
+  {
+    "id": "base2-37",
+    "set": "base2",
+    "file": "base2-37.png",
+    "cardName": "Gloom",
+    "expected": "gloom"
+  },
+  {
+    "id": "base2-49",
+    "set": "base2",
+    "file": "base2-49.png",
+    "cardName": "Bellsprout",
+    "expected": "bellsprout"
+  },
+  {
+    "id": "gym1-1",
+    "set": "gym1",
+    "file": "gym1-1.png",
+    "cardName": "Blaine's Moltres",
+    "expected": "moltres"
+  },
+  {
+    "id": "gym1-24",
+    "set": "gym1",
+    "file": "gym1-24.png",
+    "cardName": "Brock's Zubat",
+    "expected": "zubat"
+  },
+  {
+    "id": "gym1-42",
+    "set": "gym1",
+    "file": "gym1-42.png",
+    "cardName": "Erika's Dratini",
+    "expected": "dratini"
+  },
+  {
+    "id": "gym1-60",
+    "set": "gym1",
+    "file": "gym1-60.png",
+    "cardName": "Sabrina's Slowbro",
+    "expected": "slowbro"
+  },
+  {
+    "id": "gym1-78",
+    "set": "gym1",
+    "file": "gym1-78.png",
+    "cardName": "Erika's Oddish",
+    "expected": "oddish"
+  },
+  {
+    "id": "ex8-1",
+    "set": "ex8",
+    "file": "ex8-1.png",
+    "cardName": "Altaria",
+    "expected": "altaria"
+  },
+  {
+    "id": "ex8-20",
+    "set": "ex8",
+    "file": "ex8-20.png",
+    "cardName": "Magcargo",
+    "expected": "magcargo"
+  },
+  {
+    "id": "ex8-39",
+    "set": "ex8",
+    "file": "ex8-39.png",
+    "cardName": "Masquerain",
+    "expected": "masquerain"
+  },
+  {
+    "id": "ex8-58",
+    "set": "ex8",
+    "file": "ex8-58.png",
+    "cardName": "Duskull",
+    "expected": "duskull"
+  },
+  {
+    "id": "ex8-77",
+    "set": "ex8",
+    "file": "ex8-77.png",
+    "cardName": "Staryu",
+    "expected": "staryu"
+  },
+  {
+    "id": "pl1-1",
+    "set": "pl1",
+    "file": "pl1-1.png",
+    "cardName": "Ampharos",
+    "expected": "ampharos"
+  },
+  {
+    "id": "pl1-24",
+    "set": "pl1",
+    "file": "pl1-24.png",
+    "cardName": "Dugtrio",
+    "expected": "dugtrio"
+  },
+  {
+    "id": "pl1-47",
+    "set": "pl1",
+    "file": "pl1-47.png",
+    "cardName": "Crobat G",
+    "expected": "crobat"
+  },
+  {
+    "id": "pl1-70",
+    "set": "pl1",
+    "file": "pl1-70.png",
+    "cardName": "Chimchar",
+    "expected": "chimchar"
+  },
+  {
+    "id": "pl1-93",
+    "set": "pl1",
+    "file": "pl1-93.png",
+    "cardName": "Skitty",
+    "expected": "skitty"
+  },
+  {
+    "id": "bw5-1",
+    "set": "bw5",
+    "file": "bw5-1.png",
+    "cardName": "Bulbasaur",
+    "expected": "bulbasaur"
+  },
+  {
+    "id": "bw5-20",
+    "set": "bw5",
+    "file": "bw5-20.png",
+    "cardName": "Larvesta",
+    "expected": "larvesta"
+  },
+  {
+    "id": "bw5-39",
+    "set": "bw5",
+    "file": "bw5-39.png",
+    "cardName": "Plusle",
+    "expected": "plusle"
+  },
+  {
+    "id": "bw5-58",
+    "set": "bw5",
+    "file": "bw5-58.png",
+    "cardName": "Timburr",
+    "expected": "timburr"
+  },
+  {
+    "id": "bw5-77",
+    "set": "bw5",
+    "file": "bw5-77.png",
+    "cardName": "Klinklang",
+    "expected": "klinklang"
+  },
+  {
+    "id": "xy7-1",
+    "set": "xy7",
+    "file": "xy7-1.png",
+    "cardName": "Oddish",
+    "expected": "oddish"
+  },
+  {
+    "id": "xy7-17",
+    "set": "xy7",
+    "file": "xy7-17.png",
+    "cardName": "Volcarona",
+    "expected": "volcarona"
+  },
+  {
+    "id": "xy7-33",
+    "set": "xy7",
+    "file": "xy7-33.png",
+    "cardName": "Claydol",
+    "expected": "claydol"
+  },
+  {
+    "id": "xy7-49",
+    "set": "xy7",
+    "file": "xy7-49.png",
+    "cardName": "Metagross",
+    "expected": "metagross"
+  },
+  {
+    "id": "xy7-65",
+    "set": "xy7",
+    "file": "xy7-65.png",
+    "cardName": "Porygon2",
+    "expected": "porygon2"
+  },
+  {
+    "id": "sm7-1",
+    "set": "sm7",
+    "file": "sm7-1.png",
+    "cardName": "Bellsprout",
+    "expected": "bellsprout"
+  },
+  {
+    "id": "sm7-28",
+    "set": "sm7",
+    "file": "sm7-28.png",
+    "cardName": "Blaziken-GX",
+    "expected": "blaziken"
+  },
+  {
+    "id": "sm7-56",
+    "set": "sm7",
+    "file": "sm7-56.png",
+    "cardName": "Mr. Mime-GX",
+    "expected": "mr-mime"
+  },
+  {
+    "id": "sm7-84",
+    "set": "sm7",
+    "file": "sm7-84.png",
+    "cardName": "Alolan Rattata",
+    "expected": "rattata"
+  },
+  {
+    "id": "sm7-112",
+    "set": "sm7",
+    "file": "sm7-112.png",
+    "cardName": "Pelipper",
+    "expected": "pelipper"
+  },
+  {
+    "id": "swsh9-1",
+    "set": "swsh9",
+    "file": "swsh9-1.png",
+    "cardName": "Exeggcute",
+    "expected": "exeggcute"
+  },
+  {
+    "id": "swsh9-31",
+    "set": "swsh9",
+    "file": "swsh9-31.png",
+    "cardName": "Lapras",
+    "expected": "lapras"
+  },
+  {
+    "id": "swsh9-61",
+    "set": "swsh9",
+    "file": "swsh9-61.png",
+    "cardName": "Dusclops",
+    "expected": "dusclops"
+  },
+  {
+    "id": "swsh9-91",
+    "set": "swsh9",
+    "file": "swsh9-91.png",
+    "cardName": "Liepard",
+    "expected": "liepard"
+  },
+  {
+    "id": "swsh9-121",
+    "set": "swsh9",
+    "file": "swsh9-121.png",
+    "cardName": "Bibarel",
+    "expected": "bibarel"
+  },
+  {
+    "id": "swsh12-1",
+    "set": "swsh12",
+    "file": "swsh12-1.png",
+    "cardName": "Venonat",
+    "expected": "venonat"
+  },
+  {
+    "id": "swsh12-36",
+    "set": "swsh12",
+    "file": "swsh12-36.png",
+    "cardName": "Articuno",
+    "expected": "articuno"
+  },
+  {
+    "id": "swsh12-71",
+    "set": "swsh12",
+    "file": "swsh12-71.png",
+    "cardName": "Mawile VSTAR",
+    "expected": "mawile"
+  },
+  {
+    "id": "swsh12-106",
+    "set": "swsh12",
+    "file": "swsh12-106.png",
+    "cardName": "Murkrow",
+    "expected": "murkrow"
+  },
+  {
+    "id": "swsh12-141",
+    "set": "swsh12",
+    "file": "swsh12-141.png",
+    "cardName": "Spinda",
+    "expected": "spinda"
+  },
+  {
+    "id": "sv2-1",
+    "set": "sv2",
+    "file": "sv2-1.png",
+    "cardName": "Hoppip",
+    "expected": "hoppip"
+  },
+  {
+    "id": "sv2-48",
+    "set": "sv2",
+    "file": "sv2-48.png",
+    "cardName": "Eiscue",
+    "expected": "eiscue"
+  },
+  {
+    "id": "sv2-95",
+    "set": "sv2",
+    "file": "sv2-95.png",
+    "cardName": "Sandygast",
+    "expected": "sandygast"
+  },
+  {
+    "id": "sv2-142",
+    "set": "sv2",
+    "file": "sv2-142.png",
+    "cardName": "Maschiff",
+    "expected": "maschiff"
+  },
+  {
+    "id": "sv2-212",
+    "set": "sv2",
+    "file": "sv2-212.png",
+    "cardName": "Mismagius",
+    "expected": "mismagius"
+  },
+  {
+    "id": "sv5-1",
+    "set": "sv5",
+    "file": "sv5-1.png",
+    "cardName": "Scyther",
+    "expected": "scyther"
+  },
+  {
+    "id": "sv5-38",
+    "set": "sv5",
+    "file": "sv5-38.png",
+    "cardName": "Gouging Fire ex",
+    "expected": "gouging-fire"
+  },
+  {
+    "id": "sv5-75",
+    "set": "sv5",
+    "file": "sv5-75.png",
+    "cardName": "Cutiefly",
+    "expected": "cutiefly"
+  },
+  {
+    "id": "sv5-112",
+    "set": "sv5",
+    "file": "sv5-112.png",
+    "cardName": "Mawile",
+    "expected": "mawile"
+  },
+  {
+    "id": "sv5-172",
+    "set": "sv5",
+    "file": "sv5-172.png",
+    "cardName": "Cutiefly",
+    "expected": "cutiefly"
+  },
+  {
+    "id": "sv6-1",
+    "set": "sv6",
+    "file": "sv6-1.png",
+    "cardName": "Tangela",
+    "expected": "tangela"
+  },
+  {
+    "id": "sv6-38",
+    "set": "sv6",
+    "file": "sv6-38.png",
+    "cardName": "Chandelure",
+    "expected": "chandelure"
+  },
+  {
+    "id": "sv6-75",
+    "set": "sv6",
+    "file": "sv6-75.png",
+    "cardName": "Wattrel",
+    "expected": "wattrel"
+  },
+  {
+    "id": "sv6-112",
+    "set": "sv6",
+    "file": "sv6-112.png",
+    "cardName": "Cornerstone Mask Ogerpon ex",
+    "expected": "ogerpon"
+  },
+  {
+    "id": "sv6-175",
+    "set": "sv6",
+    "file": "sv6-175.png",
+    "cardName": "Phione",
+    "expected": "phione"
+  }
+]

@@ -123,6 +123,37 @@ describe('ScannerModal — camera', () => {
   });
 });
 
+describe('ScannerModal — camera capture crop', () => {
+  it('SC-21 sends only the reticle area of the frame to OCR', async () => {
+    setMediaDevices(vi.fn(() => Promise.resolve(makeStream())));
+    mocks.recognizeCardWithOCR.mockResolvedValue({ success: false, rawText: '', bestMatch: '', confidence: 0, candidates: [] });
+    const drawImage = vi.fn();
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({ drawImage });
+    const { container } = render(<ScannerModal onCardDetected={vi.fn()} />);
+    const button = await screen.findByText('Chụp Quét Tên Thẻ');
+
+    const video = container.querySelector('video');
+    Object.defineProperty(video, 'videoWidth', { value: 720 });
+    Object.defineProperty(video, 'videoHeight', { value: 1280 });
+    // Portrait 720x1280 stream shown 1:1; reticle 400x560 at (160, 360)
+    video.getBoundingClientRect = () => ({ left: 0, top: 0, width: 720, height: 1280 });
+    const reticle = container.querySelector('[class*="aspect-[63/88]"]');
+    reticle.getBoundingClientRect = () => ({ left: 160, top: 360, width: 400, height: 560 });
+
+    fireEvent.click(button);
+    await waitFor(() => expect(mocks.recognizeCardWithOCR).toHaveBeenCalled());
+    const canvas = mocks.recognizeCardWithOCR.mock.calls[0][0];
+    // 6% margin on each side
+    expect(canvas.width).toBe(Math.round(400 * 1.12));
+    expect(canvas.height).toBe(Math.round(560 * 1.12));
+    const [, sx, sy, sw, sh] = drawImage.mock.calls[0];
+    expect(sx).toBeCloseTo(160 - 24, 5);
+    expect(sy).toBeCloseTo(360 - 33.6, 5);
+    expect(sw).toBeCloseTo(448, 5);
+    expect(sh).toBeCloseTo(627.2, 5);
+  });
+});
+
 describe('ScannerModal — image upload & OCR', () => {
   it('SC-06 uses an exact file name hint', async () => {
     render(<ScannerModal onCardDetected={vi.fn()} />);

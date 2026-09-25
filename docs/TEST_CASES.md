@@ -203,3 +203,43 @@ Test **MANUAL** (OC-11, SC-19, SC-20) **chưa thực hiện** — cần điện 
 3. **Dữ liệu "TCG" là dữ liệu suy diễn**: HP = base HP × 3, sát thương chiêu, độ hiếm (theo id > 150), kháng cự "Colorless -30" đều được tính ra, không phải từ thẻ thật, nhưng giao diện trình bày như thông số thẻ.
 4. Header dùng breakpoint `xs:` không được khai báo → logo chữ bị ẩn trên điện thoại (< 640px).
 5. SC-08 trong jsdom chỉ kiểm được `input.value` rỗng sau khi chọn; cần xác nhận thủ công trên trình duyệt thật.
+
+---
+
+## 11. Đánh giá độ chính xác OCR với ảnh thẻ thật (2026-09-25)
+
+Công cụ: `tests/ocr-eval/` chạy **đúng pipeline của app** (Tesseract.js + xử lý canvas) trên Node với ảnh scan thẻ thật từ `images.pokemontcg.io`, đáp án lấy từ `PokemonTCG/pokemon-tcg-data`.
+
+```bash
+node tests/ocr-eval/build-dataset.mjs                      # tập tinh chỉnh (tải ảnh 1 lần, ~45MB, gitignored)
+OCR_SETS=holdout node tests/ocr-eval/build-dataset.mjs     # tập held-out
+npm run eval:ocr                                           # OCR_MANIFEST=manifest.holdout.json để đổi tập
+```
+
+Mỗi thẻ được thử 3 biến thể (tạo tất định bằng seed):
+- **scan**: ảnh thẻ sạch (người dùng tải ảnh thẻ lên)
+- **photo**: thẻ đặt trên nền có vân, nghiêng ±5°, mờ, nhiễu, lóa sáng; ảnh 900×1200 (ảnh điện thoại tải lên)
+- **camera**: khung hình 720×1280, thẻ nằm trong khung ngắm, nghiêng ±3°, mờ, nhiễu
+
+| Tập (mỗi tập 60 thẻ, 12 bộ từ 1999 đến 2024) | Vai trò | Biến thể | Code gốc | Pipeline mới |
+|---|---|---|---|---|
+| `manifest.json` | dùng để tinh chỉnh | scan / photo / camera | 68% / 67% / 23% | **92% / 87% / 90%** |
+| `manifest.holdout.json` | kiểm tra; các ca sai của nó đã được dùng để sửa 3 lỗi chấm điểm | scan / photo / camera | 77% / 67% / 20% | **98% / 92% / 93%** |
+| `manifest.fresh.json` | **không dùng để tinh chỉnh**, số liệu đáng tin nhất | scan / photo / camera | 70% / 65% / 28% | **88% / 82% / 92%** |
+
+Số liệu là tỉ lệ top-1 (ứng viên đầu tiên đúng). Thời gian khoảng 200–340 ms/ảnh trên Node desktop. Tốc độ trên điện thoại chưa đo.
+
+Giới hạn của phép đo:
+- Ảnh "photo/camera" là **ảnh giả lập** từ bản scan, không phải ảnh chụp thật. Chưa mô phỏng: phối cảnh 3D, lóa foil/holo mạnh, rung tay, ánh sáng vàng. Độ chính xác trên ảnh chụp thật **chưa được đo**.
+- Kích thước mẫu 60 thẻ/tập: mỗi thẻ tương ứng khoảng 1,7 điểm %.
+
+Các kiểu lỗi còn lại: font tên cách điệu trên thẻ V/VMAX/holo, tên rất ngắn bị đọc thiếu (`Lugia`, `Azelf`), ký hiệu ♂/♀ (`Nidoran♂` lẫn với `Nidoran♀`), thẻ mà tên chính không đọc được và chỉ còn đọc được dòng "Evolves from X".
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| OC-12 | P1 | AUTO | `detectCard` trên thẻ đặt trên nền, thẻ nghiêng 6°, thẻ lấp đầy ảnh, ảnh trơn | Đúng khung thẻ / đúng góc ±1° / `null` / `null` |
+| OC-13 | P1 | AUTO | `extractCard` cắt và nắn thẳng thẻ nghiêng | Tỉ lệ khung ≈ 88:63 |
+| OC-14 | P2 | AUTO | `preprocess` 'binary' với chữ sáng trên nền tối | Đảo thành chữ đen trên nền trắng |
+| OC-15 | P1 | AUTO | `mapRectToVideoFrame` với `object-fit: cover` và lề | Đúng toạ độ khung video |
+| SC-21 | P1 | AUTO | Chụp camera | Chỉ vùng khung ngắm (+6% lề) được gửi vào OCR |
+| OC-16 | P1 | EVAL | `npm run eval:ocr` trên 3 tập | Không thấp hơn bảng trên |

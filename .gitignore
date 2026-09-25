@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+tests/ocr-eval/.cache/
+tests/ocr-eval/results/
+*.traineddata

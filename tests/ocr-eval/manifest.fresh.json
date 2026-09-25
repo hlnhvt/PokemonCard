@@ -1,0 +1,422 @@
+[
+  {
+    "id": "base3-1",
+    "set": "base3",
+    "file": "base3-1.png",
+    "cardName": "Aerodactyl",
+    "expected": "aerodactyl"
+  },
+  {
+    "id": "base3-12",
+    "set": "base3",
+    "file": "base3-12.png",
+    "cardName": "Moltres",
+    "expected": "moltres"
+  },
+  {
+    "id": "base3-23",
+    "set": "base3",
+    "file": "base3-23.png",
+    "cardName": "Hypno",
+    "expected": "hypno"
+  },
+  {
+    "id": "base3-34",
+    "set": "base3",
+    "file": "base3-34.png",
+    "cardName": "Golbat",
+    "expected": "golbat"
+  },
+  {
+    "id": "base3-45",
+    "set": "base3",
+    "file": "base3-45.png",
+    "cardName": "Weezing",
+    "expected": "weezing"
+  },
+  {
+    "id": "neo4-1",
+    "set": "neo4",
+    "file": "neo4-1.png",
+    "cardName": "Dark Ampharos",
+    "expected": "ampharos"
+  },
+  {
+    "id": "neo4-21",
+    "set": "neo4",
+    "file": "neo4-21.png",
+    "cardName": "Dark Ursaring",
+    "expected": "ursaring"
+  },
+  {
+    "id": "neo4-40",
+    "set": "neo4",
+    "file": "neo4-40.png",
+    "cardName": "Dark Wigglytuff",
+    "expected": "wigglytuff"
+  },
+  {
+    "id": "neo4-59",
+    "set": "neo4",
+    "file": "neo4-59.png",
+    "cardName": "Unown [Q]",
+    "expected": "unown"
+  },
+  {
+    "id": "neo4-78",
+    "set": "neo4",
+    "file": "neo4-78.png",
+    "cardName": "Porygon",
+    "expected": "porygon"
+  },
+  {
+    "id": "ex12-1",
+    "set": "ex12",
+    "file": "ex12-1.png",
+    "cardName": "Aerodactyl",
+    "expected": "aerodactyl"
+  },
+  {
+    "id": "ex12-17",
+    "set": "ex12",
+    "file": "ex12-17.png",
+    "cardName": "Gorebyss",
+    "expected": "gorebyss"
+  },
+  {
+    "id": "ex12-33",
+    "set": "ex12",
+    "file": "ex12-33.png",
+    "cardName": "Furret",
+    "expected": "furret"
+  },
+  {
+    "id": "ex12-49",
+    "set": "ex12",
+    "file": "ex12-49.png",
+    "cardName": "Bellsprout",
+    "expected": "bellsprout"
+  },
+  {
+    "id": "ex12-65",
+    "set": "ex12",
+    "file": "ex12-65.png",
+    "cardName": "Spheal",
+    "expected": "spheal"
+  },
+  {
+    "id": "dp5-1",
+    "set": "dp5",
+    "file": "dp5-1.png",
+    "cardName": "Articuno",
+    "expected": "articuno"
+  },
+  {
+    "id": "dp5-17",
+    "set": "dp5",
+    "file": "dp5-17.png",
+    "cardName": "Empoleon",
+    "expected": "empoleon"
+  },
+  {
+    "id": "dp5-33",
+    "set": "dp5",
+    "file": "dp5-33.png",
+    "cardName": "Unown [P]",
+    "expected": "unown"
+  },
+  {
+    "id": "dp5-49",
+    "set": "dp5",
+    "file": "dp5-49.png",
+    "cardName": "Unown [Q]",
+    "expected": "unown"
+  },
+  {
+    "id": "dp5-65",
+    "set": "dp5",
+    "file": "dp5-65.png",
+    "cardName": "Glameow",
+    "expected": "glameow"
+  },
+  {
+    "id": "hgss1-1",
+    "set": "hgss1",
+    "file": "hgss1-1.png",
+    "cardName": "Arcanine",
+    "expected": "arcanine"
+  },
+  {
+    "id": "hgss1-20",
+    "set": "hgss1",
+    "file": "hgss1-20.png",
+    "cardName": "Feraligatr",
+    "expected": "feraligatr"
+  },
+  {
+    "id": "hgss1-39",
+    "set": "hgss1",
+    "file": "hgss1-39.png",
+    "cardName": "Delibird",
+    "expected": "delibird"
+  },
+  {
+    "id": "hgss1-58",
+    "set": "hgss1",
+    "file": "hgss1-58.png",
+    "cardName": "Chansey",
+    "expected": "chansey"
+  },
+  {
+    "id": "hgss1-77",
+    "set": "hgss1",
+    "file": "hgss1-77.png",
+    "cardName": "Phanpy",
+    "expected": "phanpy"
+  },
+  {
+    "id": "bw9-1",
+    "set": "bw9",
+    "file": "bw9-1.png",
+    "cardName": "Weedle",
+    "expected": "weedle"
+  },
+  {
+    "id": "bw9-22",
+    "set": "bw9",
+    "file": "bw9-22.png",
+    "cardName": "Quagsire",
+    "expected": "quagsire"
+  },
+  {
+    "id": "bw9-43",
+    "set": "bw9",
+    "file": "bw9-43.png",
+    "cardName": "Nidoran ♂",
+    "expected": "nidoran-m"
+  },
+  {
+    "id": "bw9-64",
+    "set": "bw9",
+    "file": "bw9-64.png",
+    "cardName": "Umbreon",
+    "expected": "umbreon"
+  },
+  {
+    "id": "bw9-85",
+    "set": "bw9",
+    "file": "bw9-85.png",
+    "cardName": "Latias-EX",
+    "expected": "latias"
+  },
+  {
+    "id": "xy10-1",
+    "set": "xy10",
+    "file": "xy10-1.png",
+    "cardName": "Shuckle",
+    "expected": "shuckle"
+  },
+  {
+    "id": "xy10-21",
+    "set": "xy10",
+    "file": "xy10-21.png",
+    "cardName": "White Kyurem",
+    "expected": "kyurem"
+  },
+  {
+    "id": "xy10-41",
+    "set": "xy10",
+    "file": "xy10-41.png",
+    "cardName": "Larvitar",
+    "expected": "larvitar"
+  },
+  {
+    "id": "xy10-59",
+    "set": "xy10",
+    "file": "xy10-59.png",
+    "cardName": "Wormadam",
+    "expected": "wormadam"
+  },
+  {
+    "id": "xy10-79",
+    "set": "xy10",
+    "file": "xy10-79.png",
+    "cardName": "Lugia BREAK",
+    "expected": "lugia"
+  },
+  {
+    "id": "sm10-1",
+    "set": "sm10",
+    "file": "sm10-1.png",
+    "cardName": "Pheromosa & Buzzwole-GX",
+    "expected": "buzzwole"
+  },
+  {
+    "id": "sm10-40",
+    "set": "sm10",
+    "file": "sm10-40.png",
+    "cardName": "Tentacool",
+    "expected": "tentacool"
+  },
+  {
+    "id": "sm10-79",
+    "set": "sm10",
+    "file": "sm10-79.png",
+    "cardName": "Espurr",
+    "expected": "espurr"
+  },
+  {
+    "id": "sm10-118",
+    "set": "sm10",
+    "file": "sm10-118.png",
+    "cardName": "Inkay",
+    "expected": "inkay"
+  },
+  {
+    "id": "sm10-157",
+    "set": "sm10",
+    "file": "sm10-157.png",
+    "cardName": "Porygon-Z",
+    "expected": "porygon-z"
+  },
+  {
+    "id": "swsh6-1",
+    "set": "swsh6",
+    "file": "swsh6-1.png",
+    "cardName": "Weedle",
+    "expected": "weedle"
+  },
+  {
+    "id": "swsh6-34",
+    "set": "swsh6",
+    "file": "swsh6-34.png",
+    "cardName": "Castform Snowy Form",
+    "expected": "castform"
+  },
+  {
+    "id": "swsh6-67",
+    "set": "swsh6",
+    "file": "swsh6-67.png",
+    "cardName": "Swirlix",
+    "expected": "swirlix"
+  },
+  {
+    "id": "swsh6-100",
+    "set": "swsh6",
+    "file": "swsh6-100.png",
+    "cardName": "Galarian Slowking VMAX",
+    "expected": "slowking"
+  },
+  {
+    "id": "swsh6-164",
+    "set": "swsh6",
+    "file": "swsh6-164.png",
+    "cardName": "Ice Rider Calyrex V",
+    "expected": "calyrex"
+  },
+  {
+    "id": "swsh10-1",
+    "set": "swsh10",
+    "file": "swsh10-1.png",
+    "cardName": "Beedrill V",
+    "expected": "beedrill"
+  },
+  {
+    "id": "swsh10-34",
+    "set": "swsh10",
+    "file": "swsh10-34.png",
+    "cardName": "Mantine",
+    "expected": "mantine"
+  },
+  {
+    "id": "swsh10-67",
+    "set": "swsh10",
+    "file": "swsh10-67.png",
+    "cardName": "Azelf",
+    "expected": "azelf"
+  },
+  {
+    "id": "swsh10-100",
+    "set": "swsh10",
+    "file": "swsh10-100.png",
+    "cardName": "Hisuian Samurott",
+    "expected": "samurott"
+  },
+  {
+    "id": "swsh10-133",
+    "set": "swsh10",
+    "file": "swsh10-133.png",
+    "cardName": "Oranguru V",
+    "expected": "oranguru"
+  },
+  {
+    "id": "sv3-1",
+    "set": "sv3",
+    "file": "sv3-1.png",
+    "cardName": "Oddish",
+    "expected": "oddish"
+  },
+  {
+    "id": "sv3-43",
+    "set": "sv3",
+    "file": "sv3-43.png",
+    "cardName": "Charcadet",
+    "expected": "charcadet"
+  },
+  {
+    "id": "sv3-85",
+    "set": "sv3",
+    "file": "sv3-85.png",
+    "cardName": "Togekiss",
+    "expected": "togekiss"
+  },
+  {
+    "id": "sv3-127",
+    "set": "sv3",
+    "file": "sv3-127.png",
+    "cardName": "Paldean Wooper",
+    "expected": "wooper"
+  },
+  {
+    "id": "sv3-169",
+    "set": "sv3",
+    "file": "sv3-169.png",
+    "cardName": "Swablu",
+    "expected": "swablu"
+  },
+  {
+    "id": "sv7-1",
+    "set": "sv7",
+    "file": "sv7-1.png",
+    "cardName": "Venusaur ex",
+    "expected": "venusaur"
+  },
+  {
+    "id": "sv7-31",
+    "set": "sv7",
+    "file": "sv7-31.png",
+    "cardName": "Lapras",
+    "expected": "lapras"
+  },
+  {
+    "id": "sv7-61",
+    "set": "sv7",
+    "file": "sv7-61.png",
+    "cardName": "Drifblim",
+    "expected": "drifblim"
+  },
+  {
+    "id": "sv7-91",
+    "set": "sv7",
+    "file": "sv7-91.png",
+    "cardName": "Gulpin",
+    "expected": "gulpin"
+  },
+  {
+    "id": "sv7-121",
+    "set": "sv7",
+    "file": "sv7-121.png",
+    "cardName": "Fletchling",
+    "expected": "fletchling"
+  }
+]

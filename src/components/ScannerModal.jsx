@@ -15,6 +15,7 @@ import {
   Edit3
 } from 'lucide-react';
 import { recognizeCardWithOCR } from '../utils/cardRecognizer';
+import { mapRectToVideoFrame } from '../utils/cardImage';
 import { findBestPokemonNameFromText, fetchPokemonOnline } from '../services/pokemonOnlineService';
 import { sounds } from '../utils/soundEffects';
 
@@ -46,6 +47,7 @@ export function ScannerModal({ onCardDetected }) {
   const streamRef = useRef(null);
   const fileInputRef = useRef(null);
   const nativeCameraInputRef = useRef(null);
+  const reticleRef = useRef(null);
   // Incremented on every start/stop so a getUserMedia call that resolves late can tell it is stale
   const cameraRequestRef = useRef(0);
   const isLoadingOnlineRef = useRef(false);
@@ -247,15 +249,25 @@ export function ScannerModal({ onCardDetected }) {
       setScanError('Camera chưa sẵn sàng, vui lòng thử lại sau giây lát.');
       return;
     }
+    // Only the part of the frame inside the on-screen reticle holds the card; OCR on the
+    // full frame shrinks the name text and adds background noise
+    let region = { x: 0, y: 0, width: video.videoWidth, height: video.videoHeight };
+    const videoRect = video.getBoundingClientRect();
+    const reticleRect = reticleRef.current?.getBoundingClientRect();
+    if (reticleRect && videoRect.width > 0 && videoRect.height > 0 && reticleRect.width > 0) {
+      const mapped = mapRectToVideoFrame(reticleRect, videoRect, video.videoWidth, video.videoHeight, 0.06);
+      if (mapped.width > 50 && mapped.height > 50) region = mapped;
+    }
+
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    canvas.width = Math.round(region.width);
+    canvas.height = Math.round(region.height);
     const ctx = canvas.getContext('2d');
     if (!ctx) {
       setScanError('Không thể chụp khung hình từ Camera.');
       return;
     }
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(video, region.x, region.y, region.width, region.height, 0, 0, canvas.width, canvas.height);
 
     processImageForPokemon(canvas, '');
   };
@@ -358,7 +370,7 @@ export function ScannerModal({ onCardDetected }) {
 
         {/* Viewfinder Target Reticle (Card Aspect Ratio) */}
         <div className="absolute inset-0 pointer-events-none flex items-center justify-center p-6">
-          <div className="relative w-full aspect-[63/88] max-h-[85%] rounded-2xl border-2 border-dashed border-cyan-500/60 shadow-[0_0_20px_rgba(6,182,212,0.25)] flex items-center justify-center">
+          <div ref={reticleRef} className="relative w-full aspect-[63/88] max-h-[85%] rounded-2xl border-2 border-dashed border-cyan-500/60 shadow-[0_0_20px_rgba(6,182,212,0.25)] flex items-center justify-center">
             
             {/* 4 Holographic Glowing Corner Brackets */}
             <div className="absolute -top-1.5 -left-1.5 w-6 h-6 border-t-4 border-l-4 border-amber-400 rounded-tl-lg" />
