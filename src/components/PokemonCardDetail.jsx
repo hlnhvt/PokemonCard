@@ -19,7 +19,10 @@ import { playCry } from '../utils/cries';
 import { PokemonBuddy } from './PokemonBuddy';
 import { EvolutionTree } from './EvolutionTree';
 import { CatchGame } from './CatchGame';
+import { RunnerGame } from './RunnerGame';
+import { BattleArena } from './BattleArena';
 import { getCardMedia } from '../services/pokemonOnlineService';
+import { fedToday } from '../utils/friendship';
 
 const DEFAULT_THEME = { primary: '#AAAA99', secondary: '#777766', accent: '#CCCCBB', glow: 'rgba(170, 170, 153, 0.6)' };
 
@@ -37,10 +40,17 @@ export function PokemonCardDetail({
   onEvolve,
   onExplore,
   onCaught,
+  berries,
+  onFeed,
+  onPet,
+  onBerries,
+  onBattleResult,
 }) {
   const isPreview = mode === 'preview';
   const [showShiny, setShowShiny] = useState(!!rawPokemon.isShiny);
   const [isCatching, setIsCatching] = useState(false);
+  const [isRunning, setIsRunning] = useState(false);
+  const [isBattling, setIsBattling] = useState(false);
   // Older or partially saved cards may miss fields; fill them so rendering never crashes
   const pokemon = {
     ...rawPokemon,
@@ -356,6 +366,18 @@ export function PokemonCardDetail({
               onToggleShiny={setShowShiny}
               catchCount={savedItem?.catchCount || 0}
               onPlayCatch={() => setIsCatching(true)}
+              onPlayRunner={() => setIsRunning(true)}
+              onPlayBattle={!isPreview && savedItem ? () => setIsBattling(true) : undefined}
+              battleWins={savedItem?.battleWins || 0}
+              care={{
+                enabled: !isPreview && !!savedItem,
+                friendship: savedItem?.friendship || 0,
+                fedToday: savedItem ? fedToday(savedItem) : 0,
+                favoriteFound: !!savedItem?.favoriteFound,
+                berries,
+              }}
+              onFeed={onFeed}
+              onPet={onPet}
             />
           </div>
         </div>
@@ -366,6 +388,7 @@ export function PokemonCardDetail({
           <EvolutionTree
             pokemon={pokemon}
             scanCount={savedItem?.scanCount || 0}
+            friendship={savedItem?.friendship || 0}
             canEvolve={!isPreview && !!savedItem}
             onEvolve={onEvolve}
             onExplore={onExplore}
@@ -563,6 +586,23 @@ export function PokemonCardDetail({
 
         </div>
       </div>
+
+      {isBattling && savedItem && (
+        <BattleArena
+          card={{ ...savedItem, name: pokemon.name, fallbackImage: (showShiny && getCardMedia(pokemon).shinyImage) || pokemon.fallbackImage }}
+          onClose={() => setIsBattling(false)}
+          onResult={(result) => onBattleResult?.(savedItem.id, result)}
+        />
+      )}
+
+      {isRunning && (
+        <RunnerGame
+          pokemon={pokemon}
+          image={(showShiny && getCardMedia(pokemon).shinyImage) || pokemon.fallbackImage || pokemon.image}
+          onClose={() => setIsRunning(false)}
+          onBerries={onBerries}
+        />
+      )}
 
       {isCatching && (
         <CatchGame

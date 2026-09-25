@@ -1,4 +1,7 @@
 // LocalStorage helper for Pokémon Card collection management
+import { applyFeed, applyPet } from './friendship';
+import { getBerries, spendBerry, addBerries } from './berries';
+
 const STORAGE_KEY = 'pokescan_saved_cards_v1';
 
 export function getSavedCollection() {
@@ -96,6 +99,66 @@ export function recordCatch(cardId) {
     return updatedItem;
   } catch (err) {
     console.error('Error recording catch:', err);
+    return null;
+  }
+}
+
+function updateCard(cardId, updater) {
+  const list = getSavedCollection();
+  const index = list.findIndex((item) => item.id === cardId);
+  if (index < 0) return null;
+  const outcome = updater(list[index]);
+  const updated = [...list];
+  updated[index] = outcome.card;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+  return outcome;
+}
+
+/**
+ * Feed a saved Pokemon one berry from the bag.
+ * Returns applyFeed's outcome plus `berries` (the bag afterwards), or
+ * { result: 'notFound' | 'noBerry' | 'error' }.
+ */
+export function feedCard(cardId, berry, now = new Date()) {
+  const card = getSavedCollection().find((item) => item.id === cardId);
+  if (!card) return { result: 'notFound' };
+  if ((getBerries()[berry] || 0) <= 0) return { result: 'noBerry' };
+
+  const outcome = applyFeed(card, berry, now);
+  if (outcome.result !== 'fed') return outcome;
+
+  const berries = spendBerry(berry);
+  if (!berries) return { result: 'error' };
+  try {
+    updateCard(cardId, () => outcome);
+    return { ...outcome, berries };
+  } catch (err) {
+    console.error('Error feeding Pokemon:', err);
+    addBerries({ [berry]: 1 }); // give the berry back
+    return { result: 'error' };
+  }
+}
+
+/** Count a battle result on a saved Pokemon. Returns the updated card or null. */
+export function recordBattle(cardId, won) {
+  try {
+    return (
+      updateCard(cardId, (card) => ({
+        card: { ...card, battles: (card.battles || 0) + 1, battleWins: (card.battleWins || 0) + (won ? 1 : 0) },
+      }))?.card || null
+    );
+  } catch (err) {
+    console.error('Error recording battle:', err);
+    return null;
+  }
+}
+
+/** Pet a saved Pokemon. Returns applyPet's outcome, or null when it is not saved. */
+export function petCard(cardId, now = new Date()) {
+  try {
+    return updateCard(cardId, (card) => applyPet(card, now));
+  } catch (err) {
+    console.error('Error petting Pokemon:', err);
     return null;
   }
 }

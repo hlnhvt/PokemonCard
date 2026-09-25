@@ -396,3 +396,175 @@
     animation-duration: 0.01s;
   }
 }
+/* ---- Pokemon care ---- */
+
+/* Berry arcs up from the bag into the Pokemon's mouth */
+@keyframes berryFly {
+  0% { transform: translate(-50%, 40px) scale(1) rotate(0deg); opacity: 1; }
+  60% { transform: translate(-50%, -70px) scale(1.15) rotate(200deg); opacity: 1; }
+  100% { transform: translate(-50%, -95px) scale(0.2) rotate(320deg); opacity: 0; }
+}
+.berry-fly {
+  animation: berryFly 0.45s ease-in forwards;
+}
+
+/* "+10" rises and fades above the Pokemon */
+@keyframes gainFloat {
+  0% { transform: translate(-50%, 10px) scale(0.6); opacity: 0; }
+  20% { transform: translate(-50%, 0) scale(1.1); opacity: 1; }
+  100% { transform: translate(-50%, -40px) scale(1); opacity: 0; }
+}
+.gain-float {
+  animation: gainFloat 1.2s ease-out forwards;
+}
+
+/* Friendship level-up badge pops in */
+@keyframes levelPop {
+  0% { transform: scale(0.3); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.level-pop {
+  animation: levelPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .berry-fly, .gain-float, .level-pop {
+    animation-duration: 0.01s;
+  }
+}
+/* ---- Battle arena ---- */
+@keyframes battleIdle {
+  0%, 100% { transform: translateY(0) scale(var(--flip, 1), 1); }
+  50% { transform: translateY(-5px) scale(var(--flip, 1), 1); }
+}
+.battle-idle { animation: battleIdle 2.2s ease-in-out infinite; }
+
+@keyframes battleLungePlayer {
+  0% { transform: translate(0, 0) scale(var(--flip, 1), 1); }
+  35% { transform: translate(-14px, 8px) scale(var(--flip, 1), 1); }
+  60% { transform: translate(90px, -60px) scale(calc(var(--flip, 1) * 1.08), 1.08); }
+  100% { transform: translate(0, 0) scale(var(--flip, 1), 1); }
+}
+.battle-lunge-player { animation: battleLungePlayer 0.45s cubic-bezier(0.5, 0, 0.3, 1); }
+
+@keyframes battleLungeOpponent {
+  0% { transform: translate(0, 0); }
+  35% { transform: translate(14px, -8px); }
+  60% { transform: translate(-90px, 60px) scale(1.08); }
+  100% { transform: translate(0, 0); }
+}
+.battle-lunge-opponent { animation: battleLungeOpponent 0.45s cubic-bezier(0.5, 0, 0.3, 1); }
+
+@keyframes battleHit {
+  0%, 100% { transform: translateX(0) scale(var(--flip, 1), 1); filter: none; }
+  15% { transform: translateX(-10px) scale(var(--flip, 1), 1); filter: brightness(3) saturate(0); }
+  35% { transform: translateX(9px) scale(var(--flip, 1), 1); filter: none; }
+  55% { transform: translateX(-6px) scale(var(--flip, 1), 1); filter: brightness(2.5) saturate(0); }
+  75% { transform: translateX(4px) scale(var(--flip, 1), 1); filter: none; }
+}
+.battle-hit { animation: battleHit 0.4s ease-out; }
+
+@keyframes battleFaint {
+  0% { transform: translateY(0) scale(var(--flip, 1), 1); opacity: 1; filter: none; }
+  30% { filter: brightness(0.4) saturate(0); }
+  100% { transform: translateY(60px) scale(calc(var(--flip, 1) * 0.6), 0.6); opacity: 0; filter: brightness(0.3) saturate(0); }
+}
+.battle-faint { animation: battleFaint 0.9s ease-in forwards; }
+
+@keyframes battleEnter {
+  0% { transform: scale(0) ; filter: brightness(10); opacity: 0; }
+  60% { transform: scale(calc(var(--flip, 1) * 1.15), 1.15); filter: brightness(3); opacity: 1; }
+  100% { transform: scale(var(--flip, 1), 1); filter: none; opacity: 1; }
+}
+.battle-enter { animation: battleEnter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+@keyframes battleCharge {
+  0%, 100% { filter: drop-shadow(0 0 0 var(--charge, #fff)); transform: scale(var(--flip, 1), 1); }
+  50% { filter: drop-shadow(0 0 18px var(--charge, #fff)) brightness(1.5); transform: scale(calc(var(--flip, 1) * 1.06), 1.06); }
+}
+.battle-charge { animation: battleCharge 0.3s ease-in-out 2; }
+
+@keyframes battleVictory {
+  0%, 100% { transform: translateY(0) scale(var(--flip, 1), 1); }
+  40% { transform: translateY(-26px) scale(var(--flip, 1), 1); }
+}
+.battle-victory { animation: battleVictory 0.55s ease-out infinite; }
+
+@keyframes shakeSmall {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-4px, 2px); }
+  50% { transform: translate(4px, -2px); }
+  75% { transform: translate(-3px, -1px); }
+}
+@keyframes shakeBig {
+  0%, 100% { transform: translate(0, 0) rotate(0); }
+  15% { transform: translate(-12px, 6px) rotate(-1deg); }
+  30% { transform: translate(11px, -7px) rotate(1deg); }
+  45% { transform: translate(-9px, -4px); }
+  60% { transform: translate(8px, 5px); }
+  80% { transform: translate(-4px, 2px); }
+}
+.battle-shake-sm { animation: shakeSmall 0.25s linear; }
+.battle-shake-lg { animation: shakeBig 0.5s linear; }
+
+@keyframes bannerSlam {
+  0% { transform: translate(-50%, -50%) scale(2.4) rotate(-6deg); opacity: 0; }
+  25% { transform: translate(-50%, -50%) scale(0.92) rotate(-3deg); opacity: 1; }
+  40% { transform: translate(-50%, -50%) scale(1.04) rotate(-3deg); }
+  80% { transform: translate(-50%, -50%) scale(1) rotate(-3deg); opacity: 1; }
+  100% { transform: translate(-50%, -60%) scale(1) rotate(-3deg); opacity: 0; }
+}
+.banner-slam { animation: bannerSlam 1s cubic-bezier(0.2, 0.9, 0.3, 1) forwards; }
+
+@keyframes damageFloat {
+  0% { transform: translate(-50%, 0) scale(0.4); opacity: 0; }
+  20% { transform: translate(-50%, -18px) scale(1.25); opacity: 1; }
+  40% { transform: translate(-50%, -26px) scale(1); }
+  100% { transform: translate(-50%, -70px) scale(1); opacity: 0; }
+}
+.damage-float { animation: damageFloat 1s ease-out forwards; }
+
+@keyframes flashFade {
+  0% { opacity: 0.85; }
+  100% { opacity: 0; }
+}
+.flash-fade { animation: flashFade 0.35s ease-out forwards; }
+
+@keyframes comboVignette {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+.combo-vignette {
+  background: radial-gradient(ellipse at center, transparent 30%, rgba(30, 0, 60, 0.85) 100%);
+  animation: comboVignette 0.35s ease-out forwards;
+}
+
+@keyframes chainPop {
+  0% { transform: scale(3); opacity: 0; }
+  40% { transform: scale(0.9); opacity: 1; }
+  60% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.chain-pop { animation: chainPop 0.4s cubic-bezier(0.2, 0.9, 0.3, 1) forwards; }
+
+@keyframes energyGlow {
+  0%, 100% { box-shadow: 0 0 6px 1px rgba(250, 204, 21, 0.6); }
+  50% { box-shadow: 0 0 22px 6px rgba(250, 204, 21, 0.95); }
+}
+.energy-full { animation: energyGlow 0.9s ease-in-out infinite; }
+
+@keyframes rainbowShift {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+.rainbow-bg {
+  background: linear-gradient(90deg, #f43f5e, #f59e0b, #22c55e, #3b82f6, #a855f7, #f43f5e);
+  background-size: 200% 100%;
+  animation: rainbowShift 1.6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .battle-idle, .battle-victory, .energy-full, .rainbow-bg { animation: none; }
+  .battle-shake-sm, .battle-shake-lg { animation: none; }
+}

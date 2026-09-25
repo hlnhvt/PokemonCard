@@ -286,3 +286,70 @@ Sửa: nút NÉM nhắm vào vị trí Pokémon lúc bấm; bóng tự lượn 3
 | CA-03 | P1 | AUTO | Vuốt quá xa: bóng bay vụt qua và mờ dần, hết 5 bóng thì hiện "Chơi lại" | Đúng |
 | CA-05 | P2 | AUTO | Bóng thay đổi vị trí theo từng khung hình, có vệt sáng | Đúng |
 | UI-03 | P1 | MANUAL (Chrome, đồng hồ thật) | Bấm NÉM ở thời điểm ngẫu nhiên, 3 ván × 3 Pokémon | Lần chạy cuối: Pikachu 4/4, Charmander 4/5, Mewtwo 5/8 lần trúng; không có lỗi JS |
+---
+
+## 13. Minigame "Pokémon Chạy Nhảy" (2026-09-26)
+
+Mô phỏng game khủng long của Chrome khi mất mạng. Nhân vật chạy là Pokémon được chọn: ở trang chi tiết thì là Pokémon đó, ở tab Trò Chơi thì chọn từ bộ sưu tập, chưa có thẻ thì là Pikachu. Chướng ngại vật là đá, cụm đá, bụi cỏ và gốc cây (thay cho xương rồng); đôi khi là Pokémon khác trên mặt đất (Diglett, Geodude, Voltorb, Shellder, Slowpoke, Sudowoodo, Ferroseed, Snorlax) hoặc Pokémon bay ở 3 độ cao (Pidgey, Zubat, Butterfree, Hoothoot, Wingull, Fletchling; thay cho thằn lằn bay). Điều chỉnh cho trẻ em: 3 mạng, bất tử 1,5 giây sau mỗi lần va chạm, vùng va chạm thu hẹp 7px mỗi cạnh, quả mọng +20 điểm, ngày/đêm đổi mỗi 500 điểm, lưu kỷ lục.
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| RU-01..03 | P1 | AUTO | Chạm để nhảy (đỉnh ~126px, ~0,65s) / giữ để nhảy cao hơn / không nhảy kép / cúi trên mặt đất và cúi trên không để rơi nhanh | Đúng |
+| RU-04..05 | P2 | AUTO | Chưa bắt đầu thì đứng yên; tốc độ tăng dần đến mức tối đa; khung hình dài bị giới hạn (không xuyên qua chướng ngại) | Đúng |
+| RU-06 | P1 | AUTO | Số Pokédex của các Pokémon chướng ngại | Khớp danh sách 1025 loài |
+| RU-07 | P1 | AUTO | Chướng ngại cao nhất và rộng nhất vẫn nhảy qua được ở tốc độ khởi đầu | Đúng |
+| RU-08..10 | P1 | AUTO | Pokémon bay chỉ xuất hiện từ 150 điểm; khoảng 25–50% chướng ngại là Pokémon; có đủ các loại chướng ngại; cùng seed ra cùng đường chạy | Đúng |
+| RU-11..15 | P1 | AUTO | Mất mạng + bất tử; hết mạng thì thua; va chạm sát mép không tính; tầng bay thấp phải nhảy, tầng giữa phải cúi, tầng cao chỉ va khi đang nhảy; quả mọng; mốc 100 điểm, đêm, số sao | Đúng |
+| RU-16 | P1 | AUTO | **Kiểm tra công bằng**: bot chơi theo luật đơn giản chạy 90 giây với 5 seed | Không bị va lần nào, điểm >2500 |
+| RU-17 | P2 | AUTO | Đứng yên | Thua nhanh |
+| RG-01..04 | P1 | AUTO | Màn chờ, chạm để chạy, bàn phím (Space/↓/Esc), thua → kỷ lục mới → chơi lại, 3 tim, nút CÚI/NHẢY | Đúng |
+| GH-01..03 | P2 | AUTO | Tab Trò Chơi: chưa có thẻ thì dùng Pikachu, chọn Pokémon từ bộ sưu tập, vẫn có trò đoán bóng đen và đường vào trò ném bóng | Đúng |
+| UI-04 | P1 | MANUAL (Chrome) | Chơi thật ở màn dọc 412×915 và màn ngang 915×412 | Vẽ đúng, không lỗi JS, vừa màn hình |
+
+Lỗi phát hiện và đã sửa: tầng bay "giữa" đứng im cũng không va (nút CÚI vô dụng, phát hiện qua RU-13); nhân vật chạy giật lùi vì artwork quay mặt trái; màn ngang bị cắt mất nút; sân chơi quá nhỏ ở màn dọc; bảng kết thúc chật trên màn nhỏ.
+---
+
+## 14. Chăm sóc Pokémon (2026-09-26)
+
+Quả mọng nhặt được trong game Chạy Nhảy được cất vào túi dùng chung (lần đầu mở app được tặng 3 quả Oran), dùng để cho Pokémon ăn. Thân thiết tăng từ 0 đến 100 qua 5 cấp: Mới quen, Bạn bè, Bạn thân, Tri kỷ, Bạn thân nhất. Mỗi quả +10; quả yêu thích (tùy theo số Pokédex) +20 và sau khi thử sẽ hiện tên quả. Vuốt ve +1 (tối đa 10 lần/ngày). Mỗi Pokémon ăn tối đa 5 quả/ngày. Nhánh tiến hóa cần "thân thiết" (Pichu, Espeon, Umbreon, Sylveon…) mở khóa khi thân thiết đạt 80 thay vì phải quét 3 lần.
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| CARE-01..05 | P1 | AUTO | Cấp độ; +10/+20 món yêu thích (nhớ đã khám phá); 5 quả/ngày và đặt lại vào ngày hôm sau; dừng ở 100; vuốt ve có giới hạn/ngày | Đúng |
+| BAG-01..02 | P1 | AUTO | Quà khởi đầu; dữ liệu hỏng; thêm/bớt quả; không bớt được quả khi đã hết | Đúng |
+| CARE-06..09 | P1 | AUTO | Cho ăn thì trừ 1 quả và lưu thân thiết, quét lại vẫn giữ; hết quả / thẻ không tồn tại / no bụng thì túi không đổi; lưu thất bại thì hoàn quả; vuốt ve | Đúng |
+| RU-18, RG-05 | P1 | AUTO | Game Chạy Nhảy đếm quả theo loại; cất vào túi đúng 1 lần, khi kết thúc ván hoặc khi đóng giữa chừng | Đúng |
+| BU-04..07 | P1 | AUTO | Quả bay vào miệng → nhai → "+20 Món yêu thích!" → "Giờ là Bạn bè!"; hết quả / no bụng; hiện cấp, số tim, số quả đã ăn hôm nay, quả yêu thích; Pokémon chưa có thẻ thì không cho ăn | Đúng |
+| EV-07..08 | P1 | AUTO | Tiến hóa bằng thân thiết (Pichu); Eevee: nhánh dùng đá theo số lần quét, nhánh thân thiết theo thanh thân thiết | Đúng |
+| AP-14 | P1 | AUTO | Cho ăn từ trang chi tiết: túi giảm, thân thiết tăng, bộ sưu tập hiện "❤ Bạn bè" | Đúng |
+| UI-05 | P1 | MANUAL (Chrome) | Hiệu ứng cho ăn và cây tiến hóa 8 nhánh của Eevee (dữ liệu PokeAPI thật) | Hiển thị đúng, không lỗi JS |
+---
+
+## 15. Đấu Pokémon 1v1 (2026-09-26)
+
+Đấu theo lượt giữa Pokémon của bé và một Pokémon hoang dã. Chỉ số gốc và 4 chiêu thức (sức mạnh, độ chính xác, hệ, số đòn, ra đòn trước) lấy từ PokeAPI; mất mạng thì dùng dữ liệu đã lưu hoặc bộ chiêu dự phòng. Bảng khắc chế 18 hệ nhúng sẵn và đã đối chiếu với PokeAPI (324/324 cặp khớp). Sát thương tính theo công thức gốc (cùng hệ ×1.5, khắc hệ, chí mạng, dao động ngẫu nhiên). Đánh trúng/siêu hiệu quả/chí mạng/bị đánh sẽ tích năng lượng; khi đầy mở **Tuyệt Kỹ Liên Hoàn**: 4 chiêu liên tiếp luôn trúng với hệ số ×1 → ×1.2 → ×1.45 → ×1.8.
+
+Hiệu ứng: hạt riêng từng hệ trên canvas (dòng lửa, bong bóng, sét, lá xoáy, mảnh băng, bùn độc lượn, đá phun, đá rơi, nhát gió, vòng sóng tâm linh, cầu bóng tối, tia rồng…); đòn vật lý thì Pokémon lao tới; rung màn hình, chớp sáng, khựng hình khi chí mạng; số sát thương bay lên; thanh máu có vệt đỏ tụt chậm; băng rôn "Siêu hiệu quả!", "CHÍ MẠNG!", "TUYỆT KỸ LIÊN HOÀN!"; bộ đếm x1–x4; pháo hoa kết thúc chuỗi; Pokémon gục thì chìm và mờ dần.
+
+Cho trẻ: máu Pokémon của bé ×1.15, độ chính xác +10, tình bạn tăng tới +10% sát thương và tỉ lệ chí mạng; đối thủ được ghép vừa sức (tổng chỉ số chênh ≤25%, tránh đối thủ khắc hệ bé) và cân cấp độ; thắng +2 quả mọng, thua +1 quả an ủi; ghi số trận thắng.
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| BT-01 | P1 | AUTO | Bảng khắc chế, hệ kép (×4, ×0.25), nhãn | Đúng |
+| LIVE | P1 | LIVE | So bảng khắc chế với PokeAPI 18×18 | Không lệch |
+| BT-02..05 | P1 | AUTO | Đọc chiêu PokeAPI, bỏ chiêu trạng thái, chiêu nhiều đòn; chọn chiêu cùng hệ + phủ hệ + ra đòn trước; bộ dự phòng | Đúng |
+| BD-01..04 | P1 | AUTO | Tải dữ liệu trận, cache bộ nhớ + localStorage (đấu lại khi mất mạng), dự phòng chiêu, lỗi thân thiện | Đúng |
+| BT-06..09 | P1 | AUTO | Công thức chỉ số cấp 50; sát thương đúng từng hệ số (khớp tính tay); miễn nhiễm; tình bạn ≤+10%; cân cấp độ | Đúng |
+| BT-10..15 | P1 | AUTO | Thứ tự lượt (tốc độ, ra đòn trước); trượt; miễn nhiễm; nhiều đòn; gục ngã kết thúc trận; năng lượng và chuỗi x1–x4 luôn trúng; AI thường chọn chiêu tốt nhất nhưng không phải lúc nào cũng vậy | Đúng |
+| BT-16 | P1 | AUTO | Mô phỏng 400 trận (dữ liệu mẫu) | Chọn chiêu hợp lý thắng >75% (đo được 81%), bấm bừa >30% (64%) |
+| BT-17..20 | P1 | AUTO | Ghép đối thủ vừa sức, không trùng loài, tránh đối thủ khắc hệ, Pokémon rất mạnh/yếu | Đúng |
+| LIVE | P1 | LIVE | Cân bằng với dữ liệu thật: 10 Pokémon × 200 trận | Chọn chiêu hợp lý 81–99%, bấm bừa 51–98% (Magikarp 81%/64%) |
+| BA-01..06 | P1 | AUTO | Vào trận, gợi ý khắc hệ trên nút; đánh thắng, báo kết quả 1 lần; thua; tích năng lượng → Tuyệt Kỹ Liên Hoàn (viền tối, băng rôn, x1→x4); lỗi mạng → thử lại; đấu tiếp/đóng | Đúng |
+| BA-07 | P1 | AUTO | **Hồi quy**: trang cha render lại (sau khi cộng thưởng) không được khởi động lại trận | Màn kết quả giữ nguyên |
+| UI-06 | P1 | MANUAL (Chrome) | Đánh trận thật, chụp khung hình chiêu thức, liên hoàn, màn thắng | Không lỗi JS |
+
+Lỗi phát hiện và đã sửa:
+- Trận tự khởi động lại ngay khi có kết quả: trang cha tạo object `card` mới → effect chạy lại. Phát hiện khi đánh thật trên Chrome.
+- Đối thủ quá mạnh (thua sau 2 lượt): chọn ngẫu nhiên trong 40 Pokémon không xét sức mạnh → thêm ghép cặp và chỉnh hệ số cấp độ bằng mô phỏng dữ liệu thật.
+- Băng rôn cầu vồng lệch và bị cắt: class `rainbow-bg` có animation riêng, ghi đè hiệu ứng căn giữa.
+- Tầng khắc hệ, sát thương, chuỗi liên hoàn: kiểm tra bằng test đơn vị.

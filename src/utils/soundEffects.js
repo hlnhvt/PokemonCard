@@ -116,6 +116,54 @@ class SoundManager {
     noise.start(now);
   }
 
+  // Three quick crunchy bites when a Pokemon eats a berry
+  playMunch() {
+    if (this.muted) return;
+    this.init();
+    if (!this.ctx) return;
+
+    const start = this.ctx.currentTime;
+    for (let i = 0; i < 3; i++) {
+      const t = start + i * 0.13;
+      const size = Math.floor(this.ctx.sampleRate * 0.06);
+      const buffer = this.ctx.createBuffer(1, size, this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let j = 0; j < size; j++) data[j] = (Math.random() * 2 - 1) * (1 - j / size);
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = buffer;
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(1400 - i * 250, t);
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0.35, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.06);
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.ctx.destination);
+      noise.start(t);
+    }
+  }
+
+  // Short upward chirp for the runner's jump
+  playJump() {
+    if (this.muted) return;
+    this.init();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(420, now);
+    osc.frequency.exponentialRampToValueAtTime(880, now + 0.1);
+    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.12);
+  }
+
   // Soft "pop" when the ball hits or the Pokemon bursts out
   playPop() {
     if (this.muted) return;

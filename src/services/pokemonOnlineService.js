@@ -467,6 +467,8 @@ export function parseEvolutionChain(chainLink) {
       stage,
       from,
       how: from ? describeEvolution(link.evolution_details) : null,
+      // Friendship evolutions (Pichu, Eevee -> Espeon/Umbreon/Sylveon, Golbat...) unlock through care
+      needsFriendship: !!from && (link.evolution_details || []).some((d) => d?.min_happiness || d?.min_affection),
     });
     for (const next of link.evolves_to || []) walk(next, stage + 1, link.species.name);
   };

@@ -196,6 +196,19 @@ describe('App flows', () => {
     }
   });
 
+  it('AP-14 feeding from the detail page spends a berry and raises friendship', async () => {
+    saveCardToPokedex(makeCard());
+    render(<App />);
+    fireEvent.click(collectionTab());
+    fireEvent.click(screen.getByRole('heading', { name: 'Charizard' }));
+    fireEvent.click(screen.getByLabelText('Cho ăn quả Oran (còn 3)'));
+    expect(await screen.findByLabelText('Cho ăn quả Oran (còn 2)')).toBeInTheDocument();
+    expect(getSavedCollection()[0].friendship).toBe(20); // oran is Charizard's favourite
+    expect(screen.getByLabelText('Thân thiết 20/100')).toBeInTheDocument();
+    fireEvent.click(collectionTab());
+    expect(screen.getByText('❤ Bạn bè')).toBeInTheDocument();
+  });
+
   it('AP-01b warns in details when LocalStorage refuses the save', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {

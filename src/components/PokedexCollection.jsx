@@ -8,6 +8,7 @@ import {
   Plus
 } from 'lucide-react';
 import { toggleCardFavorite, removeCardFromPokedex, clearPokedex } from '../utils/storage';
+import { levelFor } from '../utils/friendship';
 
 export function PokedexCollection({ collection, onSelectCard, onReplayVideo, onScanNew, setCollection }) {
   const [search, setSearch] = useState('');
@@ -248,6 +249,11 @@ export function PokedexCollection({ collection, onSelectCard, onReplayVideo, onS
                 <div className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-black/80 backdrop-blur-sm text-[9px] font-tech text-amber-300 border border-white/10">
                   Quét {card.scanCount || 1}x{card.catchCount > 0 ? ` • Bắt ${card.catchCount}x` : ''}
                 </div>
+                {card.friendship > 0 && (
+                  <div className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-full bg-pink-500/90 text-[9px] font-black text-white shadow" title="Mức thân thiết">
+                    ❤ {levelFor(card.friendship).label}
+                  </div>
+                )}
                 {card.shinyUnlocked && (
                   <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded-full bg-gradient-to-r from-yellow-300 to-pink-300 text-[9px] font-black text-slate-900 shadow" title="Đã tìm thấy bản Shiny">
                     ✨ SHINY

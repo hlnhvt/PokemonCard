@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Target } from 'lucide-react';
 import { Header } from './components/Header';
 import { ScannerModal } from './components/ScannerModal';
 import { VideoShowcase } from './components/VideoShowcase';
 import { PokemonCardDetail } from './components/PokemonCardDetail';
 import { PokedexCollection } from './components/PokedexCollection';
-import { GuessGame } from './components/GuessGame';
+import { GamesHub } from './components/GamesHub';
 import { EvolutionScene } from './components/EvolutionScene';
-import { getSavedCollection, saveCardToPokedex, recordCatch } from './utils/storage';
+import { getSavedCollection, saveCardToPokedex, recordCatch, feedCard, petCard, recordBattle } from './utils/storage';
+import { getBerries, addBerries } from './utils/berries';
 import { fetchPokemonOnline } from './services/pokemonOnlineService';
 import { sounds } from './utils/soundEffects';
 import { rollShiny } from './utils/shiny';
@@ -28,6 +28,8 @@ export function App() {
   const [theme, setTheme] = useState(getInitialTheme);
   const [evolution, setEvolution] = useState(null); // { from, to, error }
   const [notice, setNotice] = useState(null);
+  // The child's berry bag (filled by the runner game, spent on feeding)
+  const [berries, setBerries] = useState(getBerries);
 
   useEffect(() => {
     applyTheme(theme);
@@ -131,6 +133,41 @@ export function App() {
     }
   };
 
+  const refreshCard = (card) => {
+    setSavedItem(card);
+    setActivePokemon((current) => (current && current.id === card.id ? { ...current, ...card, isShiny: current.isShiny } : current));
+    setCollection(getSavedCollection());
+  };
+
+  const handleFeed = (berry) => {
+    if (!activePokemon) return null;
+    const outcome = feedCard(activePokemon.id, berry);
+    if (outcome.result === 'fed') {
+      refreshCard(outcome.card);
+      setBerries(outcome.berries);
+    }
+    return outcome;
+  };
+
+  const handlePet = () => {
+    if (!activePokemon) return null;
+    const outcome = petCard(activePokemon.id);
+    if (outcome?.gain) refreshCard(outcome.card);
+    return outcome;
+  };
+
+  const handleBerriesCollected = (collected) => setBerries(addBerries(collected));
+
+  // Battles reward berries (win 2, consolation 1) and are counted on the card
+  const handleBattleResult = (cardId, { won }) => {
+    setBerries(addBerries(won ? { oran: 1, razz: 1 } : { oran: 1 }));
+    const updated = recordBattle(cardId, won);
+    if (updated) {
+      setCollection(getSavedCollection());
+      setSavedItem((current) => (current && current.id === updated.id ? updated : current));
+    }
+  };
+
   const handleToggleMute = () => {
     const muted = sounds.toggleMute();
     setIsMuted(muted);
@@ -183,6 +220,11 @@ export function App() {
             onEvolve={handleEvolve}
             onExplore={handleExplore}
             onCaught={handleCaught}
+            berries={berries}
+            onFeed={handleFeed}
+            onPet={handlePet}
+            onBerries={handleBerriesCollected}
+            onBattleResult={handleBattleResult}
           />
         )}
 
@@ -201,19 +243,13 @@ export function App() {
         )}
 
         {currentTab === 'games' && (
-          <div className="w-full max-w-xl mx-auto px-4 py-4 sm:py-6 pb-24 space-y-4 animate-fadeIn">
-            <h2 className="text-xl sm:text-2xl font-black text-slate-50 text-center">🎮 Trò Chơi Pokémon</h2>
-            <GuessGame collection={collection} />
-            <div className="glass-panel rounded-2xl p-4 flex items-center gap-3">
-              <Target className="w-8 h-8 text-red-400 shrink-0" />
-              <p className="text-sm text-slate-300 flex-1">
-                Muốn chơi <strong className="text-slate-100">Ném Bóng Bắt Pokémon</strong>? Mở một Pokémon trong bộ sưu tập nhé!
-              </p>
-              <button onClick={() => setCurrentTab('collection')} className="px-3 py-2 rounded-xl bg-indigo-600 text-white text-sm font-bold shrink-0">
-                Mở bộ sưu tập
-              </button>
-            </div>
-          </div>
+          <GamesHub
+            collection={collection}
+            berries={berries}
+            onBerries={handleBerriesCollected}
+            onBattleResult={handleBattleResult}
+            onOpenCollection={() => setCurrentTab('collection')}
+          />
         )}
       </main>
 
