@@ -22,7 +22,7 @@ export const aceOf = (gym) => gym.team[gym.team.length - 1];
 export const arenaForGym = (gym) => ARENAS.find((a) => a.id !== 'stadium' && a.boost.includes(gym.type)) || ARENAS.find((a) => a.id === 'stadium');
 
 // Gold for each win: gyms get more valuable along the road; the Champion pays the most
-export const goldForGym = (index) => (index >= GYMS.length ? 80 : 20 + index * 3);
+export const goldForGym = (index, difficulty = 'normal') => Math.round((index >= GYMS.length ? 80 : 20 + index * 3) * ({ easy: 0.8, normal: 1, hard: 1.4 }[difficulty] ?? 1));
 
 export const createLeague = () => ({ index: 0, badges: [], losses: 0, done: false });
 

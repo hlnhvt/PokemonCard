@@ -14,7 +14,8 @@ export const GOLD_REWARDS = {
 
 /** 5 vs 5 team battle: a big win bonus plus 5 per Pokemon still standing; a loss still pays. */
 export const TEAM_GOLD = { win: 30, perSurvivor: 5, lose: 10 };
-export const goldForTeam = (won, survivors = 0) => (won ? TEAM_GOLD.win + TEAM_GOLD.perSurvivor * Math.max(0, survivors) : TEAM_GOLD.lose);
+export const DIFFICULTY_GOLD = { easy: 0.8, normal: 1, hard: 1.4 };
+export const goldForTeam = (won, survivors = 0, difficulty = 'normal') => Math.round((won ? TEAM_GOLD.win + TEAM_GOLD.perSurvivor * Math.max(0, survivors) : TEAM_GOLD.lose) * (DIFFICULTY_GOLD[difficulty] ?? 1));
 
 /** Pokemon arena: by the result, plus 1 per knock-out of the child's team (max +20). */
 export const goldForMoba = (result, teamKills = 0) => ({ win: 40, draw: 25, lose: 15 }[result] ?? 15) + Math.min(20, Math.max(0, teamKills));

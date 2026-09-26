@@ -188,6 +188,16 @@ export function playTurn(state, moveIndex) {
   return events;
 }
 
+/** The child switched Pokemon: that costs the turn, so only the opponent attacks. */
+export function playOpponentOnly(state) {
+  if (state.status !== 'choosing') return [];
+  state.turn += 1;
+  const events = [];
+  attack(state, opponentAction(state), events);
+  if (state.status === 'choosing') events.push({ kind: 'turn-end' });
+  return events;
+}
+
 export function canUseCombo(state) {
   return state.status === 'choosing' && state.combo >= COMBO_MAX;
 }

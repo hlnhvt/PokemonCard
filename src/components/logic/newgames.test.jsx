@@ -119,6 +119,7 @@ describe('LeagueGame (5 vs 5)', () => {
       const arena = screen.queryByTestId('team-arena');
       if (arena?.dataset.phase === 'choose') fireEvent.click(within(arena).getAllByRole('button').find((b) => b.textContent.includes('Sức mạnh')));
       else if (arena?.dataset.phase === 'switch') fireEvent.click(within(screen.getByTestId('switch-picker')).getAllByRole('button')[0]);
+      else if (arena?.dataset.phase === 'between') fireEvent.click(within(screen.getByTestId('between-picker')).getAllByRole('button')[0]);
       await advance(300, 300);
     }
   }

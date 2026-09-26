@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { teamOpponentLevel, borrowPokemon, pickOpponentTeam, createTeamBattle, teamTurn, teamCombo, canUseTeamCombo, sendIn, alivePlayers, mvpIndex, beatsCurrent, TEAM_SIZE } from './teamBattle';
+import { teamOpponentLevel, borrowPokemon, pickOpponentTeam, createTeamBattle, teamTurn, teamCombo, canUseTeamCombo, sendIn, alivePlayers, mvpIndex, beatsCurrent, TEAM_SIZE, continueWith, switchPlayer, TEAM_DIFFICULTY } from './teamBattle';
 import { ARENAS, applyArena, arenaById, ARENA_BOOST } from './arenas';
 import { createFighter, opponentLevel } from '../battle/engine';
 import { fallbackMoves } from '../battle/moves';
@@ -14,20 +14,23 @@ const dataOf = (p) => {
 };
 const byName = (n) => OPPONENT_POOL.find((p) => p.name === n);
 
-function buildBattle(playerNames, random, arena) {
+function buildBattle(playerNames, random, arena, difficulty = 'normal') {
   const players = playerNames.map((n) => dataOf(byName(n)));
   const foes = pickOpponentTeam(players, OPPONENT_POOL, random).map(dataOf);
+  const lv = TEAM_DIFFICULTY[difficulty].level;
   return createTeamBattle({
     players: players.map((d) => createFighter(applyArena(d, arena), { isPlayer: true })),
-    opponents: foes.map((d, i) => createFighter(applyArena(d, arena), { level: teamOpponentLevel(opponentLevel(players[i].stats, d.stats)) })),
+    opponents: foes.map((d, i) => createFighter(applyArena(d, arena), { level: Math.max(5, Math.round(teamOpponentLevel(opponentLevel(players[i].stats, d.stats)) * lv)) })),
     random,
+    difficulty,
   });
 }
 
 /** Plays a whole battle. `pick` chooses a move index; switches go to the first Pokemon standing. */
 function play(state, pick) {
-  for (let guard = 0; guard < 400 && (state.status === 'choosing' || state.status === 'switching'); guard++) {
+  for (let guard = 0; guard < 800 && ['choosing', 'switching', 'between'].includes(state.status); guard++) {
     if (state.status === 'switching') sendIn(state, alivePlayers(state)[0]);
+    else if (state.status === 'between') continueWith(state);
     else if (canUseTeamCombo(state)) teamCombo(state);
     else teamTurn(state, pick(state));
   }
@@ -72,14 +75,16 @@ describe('arenas', () => {
 });
 
 describe('team battle', () => {
-  it('TM-01 knock-outs bring in the next opponent; HP carries over; the combo is shared', () => {
+  it('TM-01 a knock-out asks keep-or-switch, then the next opponent comes; HP carries over; the combo is shared', () => {
     const state = buildBattle(['Charizard', 'Blastoise', 'Venusaur', 'Pikachu', 'Eevee'], seeded(4));
     let sawSwitch = false;
-    for (let guard = 0; guard < 60 && state.oi === 0 && state.status === 'choosing'; guard++) {
-      const events = teamTurn(state, 1);
-      if (events.some((e) => e.kind === 'switch' && e.side === 'opponent')) sawSwitch = true;
-    }
+    for (let guard = 0; guard < 80 && state.oi === 0 && state.status === 'choosing'; guard++) teamTurn(state, 1);
     if (state.oi === 1) {
+      expect(state.status).toBe('between');
+      expect(teamTurn(state, 0)).toEqual([]); // no moves until the child decides
+      const events = continueWith(state);
+      sawSwitch = events.some((e) => e.kind === 'switch' && e.side === 'opponent');
+      expect(events.some((e) => e.side === 'player')).toBe(false); // kept the same Pokemon
       expect(sawSwitch).toBe(true);
       expect(state.battle.opponent).toBe(state.opponents[1]);
       expect(state.battle.player.hp).toBe(state.players[state.pi].hp);
@@ -93,7 +98,7 @@ describe('team battle', () => {
   it('TM-02 when the child\'s Pokemon faints they choose the next one (only standing ones)', () => {
     const state = buildBattle(['Magikarp', 'Pichu', 'Togepi', 'Jigglypuff', 'Meowth'], seeded(5));
     for (let guard = 0; guard < 80 && state.status === 'choosing'; guard++) teamTurn(state, 0);
-    expect(['switching', 'won', 'lost']).toContain(state.status);
+    expect(['switching', 'between', 'won', 'lost']).toContain(state.status);
     if (state.status === 'switching') {
       const fallen = state.pi;
       expect(sendIn(state, fallen)).toEqual([]);
@@ -152,6 +157,62 @@ describe('team battle', () => {
     expect(rw).toBeGreaterThanOrEqual(0.45);
     expect(rw).toBeLessThanOrEqual(0.85); // still a real challenge
     expect(sw).toBeGreaterThanOrEqual(rw);
+  });
+
+  it('TM-06 difficulty: duels last several turns (almost never one hit); easy is easier than normal, normal than hard', () => {
+    const names = ['Charmander', 'Squirtle', 'Bulbasaur', 'Pikachu', 'Eevee'];
+    const out = {};
+    for (const difficulty of ['easy', 'normal', 'hard']) {
+      let wins = 0;
+      let duels = 0;
+      let turns = 0;
+      let oneHit = 0;
+      const N = 60;
+      for (let s = 0; s < N; s++) {
+        const r = seeded(500 + s);
+        const state = buildBattle(names, r, ARENAS[s % ARENAS.length], difficulty);
+        let start = 0;
+        for (let guard = 0; guard < 800 && (state.status === 'choosing' || state.status === 'switching' || state.status === 'between'); guard++) {
+          if (state.status === 'switching') sendIn(state, alivePlayers(state)[0]);
+          else if (state.status === 'between') {
+            duels++;
+            turns += state.battle.turn - start;
+            if (state.battle.turn - start <= 1) oneHit++;
+            continueWith(state);
+            start = 0;
+          } else if (canUseTeamCombo(state)) teamCombo(state);
+          else teamTurn(state, Math.floor(r() * state.battle.player.moves.length));
+        }
+        if (state.status === 'won') wins++;
+      }
+      out[difficulty] = { win: wins / N, turns: turns / duels, oneHit: oneHit / duels };
+      console.info(`[team] ${TEAM_DIFFICULTY[difficulty].label}: random taps win ${Math.round((wins / N) * 100)}%, ${(turns / duels).toFixed(1)} turns to knock an opponent out, one-turn knock-outs ${Math.round((oneHit / duels) * 100)}%`);
+    }
+    expect(out.normal.turns).toBeGreaterThanOrEqual(3);
+    expect(out.normal.oneHit).toBeLessThanOrEqual(0.1);
+    expect(out.easy.win).toBeGreaterThanOrEqual(out.normal.win);
+    expect(out.normal.win).toBeGreaterThan(out.hard.win);
+    expect(out.easy.win).toBeGreaterThanOrEqual(0.7);
+    expect(out.hard.win).toBeGreaterThanOrEqual(0.15);
+  });
+
+  it('TM-07 switching during the battle costs the turn (only the opponent attacks); after a knock-out the child may switch', () => {
+    const state = buildBattle(['Charizard', 'Blastoise', 'Venusaur', 'Pikachu', 'Eevee'], seeded(8));
+    expect(switchPlayer(state, 0)).toEqual([]); // already on the field
+    const before = state.players[2].hp;
+    const events = switchPlayer(state, 2);
+    expect(events[0]).toEqual({ kind: 'switch', side: 'player', index: 2 });
+    expect(events.filter((e) => e.kind === 'attack').every((e) => e.side === 'opponent')).toBe(true);
+    expect(state.pi).toBe(2);
+    expect(state.battle.player).toBe(state.players[2]);
+    expect(state.players[2].hp).toBeLessThanOrEqual(before);
+    for (let guard = 0; guard < 80 && state.status === 'choosing'; guard++) teamTurn(state, 1);
+    if (state.status === 'between') {
+      const next = alivePlayers(state).find((i) => i !== state.pi);
+      const ev = continueWith(state, next);
+      expect(ev.map((e) => e.side)).toEqual(['opponent', 'player', undefined]);
+      expect(state.battle.player).toBe(state.players[next]);
+    }
   });
 
   it('TM-05 gold: win bonus plus survivors; a loss still pays', () => {

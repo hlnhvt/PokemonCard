@@ -25,6 +25,8 @@ export const GAME_RANK = {
   math: 1,
   english: 1,
   pairs: 1,
+  oddone: 1,
+  spot: 1,
   cooking: 2,
   shop: 2,
   memory: 2,

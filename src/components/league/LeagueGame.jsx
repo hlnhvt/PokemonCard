@@ -13,6 +13,8 @@ import { TeamArena } from '../team/TeamArena';
 import { TeamVsIntro } from '../team/TeamIntro';
 import { loadTeamBattle } from '../team/loadTeam';
 import { LeadPicker } from '../team/LeadPicker';
+import { DifficultyPicker } from '../team/DifficultyPicker';
+import { readTeamDifficulty } from '../team/difficultyChoice';
 import { withLead } from '../../utils/team/teamBattle';
 
 const TEMPO = { slow: 1.5, normal: 1 };
@@ -55,7 +57,7 @@ function BadgeCase({ badges, highlight }) {
 }
 
 /** The road: 8 gyms and the Champion; the next stop shows its team of 5. */
-function Road({ state, team, lead, onLead, onChallenge, onChangeTeam }) {
+function Road({ state, team, lead, onLead, difficulty, onDifficulty, onChallenge, onChangeTeam }) {
   return (
     <div className="px-4 pt-3 pb-6 space-y-3" data-testid="league-road">
       <div className="flex items-center gap-2">
@@ -72,6 +74,7 @@ function Road({ state, team, lead, onLead, onChallenge, onChangeTeam }) {
           <Users className="w-4 h-4" /> Đổi đội
         </button>
       </div>
+      <DifficultyPicker value={difficulty} onChange={onDifficulty} />
       <LeadPicker team={team} lead={lead} onPick={onLead} />
       <BadgeCase badges={state.badges} />
       <ol className="relative space-y-2 pl-2">
@@ -128,6 +131,7 @@ export function LeagueGame({ collection = [], allowScanned = false, onScanned, o
   const [screen, setScreen] = useState('build'); // build | road | loading | intro | battle | badge | lost | champion | error
   const [team, setTeam] = useState([]);
   const [lead, setLead] = useState(0);
+  const [difficulty, setDifficulty] = useState(readTeamDifficulty);
   const [battle, setBattle] = useState(null);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState(null);
@@ -155,7 +159,7 @@ export function LeagueGame({ collection = [], allowScanned = false, onScanned, o
     setProgress(0);
     setError(null);
     try {
-      const s = await loadTeamBattle({ team: withLead(team, lead), opponentNames: gym.team, arena, levelFactor: gym.level, random, onProgress: () => alive.current && setProgress((p) => p + 1) });
+      const s = await loadTeamBattle({ team: withLead(team, lead), opponentNames: gym.team, arena, levelFactor: gym.level, difficulty, random, onProgress: () => alive.current && setProgress((p) => p + 1) });
       if (!alive.current) return;
       setBattle(s);
       setRound((r) => r + 1);
@@ -175,7 +179,7 @@ export function LeagueGame({ collection = [], allowScanned = false, onScanned, o
       setScreen('lost');
       return;
     }
-    const gold = goldForGym(index);
+    const gold = goldForGym(index, difficulty);
     onGold?.(gold);
     setAward({ gym: LEAGUE[index], gold });
     sounds.playSuccessFanfare();
@@ -216,7 +220,7 @@ export function LeagueGame({ collection = [], allowScanned = false, onScanned, o
             }} random={random} />
         )}
 
-        {screen === 'road' && <Road state={state} team={team} lead={lead} onLead={setLead} onChallenge={challenge} onChangeTeam={() => setScreen('build')} />}
+        {screen === 'road' && <Road state={state} team={team} lead={lead} onLead={setLead} difficulty={difficulty} onDifficulty={setDifficulty} onChallenge={challenge} onChangeTeam={() => setScreen('build')} />}
 
         {screen === 'loading' && (
           <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 min-h-[400px]" role="status">

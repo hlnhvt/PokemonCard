@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Zap, Heart } from 'lucide-react';
-import { teamTurn, teamCombo, canUseTeamCombo, sendIn, alivePlayers, beatsCurrent, mvpIndex } from '../../utils/team/teamBattle';
+import { teamTurn, teamCombo, canUseTeamCombo, sendIn, alivePlayers, beatsCurrent, mvpIndex, continueWith, switchPlayer, difficultyOf } from '../../utils/team/teamBattle';
 import { COMBO_MAX } from '../../utils/battle/engine';
 import { effectiveness, effectivenessLabel, TYPE_COLORS, TYPE_VI } from '../../utils/battle/typeChart';
 import { BattleFx } from '../../utils/battle/fx';
@@ -76,7 +76,7 @@ export function TeamArena({ arena, state, tempo = 1.5, onFinish }) {
   useEffect(() => {
     tempoRef.current = tempo;
   }, [tempo]);
-  const [phase, setPhase] = useState('intro'); // intro | choose | animating | switch | over
+  const [phase, setPhase] = useState('intro'); // intro | choose | animating | switch | swap | between | over
   const [active, setActive] = useState({ player: 0, opponent: 0 });
   const [hp, setHp] = useState({ player: state.players[0].maxHp, opponent: state.opponents[0].maxHp });
   const [ghost, setGhost] = useState({ player: state.players[0].maxHp, opponent: state.opponents[0].maxHp });
@@ -328,6 +328,10 @@ export function TeamArena({ arena, state, tempo = 1.5, onFinish }) {
         case 'switch':
           await sendOut(e.side, e.index);
           break;
+        case 'duel-won':
+          setMessage('Giữ nguyên hay đổi Pokémon?');
+          setPhase('between');
+          return 'between';
         case 'need-switch':
           setMessage('Chọn Pokémon tiếp theo!');
           setPhase('switch');
@@ -357,6 +361,13 @@ export function TeamArena({ arena, state, tempo = 1.5, onFinish }) {
   const choose = (index) => phase === 'choose' && run(teamTurn(state, index));
   const combo2 = () => phase === 'choose' && canUseTeamCombo(state) && run(teamCombo(state));
   const pickNext = (index) => phase === 'switch' && run(sendIn(state, index));
+  const keepOrSwap = (index) => phase === 'between' && run(continueWith(state, index));
+  const swapTo = (index) => phase === 'swap' && run(switchPlayer(state, index));
+  const benchCount = alivePlayers(state).filter((i) => i !== active.player).length;
+  const beatsNext = (i) => {
+    const next = state.opponents[active.opponent + 1];
+    return !!next && state.players[i].moves.some((m) => effectiveness(m.type, next.types) >= 2);
+  };
 
   const player = fighterOf('player', active.player);
   const opponent = fighterOf('opponent', active.opponent);
@@ -432,6 +443,57 @@ export function TeamArena({ arena, state, tempo = 1.5, onFinish }) {
         )}
         {flash && <div key={flash.id} className="flash-fade absolute inset-0 z-40 pointer-events-none" style={{ backgroundColor: flash.color }} />}
 
+        {(phase === 'swap' || phase === 'between') && (
+          <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-2 bg-slate-950/80 px-3" data-testid={phase === 'swap' ? 'swap-picker' : 'between-picker'}>
+            {phase === 'between' ? (
+              <>
+                <p className="pop-in text-xl font-black text-emerald-300">Hạ gục {opponent.name}! 🎉</p>
+                <p className="text-xs font-bold text-slate-300">Đối thủ tiếp theo: {state.opponents[active.opponent + 1]?.name}</p>
+                <button onClick={() => keepOrSwap(active.player)} aria-label={`Giữ nguyên ${player.name}`} className="pop-in w-full max-w-sm flex items-center gap-3 p-2.5 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 text-white text-left shadow-xl active:scale-95">
+                  <img src={player.image} alt="" className="w-14 h-14 object-contain scale-x-[-1] battle-idle" />
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-base font-black">Giữ nguyên {player.name}</span>
+                    <span className="block h-2 mt-1 rounded-full bg-white/30 overflow-hidden">
+                      <span className={`block h-full ${hpColor(player.hp / player.maxHp)}`} style={{ width: `${(player.hp / player.maxHp) * 100}%` }} />
+                    </span>
+                  </span>
+                </button>
+                {benchCount > 0 && <p className="text-xs font-bold text-white/80">hoặc đổi sang:</p>}
+              </>
+            ) : (
+              <>
+                <p className="text-xl font-black text-white">Đổi Pokémon</p>
+                <p className="text-xs font-bold text-slate-300">Đổi sẽ mất lượt này: {opponent.name} được đánh trước!</p>
+              </>
+            )}
+            <div className="grid grid-cols-2 gap-2 w-full max-w-sm">
+              {alivePlayers(state)
+                .filter((i) => i !== active.player)
+                .map((i) => {
+                  const f = state.players[i];
+                  const good = phase === 'between' ? state.opponents[active.opponent + 1] && beatsNext(i) : beatsCurrent(state, i);
+                  return (
+                    <button key={i} onClick={() => (phase === 'swap' ? swapTo(i) : keepOrSwap(i))} aria-label={`Đổi sang ${f.name}`} className="pop-in relative flex items-center gap-2 p-2 rounded-2xl bg-white/95 text-left active:scale-95 shadow-lg">
+                      <img src={f.image} alt="" className="w-11 h-11 object-contain scale-x-[-1]" />
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-sm font-black text-slate-800 truncate">{f.name}</span>
+                        <span className="block h-1.5 mt-1 rounded-full bg-slate-200 overflow-hidden">
+                          <span className={`block h-full ${hpColor(f.hp / f.maxHp)}`} style={{ width: `${(f.hp / f.maxHp) * 100}%` }} />
+                        </span>
+                      </span>
+                      {good && <span className="absolute -top-2 -right-1 px-1.5 py-0.5 rounded-full bg-orange-500 text-white text-[10px] font-black shadow">Khắc hệ!</span>}
+                    </button>
+                  );
+                })}
+            </div>
+            {phase === 'swap' && (
+              <button onClick={() => setPhase('choose')} className="mt-1 px-5 py-2 rounded-xl bg-white/15 text-white text-sm font-black">
+                Thôi, đánh tiếp
+              </button>
+            )}
+          </div>
+        )}
+
         {phase === 'switch' && (
           <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-2 bg-slate-950/75 px-3" data-testid="switch-picker">
             <p className="text-xl font-black text-white">Chọn Pokémon tiếp theo!</p>
@@ -461,9 +523,14 @@ export function TeamArena({ arena, state, tempo = 1.5, onFinish }) {
 
       {/* Commands */}
       <div className="p-3 space-y-2 bg-slate-900">
-        <p className="min-h-[1.5rem] text-base font-bold text-white" role="log" aria-live="polite">
-          {message}
-        </p>
+        <div className="flex items-center gap-2">
+          <p className="flex-1 min-h-[1.5rem] text-base font-bold text-white" role="log" aria-live="polite">
+            {message}
+          </p>
+          <span className="shrink-0 px-2 py-0.5 rounded-full bg-white/10 text-[10px] font-black text-amber-200" data-testid="battle-difficulty">
+            {difficultyOf(state.difficulty).icon} {difficultyOf(state.difficulty).label}
+          </span>
+        </div>
         <div className="grid grid-cols-2 gap-2">
           {player.moves.map((move, i) => {
             const eff = effectiveness(move.type, opponent.types);
@@ -494,6 +561,14 @@ export function TeamArena({ arena, state, tempo = 1.5, onFinish }) {
           <div className="flex-1 h-3 rounded-full bg-slate-800 overflow-hidden" role="progressbar" aria-label="Năng lượng liên hoàn của đội" aria-valuemin={0} aria-valuemax={COMBO_MAX} aria-valuenow={combo}>
             <div className={`h-full rounded-full transition-[width] duration-500 ${comboReady ? 'rainbow-bg' : 'bg-gradient-to-r from-yellow-400 to-orange-500'}`} style={{ width: `${(combo / COMBO_MAX) * 100}%` }} />
           </div>
+          <button
+            onClick={() => phase === 'choose' && benchCount > 0 && setPhase('swap')}
+            disabled={phase !== 'choose' || benchCount === 0}
+            aria-label="Đổi Pokémon"
+            className="shrink-0 px-3 py-2 rounded-xl text-sm font-black flex items-center gap-1 bg-sky-600 text-white disabled:opacity-40 active:scale-95"
+          >
+            🔄 Đổi
+          </button>
           <button onClick={combo2} disabled={!comboReady || phase !== 'choose'} className={`shrink-0 px-3 py-2 rounded-xl text-sm font-black flex items-center gap-1 ${comboReady && phase === 'choose' ? 'rainbow-bg text-white energy-full' : comboReady ? 'rainbow-bg text-white opacity-50' : 'bg-slate-800 text-slate-500'}`}>
             <Zap className="w-4 h-4" /> Tuyệt Kỹ Liên Hoàn
           </button>

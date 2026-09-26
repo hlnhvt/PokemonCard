@@ -1,10 +1,22 @@
 // 5 vs 5 team battle built on the 1v1 engine: one pair fights at a time, HP carries
-// over, and the Tuyệt Kỹ Liên Hoàn energy belongs to the whole team. When the child's
-// Pokemon faints, the child chooses who goes next; opponents come in order.
-import { createBattle, playTurn, playCombo, canUseCombo } from '../battle/engine';
+// over, and the Tuyệt Kỹ Liên Hoàn energy belongs to the whole team. The child can switch
+// Pokemon during the battle (it costs the turn), chooses who goes next when one faints, and
+// after knocking an opponent out may keep the same Pokemon or send in another.
+import { createBattle, playTurn, playCombo, canUseCombo, playOpponentOnly } from '../battle/engine';
 import { pickOpponent, hasTypeAdvantage } from '../battle/matchmaking';
 
 export const TEAM_SIZE = 5;
+
+/**
+ * Difficulty: every Pokemon's HP is multiplied (so a duel lasts several turns instead of
+ * one or two hits) and the opponents' level is scaled. Tuned in team.test.js (TM-06).
+ */
+export const TEAM_DIFFICULTY = {
+  easy: { label: 'Dễ', icon: '🙂', hp: 3.2, level: 1.0 },
+  normal: { label: 'Trung bình', icon: '😤', hp: 3.8, level: 1.08 },
+  hard: { label: 'Khó', icon: '🔥', hp: 4.4, level: 1.15 },
+};
+export const difficultyOf = (id) => TEAM_DIFFICULTY[id] || TEAM_DIFFICULTY.normal;
 
 /** The team with the chosen first Pokemon moved to the front (the rest keep their order). */
 export const withLead = (team, lead = 0) => (lead > 0 && lead < team.length ? [team[lead], ...team.filter((_, i) => i !== lead)] : team);
@@ -40,8 +52,14 @@ export function pickOpponentTeam(playerTeam, pool, random = Math.random) {
   });
 }
 
-export function createTeamBattle({ players, opponents, random = Math.random }) {
+export function createTeamBattle({ players, opponents, random = Math.random, difficulty = 'normal' }) {
+  const hpScale = difficultyOf(difficulty).hp;
+  for (const f of [...players, ...opponents]) {
+    f.maxHp = Math.round(f.maxHp * hpScale);
+    f.hp = f.maxHp;
+  }
   const state = {
+    difficulty,
     players,
     opponents,
     random,
@@ -49,7 +67,7 @@ export function createTeamBattle({ players, opponents, random = Math.random }) {
     oi: 0,
     combo: 0,
     turn: 0,
-    status: 'choosing', // choosing | switching | won | lost
+    status: 'choosing', // choosing | switching | between | won | lost
     kos: players.map(() => 0),
     battle: null,
   };
@@ -78,9 +96,9 @@ function settle(state, events) {
       state.status = 'won';
       events.push({ kind: 'team-won' });
     } else {
-      nextPair(state);
-      events.push({ kind: 'switch', side: 'opponent', index: state.oi });
-      events.push({ kind: 'turn-end' });
+      // The child decides: keep this Pokemon or send in another (see continueWith)
+      state.status = 'between';
+      events.push({ kind: 'duel-won', next: state.oi });
     }
   } else if (b.status === 'lost') {
     if (alivePlayers(state).length === 0) {
@@ -104,6 +122,31 @@ export const canUseTeamCombo = (state) => state.status === 'choosing' && canUseC
 export function teamCombo(state) {
   if (!canUseTeamCombo(state)) return [];
   return settle(state, playCombo(state.battle));
+}
+
+/**
+ * After knocking an opponent out: the next opponent comes in, and the child's Pokemon
+ * `index` fights it (the same one to keep it, another one to switch).
+ */
+export function continueWith(state, index = state.pi) {
+  if (state.status !== 'between' || !(state.players[index]?.hp > 0)) return [];
+  const changed = index !== state.pi;
+  state.pi = index;
+  nextPair(state);
+  const events = [{ kind: 'switch', side: 'opponent', index: state.oi }];
+  if (changed) events.push({ kind: 'switch', side: 'player', index });
+  events.push({ kind: 'turn-end' });
+  return events;
+}
+
+/** Switch during the battle: the new Pokemon comes in and the opponent gets a free attack. */
+export function switchPlayer(state, index) {
+  if (state.status !== 'choosing' || index === state.pi || !(state.players[index]?.hp > 0)) return [];
+  state.pi = index;
+  const combo = state.combo;
+  nextPair(state);
+  state.battle.combo = combo;
+  return settle(state, [{ kind: 'switch', side: 'player', index }, ...playOpponentOnly(state.battle)]);
 }
 
 /** The child sends in Pokemon `index` (must still be standing). */

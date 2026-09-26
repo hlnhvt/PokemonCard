@@ -74,6 +74,8 @@ async function fight(maxMs = 400000) {
       fireEvent.click(moves[0]);
     } else if (arena?.dataset.phase === 'switch') {
       fireEvent.click(within(screen.getByTestId('switch-picker')).getAllByRole('button')[0]);
+    } else if (arena?.dataset.phase === 'between') {
+      fireEvent.click(within(screen.getByTestId('between-picker')).getAllByRole('button')[0]);
     }
     await advance(300, 300);
   }
@@ -236,4 +238,43 @@ describe('TeamBattle', () => {
     await advance(400);
     expect(screen.getByTestId('team-arena')).toHaveTextContent('Squirtle');
   });
+
+  it('TT-10 difficulty picker; during the battle the child can switch (costs the turn); after a knock-out: keep or switch', async () => {
+    for (const c2 of COLLECTION) mocks.strong.add(c2.id);
+    localStorage.removeItem('pokescan_team_difficulty');
+    render(<TeamBattle allowScanned collection={COLLECTION} onClose={vi.fn()} random={seeded(10)} />);
+    await buildFullTeam();
+    const diff = screen.getByRole('radiogroup', { name: 'Độ khó trận đấu' });
+    expect(within(diff).getByRole('radio', { name: 'Trung bình' })).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(within(diff).getByRole('radio', { name: 'Dễ' }));
+    expect(localStorage.getItem('pokescan_team_difficulty')).toBe('easy');
+    fireEvent.click(screen.getByText('Bắt đầu trận đấu!'));
+    await advance(400);
+    fireEvent.click(screen.getByTestId('team-intro'));
+    for (let t = 0; t < 20000 && screen.getByTestId('team-arena').dataset.phase !== 'choose'; t += 200) await advance(200);
+    expect(screen.getByTestId('battle-difficulty')).toHaveTextContent('Dễ');
+    // Switch in the middle of the duel
+    fireEvent.click(screen.getByRole('button', { name: 'Đổi Pokémon' }));
+    const swap = screen.getByTestId('swap-picker');
+    expect(swap).toHaveTextContent('mất lượt');
+    fireEvent.click(within(swap).getByRole('button', { name: 'Đổi sang Charmander' }));
+    for (let t = 0; t < 20000 && screen.getByTestId('team-arena').dataset.phase !== 'choose' && screen.getByTestId('team-arena').dataset.phase !== 'between'; t += 200) await advance(200);
+    expect(screen.getByTestId('team-arena').dataset.pi).toBe('1');
+    // Fight until the first knock-out: the keep-or-switch choice appears
+    for (let t = 0; t < 120000 && screen.getByTestId('team-arena').dataset.phase !== 'between'; t += 300) {
+      const arena = screen.getByTestId('team-arena');
+      if (arena.dataset.phase === 'choose') fireEvent.click(within(arena).getAllByRole('button').find((b) => b.textContent.includes('Sức mạnh')));
+      else if (arena.dataset.phase === 'switch') fireEvent.click(within(screen.getByTestId('switch-picker')).getAllByRole('button')[0]);
+      await advance(300, 300);
+    }
+    const picker = screen.getByTestId('between-picker');
+    expect(picker).toHaveTextContent('Hạ gục');
+    const keep = within(picker).getAllByRole('button')[0];
+    expect(keep.getAttribute('aria-label')).toMatch(/^Giữ nguyên/);
+    fireEvent.click(within(picker).getByRole('button', { name: 'Đổi sang Pikachu' }));
+    for (let t = 0; t < 20000 && screen.getByTestId('team-arena').dataset.phase !== 'choose'; t += 200) await advance(200);
+    expect(screen.getByTestId('team-arena').dataset.pi).toBe('0');
+    expect(screen.getByTestId('team-arena').dataset.oi).toBe('1');
+    localStorage.removeItem('pokescan_team_difficulty');
+  }, 120000);
 });

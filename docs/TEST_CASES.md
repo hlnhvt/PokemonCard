@@ -994,3 +994,59 @@ Cả 3 trò nằm trong nhóm "🏆 Thi đấu thể thao" (tab Trò chơi và t
 | MG-07 | P1 | AUTO | Săn Boss: lập đội, chọn Groudon / Dễ / 2 phút, có thanh máu Boss, đấu xong có bảng kết quả 5 dòng, trả vàng 1 lần | Đạt |
 | MG-08 | P2 | AUTO | Tab Trò chơi có banner Săn Boss | Đạt |
 | UI-22 | P1 | MANUAL (Chrome) | Xem 4 bản đồ trong trận, màn chọn Boss, trận Săn Boss với vùng đỏ và thanh máu | Hiển thị đúng, không lỗi JS |
+
+---
+
+## 33. Trận đội: độ khó, đổi Pokémon linh hoạt; game "Cái nào khác loại?" và "Tìm điểm khác nhau" (2026-09-26)
+
+**Độ khó cho Đấu đội 5 vs 5 và Giải đấu Liên minh** (`TEAM_DIFFICULTY` trong `utils/team/teamBattle.js`):
+- Chọn ở màn chọn sàn đấu (5 vs 5) hoặc trên đường Liên minh; lựa chọn được nhớ trong `pokescan_team_difficulty`. Trong trận có nhãn độ khó.
+- Mỗi mức nhân HP của mọi Pokémon (cả hai đội) và đổi cấp đối thủ:
+
+| Mức | HP ×  | Cấp đối thủ × | Vàng × |
+|---|---|---|---|
+| Dễ | 3,2 | 1,00 | 0,8 |
+| Trung bình | 3,8 | 1,08 | 1 |
+| Khó | 4,4 | 1,15 | 1,4 |
+
+- Trước đây một trận đấu đôi thường xong sau 1–2 đòn. Nay trung bình mất 4–5 lượt để hạ một đối thủ.
+- Mô phỏng 60 trận mỗi mức, người chơi bấm chiêu ngẫu nhiên:
+
+| Mức | Thắng | Số lượt để hạ 1 đối thủ | Hạ gục trong 1 lượt |
+|---|---|---|---|
+| Dễ | 98% | 4,4 | 9% |
+| Trung bình | 68% | 5,3 | 6% |
+| Khó | 35% | 4,7 | 10% |
+
+- Chọn chiêu mạnh (mức Trung bình, 3 đội khác nhau) thắng 82%.
+
+**Đổi Pokémon linh hoạt:**
+- Trước mỗi trận vẫn chọn được Pokémon ra sân đầu tiên (mục 32).
+- Trong trận có nút **🔄 Đổi**. Đổi sẽ mất lượt: đối thủ được đánh một đòn (`switchPlayer`).
+- Hạ gục một đối thủ xong, trận tạm dừng với lựa chọn **"Giữ nguyên {Pokémon}"** hoặc đổi sang Pokémon khác (`continueWith`). Có gợi ý "Khắc hệ!" với đối thủ tiếp theo.
+
+**🔍 Cái nào khác loại?** (`utils/logic/oddone.js`, `OddOneGame.jsx`, mở cho mọi hạng):
+- 4 thẻ, 3 thẻ cùng nhóm; bé chạm thẻ khác nhóm. Có 4 màn × 3 câu:
+  - Đồ vật quanh bé: trái cây, con vật, xe cộ, quần áo, bầu trời, rau củ.
+  - Hệ Pokémon.
+  - Con số: chẵn / lẻ, lớn hơn 10.
+  - Họ tiến hóa: thẻ khác nhóm thường **cùng hệ** với 3 thẻ còn lại, nên bé phải suy luận theo họ tiến hóa chứ không chỉ nhìn màu hệ.
+- Trả lời đúng thì mọi thẻ hiện nhãn nhóm, và bong bóng giải thích quy luật. Chọn nhầm thì thẻ rung và hiện ✕.
+- Sao: nhầm 0–2 lần được 3 sao, 3–5 lần được 2 sao. Vàng tính theo số sao.
+
+**🔎 Tìm điểm khác nhau** (`utils/logic/spot.js`, `SpotGame.jsx`, mở cho mọi hạng):
+- 2 hình đồng cỏ vẽ bằng SVG, có Pokémon của bé ở giữa. Khung cảnh tự sinh nên mỗi lần chơi một khác.
+- Các kiểu khác nhau: biến mất, đổi màu, to / nhỏ, quay ngược, đổi thành vật khác, có thêm vật.
+- 5 màn: 10→18 đồ vật, 3→6 điểm khác. Chạm vào hình nào cũng được.
+- Tìm đúng: vòng vàng vẽ quanh ở cả hai hình, lấp lánh, nhãn kiểu khác nhau. Chạm sai: ✕ đỏ. 💡 Gợi ý làm sáng một chỗ (tính như 2 lần nhầm).
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| TM-01 | P1 | AUTO | Hạ gục thì dừng hỏi giữ hay đổi, chưa cho đánh tiếp; chọn giữ thì đối thủ mới vào | Đạt |
+| TM-06 | P1 | AUTO | Độ khó: Trung bình ≥ 3 lượt mỗi lần hạ gục, hạ gục trong 1 lượt ≤ 10%; Dễ ≥ Trung bình > Khó; Dễ ≥ 70%, Khó ≥ 15% | Đạt |
+| TM-07 | P1 | AUTO | Đổi giữa trận mất lượt (chỉ đối thủ đánh); sau khi hạ gục có thể đổi Pokémon | Đạt |
+| TT-10 | P1 | AUTO | Chọn độ khó Dễ (được nhớ, có nhãn trong trận); bấm Đổi → sang Charmander; hạ gục → bảng giữ hay đổi → đổi sang Pikachu | Đạt |
+| OD-01..03 | P1 | AUTO | Mỗi câu đúng 1 thẻ khác nhóm và có quy luật; câu số đúng luật; câu họ tiến hóa thường cùng hệ; điểm sao | Đạt |
+| SP-01..02 | P1 | AUTO | Khung cảnh đủ đồ vật, không chồng nhau; mỗi điểm khác thật sự khác; chạm đúng, chạm sai, gợi ý; qua 5 màn | Đạt |
+| NG2-00..02 | P1 | AUTO | Hai game có trong danh sách; chơi hết và nhận vàng đúng 1 lần | Đạt |
+| UI-23 | P1 | MANUAL (Chrome) | Màn chọn độ khó, bảng Đổi Pokémon, bảng Giữ nguyên / đổi, Khác loại (màn 1 và 4), Tìm điểm khác nhau có gợi ý | Hiển thị đúng, không lỗi JS |

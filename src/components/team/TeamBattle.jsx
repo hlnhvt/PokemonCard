@@ -9,6 +9,8 @@ import { ArenaPicker } from './ArenaPicker';
 import { TeamVsIntro } from './TeamIntro';
 import { loadTeamBattle } from './loadTeam';
 import { LeadPicker } from './LeadPicker';
+import { DifficultyPicker } from './DifficultyPicker';
+import { readTeamDifficulty } from './difficultyChoice';
 import { withLead } from '../../utils/team/teamBattle';
 import { TeamArena } from './TeamArena';
 import { TrophyCeremony } from './TrophyCeremony';
@@ -32,6 +34,7 @@ export function TeamBattle({ collection = [], allowScanned = false, onScanned, o
   const [phase, setPhase] = useState('build'); // build | arena | loading | intro | battle | result | error
   const [team, setTeam] = useState([]);
   const [lead, setLead] = useState(0);
+  const [difficulty, setDifficulty] = useState(readTeamDifficulty);
   const [arenaId, setArenaId] = useState(ARENAS[0].id);
   const [battle, setBattle] = useState(null);
   const [progress, setProgress] = useState(0);
@@ -67,7 +70,7 @@ export function TeamBattle({ collection = [], allowScanned = false, onScanned, o
     setProgress(0);
     setError(null);
     try {
-      const state = await loadTeamBattle({ team: withLead(team, lead), arena, random, onProgress: () => alive.current && setProgress((p) => p + 1) });
+      const state = await loadTeamBattle({ team: withLead(team, lead), arena, difficulty, random, onProgress: () => alive.current && setProgress((p) => p + 1) });
       if (!alive.current) return;
       setBattle(state);
       setRound((r) => r + 1);
@@ -80,7 +83,7 @@ export function TeamBattle({ collection = [], allowScanned = false, onScanned, o
   };
 
   const finish = (outcome) => {
-    const gold = goldForTeam(outcome.won, outcome.survivors);
+    const gold = goldForTeam(outcome.won, outcome.survivors, difficulty);
     onGold?.(gold);
     setResult({ ...outcome, gold });
     setPhase('result');
@@ -109,7 +112,8 @@ export function TeamBattle({ collection = [], allowScanned = false, onScanned, o
               setPhase('arena');
             }} random={random} />}
         {phase === 'arena' && (
-          <div className="px-4 pt-3">
+          <div className="px-4 pt-3 space-y-3">
+            <DifficultyPicker value={difficulty} onChange={setDifficulty} />
             <LeadPicker team={team} lead={lead} onPick={setLead} />
           </div>
         )}

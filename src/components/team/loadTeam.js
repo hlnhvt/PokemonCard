@@ -3,7 +3,7 @@
 import { fetchBattlePokemon } from '../../services/battleData';
 import { createFighter, opponentLevel } from '../../utils/battle/engine';
 import { OPPONENT_POOL } from '../../utils/battle/opponentPool';
-import { createTeamBattle, pickOpponentTeam, teamOpponentLevel } from '../../utils/team/teamBattle';
+import { createTeamBattle, pickOpponentTeam, teamOpponentLevel, difficultyOf } from '../../utils/team/teamBattle';
 import { applyArena } from '../../utils/team/arenas';
 
 /**
@@ -11,7 +11,8 @@ import { applyArena } from '../../utils/team/arenas';
  * levelFactor makes the opponents stronger or weaker (League gyms). onProgress() after each Pokemon.
  * Returns the team battle state; throws with a child-friendly message.
  */
-export async function loadTeamBattle({ team, opponentNames = null, arena, levelFactor = 1, random = Math.random, onProgress = () => {} }) {
+export async function loadTeamBattle({ team, opponentNames = null, arena, levelFactor = 1, difficulty = 'normal', random = Math.random, onProgress = () => {} }) {
+  const level = levelFactor * difficultyOf(difficulty).level;
   const playerData = await Promise.all(
     team.map((m) =>
       fetchBattlePokemon(m.query)
@@ -45,7 +46,7 @@ export async function loadTeamBattle({ team, opponentNames = null, arena, levelF
     createFighter(applyArena({ ...d, name: team[i].name, image: team[i].image || d.image }, arena), { isPlayer: true, friendship: team[i].friendship || 0 })
   );
   const opponents = opponentData.map((d, i) =>
-    createFighter(applyArena(d, arena), { level: Math.max(5, Math.round(teamOpponentLevel(opponentLevel(playerData[i % playerData.length].stats, d.stats)) * levelFactor)) })
+    createFighter(applyArena(d, arena), { level: Math.max(5, Math.round(teamOpponentLevel(opponentLevel(playerData[i % playerData.length].stats, d.stats)) * level)) })
   );
-  return createTeamBattle({ players, opponents, random });
+  return createTeamBattle({ players, opponents, random, difficulty });
 }

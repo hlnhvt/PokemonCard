@@ -1205,3 +1205,31 @@
 }
 .scan-ping { animation: scanPing 2s ease-out infinite; }
 @media (prefers-reduced-motion: reduce) { .scan-ping { animation: none; } }
+
+/* Spot the difference: circles drawn round a found difference, a red cross for a miss, a hint pulse */
+@keyframes spotRing {
+  0% { stroke-dashoffset: 220; opacity: 0.2; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
+}
+.spot-ring { stroke-dasharray: 220; animation: spotRing 0.5s ease-out both; }
+@keyframes spotMiss {
+  0% { opacity: 0; transform: scale(0.4); }
+  20% { opacity: 1; transform: scale(1.15); }
+  70% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1); }
+}
+.spot-miss { transform-box: fill-box; transform-origin: center; animation: spotMiss 0.9s ease-out forwards; }
+@keyframes spotHint {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+.spot-hint { animation: spotHint 0.7s ease-in-out infinite; }
+@keyframes spotSparkle {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.3); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1); }
+}
+.spot-sparkle { transform-box: fill-box; transform-origin: center; animation: spotSparkle 0.7s ease-out forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .spot-ring, .spot-miss, .spot-hint, .spot-sparkle { animation: none; }
+}
