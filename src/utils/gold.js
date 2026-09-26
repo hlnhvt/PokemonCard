@@ -16,6 +16,9 @@ export const GOLD_REWARDS = {
 export const TEAM_GOLD = { win: 30, perSurvivor: 5, lose: 10 };
 export const goldForTeam = (won, survivors = 0) => (won ? TEAM_GOLD.win + TEAM_GOLD.perSurvivor * Math.max(0, survivors) : TEAM_GOLD.lose);
 
+/** Pokemon arena: by the result, plus 1 per knock-out of the child's team (max +20). */
+export const goldForMoba = (result, teamKills = 0) => ({ win: 40, draw: 25, lose: 15 }[result] ?? 15) + Math.min(20, Math.max(0, teamKills));
+
 export const goldForMatch = (result) => GOLD_REWARDS.match[result] ?? GOLD_REWARDS.match.lose;
 /** At least one star's worth, so finishing a game is always rewarded. */
 export const goldForStars = (stars) => Math.max(1, Math.round(stars)) * GOLD_REWARDS.perStar;

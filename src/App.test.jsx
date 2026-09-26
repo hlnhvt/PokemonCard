@@ -55,9 +55,10 @@ async function scan(name) {
   ocr.recognizeCardWithOCR.mockResolvedValue({ success: true, rawText: name, bestMatch: name, confidence: 100, candidates: [{ name, displayName: name, score: 100 }] });
   const input = document.querySelectorAll('input[type="file"]')[1];
   fireEvent.change(input, { target: { files: [new File(['x'], 'photo.png', { type: 'image/png' })] } });
-  fireEvent.click(await screen.findByText('Đúng rồi! Tải Pokémon'));
-  fireEvent.click(await screen.findByText('Bỏ qua'));
-  await screen.findByText('Tiếp Tục Quét Thẻ Khác');
+  // Generous waits: the whole suite runs many simulations in parallel
+  fireEvent.click(await screen.findByText('Đúng rồi! Tải Pokémon', {}, { timeout: 5000 }));
+  fireEvent.click(await screen.findByText('Bỏ qua', {}, { timeout: 5000 }));
+  await screen.findByText('Tiếp Tục Quét Thẻ Khác', {}, { timeout: 5000 });
 }
 
 const scanCountOf = (id) => getSavedCollection().find((c) => c.id === id)?.scanCount;

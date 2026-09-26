@@ -83,7 +83,11 @@ function HpBox({ fighter, shown, ghost, align }) {
  * particle effects, hits shake the screen, damage numbers pop, HP bars drain smoothly,
  * and the combo finisher chains all four moves.
  */
-export function BattleArena({ card, onClose, onResult, random = Math.random, tempo: tempoOverride }) {
+/**
+ * challenge (optional, used by the Pokemon League): { ace, levelFactor, intro, title } fights that
+ * Pokemon at a stronger or weaker level instead of a random wild one.
+ */
+export function BattleArena({ card, onClose, onResult, random = Math.random, tempo: tempoOverride, challenge }) {
   // Pace of the battle: 'slow' (default, easier to follow for children) or 'normal'
   const [speed, setSpeed] = useState(readSpeed);
   const tempo = tempoOverride ?? TEMPO[speed];
@@ -122,9 +126,11 @@ export function BattleArena({ card, onClose, onResult, random = Math.random, tem
   // through a ref keeps that from restarting the battle. Only the "round" counter starts a new one.
   const cardRef = useRef(card);
   const randomRef = useRef(random);
+  const challengeRef = useRef(challenge);
   useEffect(() => {
     cardRef.current = card;
     randomRef.current = random;
+    challengeRef.current = challenge;
   });
 
   useEffect(() => {
@@ -217,7 +223,8 @@ export function BattleArena({ card, onClose, onResult, random = Math.random, tem
     try {
       const playerData = await fetchBattlePokemon(card);
       // A fair match: similar strength and no type advantage over the child's Pokemon
-      const foe = pickOpponent(playerData, OPPONENT_POOL, random);
+      const ch = challengeRef.current;
+      const foe = ch ? { name: ch.ace } : pickOpponent(playerData, OPPONENT_POOL, random);
       const opponentData = await fetchBattlePokemon(foe.name);
       if (!alive.current) return;
 
@@ -225,7 +232,8 @@ export function BattleArena({ card, onClose, onResult, random = Math.random, tem
         { ...playerData, name: card.name || playerData.name, image: card.fallbackImage || playerData.image },
         { isPlayer: true, friendship: card.friendship || 0 }
       );
-      const opponent = createFighter(opponentData, { level: opponentLevel(playerData.stats, opponentData.stats) });
+      const baseLevel = opponentLevel(playerData.stats, opponentData.stats);
+      const opponent = createFighter(opponentData, { level: ch ? Math.max(5, Math.round(baseLevel * (ch.levelFactor || 1))) : baseLevel });
       const b = createBattle({ player, opponent, random });
       fxRef.current.clear();
       setBattle(b);
@@ -236,7 +244,7 @@ export function BattleArena({ card, onClose, onResult, random = Math.random, tem
       setPhase('intro');
 
       setSpriteFx({ player: 'opacity-0', opponent: 'battle-enter' });
-      setMessage(`Một ${opponent.name} hoang dã xuất hiện!`);
+      setMessage(ch?.intro || `Một ${opponent.name} hoang dã xuất hiện!`);
       playCry({ pokedexNumber: opponent.id, types: opponent.types });
       await wait(1300);
       if (!alive.current) return;
@@ -426,7 +434,7 @@ export function BattleArena({ card, onClose, onResult, random = Math.random, tem
       <div className="w-full max-w-2xl max-h-full overflow-y-auto rounded-3xl border-4 border-white/70 shadow-2xl bg-slate-950">
         <div className="flex items-center justify-between px-4 py-2 bg-gradient-to-r from-red-600 via-rose-600 to-orange-500">
           <span className="flex items-center gap-2 text-white font-black">
-            <Swords className="w-5 h-5" /> Đấu Pokémon!
+            <Swords className="w-5 h-5" /> {challenge?.title || 'Đấu Pokémon!'}
           </span>
           <button
             onClick={toggleSpeed}

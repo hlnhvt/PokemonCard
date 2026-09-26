@@ -9,6 +9,8 @@ import { SPORTS, findSport } from './sports';
 import { LOGIC_GAMES, findLogicGame } from './logic';
 import { PokeballIcon } from './PokeballIcon';
 import { TeamBattle } from './team/TeamBattle';
+import { LeagueGame } from './league/LeagueGame';
+import { MobaGame } from './moba/MobaGame';
 import { rankOf, rankFor, GAME_RANK } from '../utils/pokemonRank';
 import { artworkUrl, getCardMedia } from '../services/pokemonOnlineService';
 import { BERRY_TYPES, BERRIES } from '../utils/friendship';
@@ -20,6 +22,7 @@ const playerImage = (card) =>
 const PLAY_GAMES = [
   { id: 'runner', title: 'Chạy nhảy', description: 'Nhảy qua chướng ngại', icon: '🏃', gradient: 'from-emerald-500 to-teal-500' },
   { id: 'battle', title: 'Đấu Pokémon', description: 'Tuyệt Kỹ Liên Hoàn', icon: '⚔️', gradient: 'from-orange-500 via-red-500 to-purple-600' },
+  { id: 'league', title: 'Liên minh', description: '8 nhà thi đấu + Vô địch', icon: '🏆', gradient: 'from-amber-500 via-orange-500 to-red-600' },
   { id: 'cooking', title: 'Bếp Pokémon', description: 'Nấu món cho khách', icon: '🍳', gradient: 'from-amber-500 to-orange-500' },
   { id: 'shop', title: 'Cửa hàng', description: 'Bán hàng, đếm xu', icon: '🏪', gradient: 'from-sky-500 to-indigo-500' },
 ];
@@ -145,6 +148,23 @@ export function GamesHub({ collection = [], berries, onBerries, onBattleResult, 
         </div>
       </button>
 
+      {/* Pokemon arena (landscape, real time) */}
+      <button
+        onClick={() => setPlaying({ section: 'moba', id: 'moba' })}
+        className="relative w-full overflow-hidden rounded-3xl p-4 text-left text-white shadow-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-sky-700 border-2 border-emerald-300/70 active:scale-[0.98] transition-transform"
+        aria-label="Đấu trường Pokémon"
+      >
+        <div className="vs-rays absolute inset-0 opacity-15" />
+        <div className="relative flex items-center gap-3">
+          <span className="text-5xl drop-shadow" aria-hidden="true">🗺️</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-xl font-black">Đấu trường Pokémon</p>
+            <p className="text-xs font-bold text-white/90">5 vs 5 trên bản đồ, điều khiển Pokémon, tung chiêu liên hoàn! (màn ngang)</p>
+          </div>
+          <span className="px-2 py-1 rounded-full bg-amber-300 text-slate-900 text-[11px] font-black shadow">+60 🪙</span>
+        </div>
+      </button>
+
       {SECTIONS.map((section) => (
         <section key={section.id} className="glass-panel rounded-3xl p-4 space-y-3" aria-label={section.title}>
           <h3 className="text-lg font-black text-slate-50">
@@ -174,7 +194,9 @@ export function GamesHub({ collection = [], berries, onBerries, onBattleResult, 
         </div>
       )}
 
+      {playing?.section === 'moba' && <MobaGame collection={collection} allowScanned={teamUseScanned} onScanned={onTeamScan} onGold={onGold} onClose={close} />}
       {playing?.section === 'team' && <TeamBattle collection={collection} allowScanned={teamUseScanned} onScanned={onTeamScan} onGold={onGold} onClose={close} />}
+      {selected && is('league') && <LeagueGame card={card} player={player} onGold={onGold} onClose={close} />}
       {selected && is('battle') && <BattleArena card={card} onClose={close} onResult={(result) => onBattleResult?.(selected.id, result)} />}
       {selected && is('cooking') && <CookingGame chef={card} onBerries={onBerries} onGold={onGold} onClose={close} />}
       {selected && is('shop') && <ShopGame shopkeeper={card} onBerries={onBerries} onGold={onGold} onClose={close} />}

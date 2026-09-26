@@ -1169,3 +1169,31 @@
 @media (prefers-reduced-motion: reduce) {
   .swipe-up-hint, .swipe-side-hint, .nudge-l, .nudge-r, .nudge-u { animation: none; }
 }
+
+/* ---------- Memory pairs ---------- */
+.flip-card { perspective: 800px; }
+.flip-inner { position: relative; width: 100%; height: 100%; transition: transform 0.45s cubic-bezier(0.3, 0.9, 0.4, 1.2); transform-style: preserve-3d; }
+.flip-inner.is-up { transform: rotateY(180deg); }
+@keyframes matchGlow {
+  0% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.9); transform: scale(1); }
+  40% { box-shadow: 0 0 22px 8px rgba(250, 204, 21, 0.9); transform: scale(1.12); }
+  100% { box-shadow: 0 0 10px 2px rgba(250, 204, 21, 0.5); transform: scale(1); }
+}
+.match-glow { animation: matchGlow 0.7s ease-out both; }
+
+/* ---------- Rhythm ---------- */
+@keyframes ringHit {
+  0% { transform: translate(-50%, -50%) scale(0.8); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(2.2); opacity: 0; }
+}
+.ring-hit { animation: ringHit 0.4s ease-out forwards; }
+@keyframes judgePop {
+  0% { transform: translate(-50%, 0) scale(0.4); opacity: 0; }
+  25% { transform: translate(-50%, -8px) scale(1.25); opacity: 1; }
+  100% { transform: translate(-50%, -34px) scale(1); opacity: 0; }
+}
+.judge-pop { animation: judgePop 0.7s ease-out forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .flip-inner { transition: none; }
+  .match-glow, .ring-hit, .judge-pop { animation: none; }
+}

@@ -716,3 +716,65 @@ Nguyên nhân (đã kiểm chứng với PokeAPI thật):
 | GH-05, SPT-09 | P1 | AUTO | Tab Trò Chơi: Pichu (Đồng) chỉ mở trò hạng Đồng, các ô khác ghi hạng cần có; đổi sang Mewtwo thì mở đua xe; Charizard (Vàng) chơi Bowling và Penalty, còn Bóng rổ và Đua xe bị khóa | Đúng |
 | AR-01, TT-03 | P1 | AUTO | 7 sàn, Sân vận động đứng đầu và được chọn sẵn | Đúng |
 | UI-14 | P1 | MANUAL (Chrome, PokeAPI thật) | Bảng chọn game của Pikachu (5/14, có thông báo khóa), trận đấu trên Sân vận động | Không lỗi JS |
+
+---
+
+## 25. Lật thẻ tìm cặp, Nhảy theo nhạc, Giải đấu Liên minh, Đấu trường Pokémon (2026-09-26)
+
+**🃏 Lật thẻ tìm cặp** (nhóm Trí tuệ, hạng Đồng)
+- 3 màn liên tiếp: hình giống nhau (6 cặp) → hình và bóng đen (8 cặp) → Pokémon và hệ của nó (8 cặp, mỗi Pokémon một hệ khác nhau).
+- Thẻ lật 3D. Cặp đúng thì phát sáng vàng và có tiếng xu; cặp sai thì rung rồi úp lại sau 0,9 giây.
+- Sao tính theo số lượt so với số cặp; vàng trả 1 lần khi xong cả 3 màn.
+
+**💃 Nhảy theo nhạc** (nhóm Trí tuệ, hạng Bạc)
+- 4 bài: Bánh nóng giòn, Ngôi sao lấp lánh, Chú cừu nhỏ, Khúc hoan ca.
+- Nốt nhạc rơi xuống 4 làn (nốt thấp bên trái, nốt cao bên phải) trong 2,2 giây. Bé chạm làn đúng lúc nốt chạm vòng (PERFECT ±0,13 giây, GOOD ±0,28 giây).
+- Mỗi lần trúng phát đúng nốt của bài, nên chơi tốt là "đánh" được cả giai điệu.
+- Có combo và điểm thưởng theo combo; mỗi 10 combo có pháo hoa. Pokémon nhảy múa.
+- Điều khiển: nút làn, chạm vào làn trên sân khấu, hoặc phím ← ↓ ↑ → / D F J K.
+- Sao tính theo độ chính xác.
+
+**🏆 Giải đấu Liên minh** (nhóm Vui chơi, hạng Bạc, cần thẻ đã lưu)
+- Chơi một mạch: 8 nhà thi đấu (Đá · Nước · Điện · Cỏ · Độc · Siêu linh · Lửa · Đất) rồi đến Nhà Vô địch (Dragonite). Đối thủ mạnh dần (×0,85 → ×1,12 so với cấp cân bằng).
+- Dùng lại màn đấu 1v1, tiêu đề là tên nhà thi đấu.
+- Thắng: huy hiệu bay vào hộp huy hiệu kèm vàng (10 → 24; Nhà Vô địch 60), rồi có nút sang nhà tiếp theo ngay.
+- Thua: lời khuyên về hệ, có nút thử lại ngay.
+- Hạ Nhà Vô địch thì có lễ đăng quang: cúp, đèn rọi và đủ 9 huy hiệu.
+
+**🗺️ Đấu trường Pokémon** (banner ở tab Trò Chơi; không giới hạn hạng)
+- Chơi màn ngang, thời gian thực. Khi điện thoại cầm dọc, cả trận và bảng tổng quan tự xoay 90°. Ứng dụng cũng thử bật toàn màn hình và khóa hướng ngang trên các máy hỗ trợ.
+- **Lập đội:** giống Đấu đội 5 vs 5 (quét thẻ, mượn ngẫu nhiên, theo cài đặt "Cho phép chọn Pokémon đã quét").
+- **Chuẩn bị:** chọn thời gian trận (1 / 2 / 3 / 5 phút, nhớ lựa chọn) và Pokémon điều khiển đầu tiên; xem trước đội đối thủ và cách chơi.
+- **Bản đồ** 1600×900, hai nửa đối xứng:
+  - Mỗi đội có nhà chính: bệ đá có biểu tượng Pokéball và pha lê phát sáng. Trong nhà chính, đồng đội được hồi máu còn đối phương bị mất máu.
+  - Sông giữa bản đồ có 3 cầu gỗ tạo thành 3 đường đất.
+  - Cây tròn, cây thông, đá chặn đường và chặn đạn; bụi cây chỉ để trang trí. Có hoa, cỏ, sóng nước lấp lánh và bản đồ nhỏ.
+- **Điều khiển:**
+  - Joystick nổi (chạm nửa trái màn hình) hoặc phím WASD / mũi tên.
+  - Tự đánh thường khi đối thủ ở gần.
+  - Chiêu 1 là đạn xuyên (phím Q), chiêu 2 là vòng nổ đẩy lùi (phím E), ⚡ Tuyệt kỹ liên hoàn khi đầy năng lượng (phím R hoặc Space).
+  - Chạm chân dung đồng đội (hoặc phím 1–5) để đổi Pokémon điều khiển; các Pokémon còn lại do máy điều khiển.
+- **Chiêu thức theo hệ:** 18 hệ, mỗi hệ có tên chiêu riêng (ví dụ Lửa: Tàn lửa, Phun lửa, Vòng lửa, Hỏa Long Liên Hoàn). Sát thương tính theo khắc hệ.
+- **Tuyệt kỹ:** lướt tới mục tiêu để lại bóng mờ, rồi 4 đòn liên tiếp với số x1 → x4!!. Có chậm hình và viền tối, chớp sáng, rung màn hình, camera phóng to, vòng nổ trắng ở đòn cuối, và dòng tên Tuyệt kỹ.
+- **Hạ gục:**
+  - Có bảng tin hạ gục, thông báo "HẠ GỤC ĐẦU TIÊN" và "HẠ GỤC ĐÔI / TAM SÁT / TỨ SÁT / HUYỀN THOẠI".
+  - Pokémon gục hồi sinh ở nhà chính sau 5 giây (cột sáng); chân dung hiện đếm ngược.
+- **Hết giờ:** đội có nhiều mạng hạ gục hơn thắng, bằng nhau là hòa.
+- **Bảng tổng quan:** tỉ số, thời gian, hai cột đội. Mỗi Pokémon có H/C/HT (hạ gục / chết / hỗ trợ), thanh sát thương gây ra, sát thương nhận vào, lượng hồi máu và huy hiệu MVP.
+- **Vàng:** thắng 40, hòa 25, thua 15, cộng 1 cho mỗi mạng đội bé hạ gục (tối đa +20). Có nút đấu lại.
+- **Cân bằng** (bot tự đấu 16 trận 3 phút, bot điều khiển cả Pokémon của bé): đội bé thắng 63%, khoảng 26 mạng mỗi trận (một pha hạ gục mỗi khoảng 7 giây). Đội bé được hỗ trợ nhẹ (sát thương 1,02 so với 0,99; máy đối thủ tung chiêu ít hơn một chút), vì [Inference] trẻ thật có thể điều khiển kém bot.
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| PR-01, PR-02, NG-01 | P1 | AUTO | Mỗi cặp đúng 2 thẻ, màn hệ không trùng hệ; cặp sai úp lại; giải cả 3 màn thì trả 15 vàng 1 lần | Đúng |
+| RH-01..04, NG-02, NG-03 | P1 | AUTO | Bản nhạc đúng thứ tự thời gian; chạm đúng lúc là PERFECT, trễ là GOOD, quá trễ hoặc sai làn không tính; nốt bị bỏ là MISS và mất combo; bé chạm gần đúng (±0,2 giây, 80% nốt) được ≥2 sao; chơi hết bài thì trả vàng, không chạm gì vẫn kết thúc | Đúng |
+| LE-01, LE-02, NG-04, NG-05 | P1 | AUTO | 8 nhà thi đấu khác hệ, mạnh dần, rồi Nhà Vô địch; thua ở lại nhà đó; thắng hết thì 9 huy hiệu, trả vàng 9 lần, có lễ đăng quang; thua thì có nút thử lại | Đúng |
+| MB-01..05 | P1 | AUTO | Bản đồ đối xứng, sông chỉ qua được ở cầu; bot đi vòng qua cầu và cây; chỉ số được nén lại; chiêu 1, chiêu 2 đẩy lùi, Tuyệt kỹ lướt và 4 đòn; hạ gục tính điểm, hồi sinh sau 5 giây; 16 trận bot: kết thúc đúng giờ, ai cũng rời nhà, 15–45 mạng, đội bé thắng 50–90% | Đúng (63%, 26 mạng) |
+| MG-01..04 | P1 | AUTO | Màn chuẩn bị (thời gian, Pokémon điều khiển, đội đối thủ); trận 1 phút: đếm ngược, đổi Pokémon, bấm chiêu, phím WASD, bảng tổng quan 10 dòng có MVP, vàng trả 1 lần đúng số; banner ở tab Trò Chơi | Đúng |
+| UI-15 | P1 | MANUAL (Chrome) | Đấu trường ở màn ngang 915×412 và điện thoại cầm dọc 412×860 (tự xoay), trận thật 1 phút, Tuyệt kỹ, bảng tổng quan; Lật thẻ; Nhảy theo nhạc; bản đồ Liên minh và trận Nhà thi đấu Đá với PokeAPI thật | Không lỗi JS |
+
+Lỗi phát hiện qua ảnh chụp Chrome và đã sửa:
+- Thông báo "+vàng" chung đè lên bảng tổng quan: Đấu trường giờ nằm ở lớp trên cùng (bảng tổng quan đã có phần thưởng vàng riêng).
+- Bảng tổng quan không xoay khi điện thoại cầm dọc: dùng chung khung xoay ngang với trận đấu.
+- Nhảy theo nhạc: hình Pokémon che các nốt mới rơi, đã thu nhỏ và làm hơi trong suốt.
+- Test App (AP-01/02/04) chạy lúc đạt lúc không khi chạy cả bộ test cùng các trận mô phỏng: thời gian chờ trong hàm hỗ trợ quét của test được tăng lên 5 giây. Đây là lỗi của test, không phải của ứng dụng. Đã chạy cả bộ 2 lần liên tiếp đều đạt.

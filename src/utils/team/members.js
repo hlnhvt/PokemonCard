@@ -2,6 +2,7 @@
 // card scanned just now, one scanned before, or one lent by the game.
 import { artworkUrl } from '../../services/pokemonOnlineService';
 import { battleQueriesFor } from '../../services/battleData';
+import { powerOf } from '../pokemonRank';
 
 const norm = (s) => String(s || '').toLowerCase();
 
@@ -22,10 +23,12 @@ export function memberFromCard(card, source = 'owned') {
     query: battleQueriesFor(card),
     friendship: card.friendship || 0,
     types: (card.types || []).map(norm),
+    // 4 saved base stats are about 2/3 of the 6-stat total the battle tools use
+    power: Math.round(powerOf(card) * 1.5),
     source,
   };
 }
 
 export function memberFromPool(p) {
-  return { key: `lend-${norm(p.name)}`, name: p.name, species: norm(p.name), image: artworkUrl(p.id), query: norm(p.name), friendship: 0, bst: p.bst, types: p.types, source: 'borrow' };
+  return { key: `lend-${norm(p.name)}`, name: p.name, species: norm(p.name), image: artworkUrl(p.id), query: norm(p.name), friendship: 0, bst: p.bst, power: p.bst, types: p.types, source: 'borrow' };
 }

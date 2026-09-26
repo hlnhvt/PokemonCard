@@ -26,6 +26,7 @@ import { ShopGame } from './kidgames/ShopGame';
 import { SPORTS, findSport } from './sports';
 import { LOGIC_GAMES, findLogicGame } from './logic';
 import { rankOf, GAME_RANK } from '../utils/pokemonRank';
+import { LeagueGame } from './league/LeagueGame';
 import { getCardMedia } from '../services/pokemonOnlineService';
 import { fedToday } from '../utils/friendship';
 
@@ -63,6 +64,7 @@ export function PokemonCardDetail({
   const [isBattling, setIsBattling] = useState(false);
   const [isCooking, setIsCooking] = useState(false);
   const [isShopping, setIsShopping] = useState(false);
+  const [isLeague, setIsLeague] = useState(false);
   const [extra, setExtra] = useState(null); // sports or logic game: { kind, id }
 
   const buddyImage = (showShiny && getCardMedia(rawPokemon).shinyImage) || rawPokemon.fallbackImage || rawPokemon.image;
@@ -118,6 +120,17 @@ export function PokemonCardDetail({
       gradient: 'from-sky-500 to-indigo-500',
       onPlay: () => setIsShopping(true),
     },
+    ...(canBattle
+      ? [{
+          id: 'league',
+          group: 'play',
+          title: 'Giải đấu Liên minh',
+          description: 'Thắng 8 nhà thi đấu và Nhà Vô địch',
+          icon: '🏆',
+          gradient: 'from-amber-500 via-orange-500 to-red-600',
+          onPlay: () => setIsLeague(true),
+        }]
+      : []),
     ...SPORTS.map((s) => ({ id: s.id, title: s.title, description: s.description, icon: s.icon, gradient: s.gradient, group: 'sport', onPlay: () => setExtra({ kind: 'sport', id: s.id }) })),
     ...LOGIC_GAMES.map((g) => ({ id: g.id, title: g.title, description: g.description, icon: g.icon, gradient: g.gradient, group: 'logic', onPlay: () => setExtra({ kind: 'logic', id: g.id }) })),
   ];
@@ -670,6 +683,15 @@ export function PokemonCardDetail({
         const Game = (extra.kind === 'sport' ? findSport(extra.id) : findLogicGame(extra.id)).Component;
         return <Game player={{ name: pokemon.name, image: buddyImage }} onBerries={onBerries} onGold={onGold} onClose={() => setExtra(null)} />;
       })()}
+
+      {isLeague && savedItem && (
+        <LeagueGame
+          card={{ ...savedItem, name: pokemon.name, fallbackImage: buddyImage }}
+          player={{ name: pokemon.name, image: buddyImage }}
+          onGold={onGold}
+          onClose={() => setIsLeague(false)}
+        />
+      )}
 
       {isBattling && savedItem && (
         <BattleArena
