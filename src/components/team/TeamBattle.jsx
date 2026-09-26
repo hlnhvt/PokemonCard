@@ -8,6 +8,8 @@ import { TeamBuilder } from './TeamBuilder';
 import { ArenaPicker } from './ArenaPicker';
 import { TeamVsIntro } from './TeamIntro';
 import { loadTeamBattle } from './loadTeam';
+import { LeadPicker } from './LeadPicker';
+import { withLead } from '../../utils/team/teamBattle';
 import { TeamArena } from './TeamArena';
 import { TrophyCeremony } from './TrophyCeremony';
 
@@ -29,6 +31,7 @@ const readSpeed = () => {
 export function TeamBattle({ collection = [], allowScanned = false, onScanned, onGold, onClose, random = Math.random }) {
   const [phase, setPhase] = useState('build'); // build | arena | loading | intro | battle | result | error
   const [team, setTeam] = useState([]);
+  const [lead, setLead] = useState(0);
   const [arenaId, setArenaId] = useState(ARENAS[0].id);
   const [battle, setBattle] = useState(null);
   const [progress, setProgress] = useState(0);
@@ -64,7 +67,7 @@ export function TeamBattle({ collection = [], allowScanned = false, onScanned, o
     setProgress(0);
     setError(null);
     try {
-      const state = await loadTeamBattle({ team, arena, random, onProgress: () => alive.current && setProgress((p) => p + 1) });
+      const state = await loadTeamBattle({ team: withLead(team, lead), arena, random, onProgress: () => alive.current && setProgress((p) => p + 1) });
       if (!alive.current) return;
       setBattle(state);
       setRound((r) => r + 1);
@@ -101,7 +104,15 @@ export function TeamBattle({ collection = [], allowScanned = false, onScanned, o
           </button>
         </div>
 
-        {phase === 'build' && <TeamBuilder collection={collection} allowScanned={allowScanned} team={team} setTeam={setTeam} onScanned={onScanned} onNext={() => setPhase('arena')} random={random} />}
+        {phase === 'build' && <TeamBuilder collection={collection} allowScanned={allowScanned} team={team} setTeam={setTeam} onScanned={onScanned} onNext={() => {
+              setLead((l) => Math.min(l, team.length - 1));
+              setPhase('arena');
+            }} random={random} />}
+        {phase === 'arena' && (
+          <div className="px-4 pt-3">
+            <LeadPicker team={team} lead={lead} onPick={setLead} />
+          </div>
+        )}
         {phase === 'arena' && (
           <ArenaPicker selected={arenaId} onSelect={setArenaId} onStart={load} onBack={() => setPhase('build')} teamTypes={team.map((m) => m.types || [])} />
         )}
@@ -120,7 +131,7 @@ export function TeamBattle({ collection = [], allowScanned = false, onScanned, o
         {phase === 'result' && result && (
           <TrophyCeremony
             won={result.won}
-            team={battle.players.map((p, i) => ({ key: team[i]?.key || i, name: p.name, image: p.image }))}
+            team={battle.players.map((p, i) => ({ key: withLead(team, lead)[i]?.key || i, name: p.name, image: p.image }))}
             kos={result.kos}
             mvp={result.mvp}
             gold={result.gold}

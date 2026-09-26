@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { usePortrait, landscapeStyle } from './landscape';
 import { createMatch, step, timeLeft, fighterById, SKILLS, ULT_MAX, summary } from '../../utils/moba/engine';
 import { decide } from '../../utils/moba/ai';
+import { createBossMatch, bossById, bossOf } from '../../utils/moba/boss';
 import { WORLD } from '../../utils/moba/map';
 import { TYPE_VI } from '../../utils/battle/typeChart';
 import { sounds } from '../../utils/soundEffects';
@@ -49,11 +50,12 @@ function SkillButton({ label, name, cd, max, ready, big, onPress, color, charge,
  * The arena match itself (landscape). blue / red: members { name, image, types, power }.
  * onEnd(summary) when the time is up.
  */
-export function MobaMatch({ blue, red, minutes, control = 0, random = Math.random, onEnd, onQuit }) {
+export function MobaMatch({ blue, red, minutes, control = 0, mapId = 'forest', boss = null, random = Math.random, onEnd, onQuit }) {
   const portrait = usePortrait();
   const canvasRef = useRef(null);
   const stageRef = useRef(null);
-  const [initial] = useState(() => createMatch({ blue, red, duration: minutes * 60, random, control }));
+  // boss: { id, difficulty } for the boss raid (the whole team against one boss)
+  const [initial] = useState(() => (boss ? createBossMatch({ team: blue, boss: bossById(boss.id), difficulty: boss.difficulty, duration: minutes * 60, random, control, mapId }) : createMatch({ blue, red, duration: minutes * 60, random, control, mapId })));
   const stateRef = useRef(initial);
   const fxRef = useRef(null);
   const mapRef = useRef(null);
@@ -184,7 +186,7 @@ export function MobaMatch({ blue, red, minutes, control = 0, random = Math.rando
           const entry = { id: `${s.time}-${e.victim}`, killer: e.killer, victim: e.victim, killerName: fighterById(s, e.killer).name, victimName: v.name };
           setFeed((list) => [entry, ...list].slice(0, 4));
           if (e.multi) say(e.multi, teamOf(e.killer) === 'blue' ? 'gold' : 'red');
-          else if (e.first) say('HẠ GỤC ĐẦU TIÊN!', teamOf(e.killer) === 'blue' ? 'gold' : 'red');
+          else if (e.first && !s.boss) say('HẠ GỤC ĐẦU TIÊN!', teamOf(e.killer) === 'blue' ? 'gold' : 'red');
           else if (e.victim === me) say('Hồi sinh sau 5 giây...', 'red');
           if (teamOf(e.killer) === 'blue') sounds.playCoin();
           break;
@@ -200,6 +202,39 @@ export function MobaMatch({ blue, red, minutes, control = 0, random = Math.rando
           if (e.who === me) sounds.playWhoosh();
           break;
         }
+        case 'boss-warn':
+          sounds.playScanBeep();
+          break;
+        case 'boss-slam':
+          fx.rings.push({ x: e.x, y: e.y, from: 20, to: e.r, life: 0.5, max: 0.5, color: '#fecaca', width: 16, fill: true });
+          fx.rings.push({ x: e.x, y: e.y, from: 10, to: e.r * 0.7, life: 0.35, max: 0.35, color: typeColor(e.type), width: 10 });
+          styleBurst(fx, e.type, e.x, e.y, { count: 40, speed: 380, size: 5, life: 0.7 });
+          burstFx(fx, e.x, e.y, '#d6d3d1', { count: 24, speed: 260, size: 5, life: 0.6 });
+          sounds.playEnergySurge();
+          break;
+        case 'boss-meteor':
+          fx.rings.push({ x: e.x, y: e.y, from: 10, to: e.r, life: 0.4, max: 0.4, color: '#fb923c', width: 12, fill: true });
+          burstFx(fx, e.x, e.y, '#f97316', { count: 26, speed: 300, size: 5, life: 0.6 });
+          burstFx(fx, e.x, e.y, '#57534e', { count: 12, speed: 180, size: 6, life: 0.7 });
+          sounds.playPop();
+          break;
+        case 'boss-charge':
+          say(`${nameOf('red0')} lao tới!`, 'red', true);
+          sounds.playWhoosh();
+          break;
+        case 'boss-ring':
+          fx.rings.push({ x: e.x, y: e.y - 20, from: 30, to: 140, life: 0.45, max: 0.45, color: typeColor(e.type), width: 10 });
+          sounds.playWhoosh();
+          break;
+        case 'boss-enrage':
+          say('BOSS NỔI GIẬN! 🔥', 'red');
+          fx.rings.push({ x: e.x, y: e.y - 20, from: 40, to: 220, life: 0.7, max: 0.7, color: '#ef4444', width: 14, fill: true });
+          sounds.playEnergySurge();
+          break;
+        case 'boss-down':
+          burstFx(fx, e.x, e.y - 30, '#fde047', { count: 90, speed: 480, size: 6, life: 1.2 });
+          fx.rings.push({ x: e.x, y: e.y - 30, from: 20, to: 300, life: 0.9, max: 0.9, color: '#ffffff', width: 18, fill: true });
+          break;
         case 'respawn':
           fx.beams.push({ x: e.x, y: e.y, life: 0.7, max: 0.7, color: TEAM_COLORS[teamOf(e.who)] });
           break;
@@ -241,7 +276,7 @@ export function MobaMatch({ blue, red, minutes, control = 0, random = Math.rando
         acc.current -= SIM_DT;
         const inputs = {};
         for (const f of s.fighters) {
-          if (f.dead) continue;
+          if (f.dead || f.boss) continue;
           if (f.id === s.control) {
             const k = input.current.keys;
             let mx = input.current.joy.x;
@@ -264,7 +299,8 @@ export function MobaMatch({ blue, red, minutes, control = 0, random = Math.rando
       }
       if (s.over && !ended.current) {
         ended.current = true;
-        say(s.winner === 'blue' ? 'CHIẾN THẮNG!' : s.winner === 'red' ? 'THẤT BẠI' : 'HÒA!', s.winner === 'red' ? 'red' : 'gold');
+        if (s.boss) say(s.winner === 'blue' ? 'HẠ BOSS RỒI! 🏆' : 'HẾT GIỜ – BOSS THẮNG!', s.winner === 'blue' ? 'gold' : 'red');
+        else say(s.winner === 'blue' ? 'CHIẾN THẮNG!' : s.winner === 'red' ? 'THẤT BẠI' : 'HÒA!', s.winner === 'red' ? 'red' : 'gold');
         sounds.playSuccessFanfare();
         setTimeout(() => onEnd?.(summary(s)), 1800);
       }
@@ -315,16 +351,30 @@ export function MobaMatch({ blue, red, minutes, control = 0, random = Math.rando
   const stageStyle = landscapeStyle(portrait);
 
   return (
-    <div className="fixed inset-0 z-[80] bg-black select-none touch-none" role="dialog" aria-label="Đấu trường Pokémon" data-over={hud.over} data-control={hud.control} data-portrait={portrait}>
+    <div className="fixed inset-0 z-[80] bg-black select-none touch-none" role="dialog" aria-label={boss ? 'Săn Boss' : 'Đấu trường Pokémon'} data-over={hud.over} data-control={hud.control} data-portrait={portrait}>
       <div ref={stageRef} style={stageStyle} className="overflow-hidden" onPointerDown={onJoyDown} onPointerMove={onJoyMove} onPointerUp={onJoyUp} onPointerCancel={onJoyUp} data-testid="moba-stage">
         <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" data-testid="moba-canvas" />
 
-        {/* Top: score and time */}
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 flex items-center gap-3 px-4 py-1.5 rounded-2xl bg-slate-950/75 border border-white/20 shadow-xl pointer-events-none" data-testid="moba-score">
-          <span className="text-2xl font-black text-sky-300 tabular-nums">{hud.score.blue}</span>
-          <span className={`text-lg font-black tabular-nums ${hud.left <= 10 ? 'text-rose-400 hint-pulse' : 'text-white'}`}>{fmt(hud.left)}</span>
-          <span className="text-2xl font-black text-rose-400 tabular-nums">{hud.score.red}</span>
-        </div>
+        {/* Top: score and time (boss raid: the boss's big HP bar) */}
+        {hud.boss ? (
+          <div className="absolute top-2 left-[288px] right-[96px] max-w-[520px] px-3 py-1.5 rounded-2xl bg-slate-950/80 border border-white/20 shadow-xl pointer-events-none" data-testid="boss-bar" data-hp={Math.round(hud.boss.hpRatio * 100)}>
+            <div className="flex items-center gap-2 text-white">
+              <span className="text-sm font-black truncate">👑 {hud.boss.name}</span>
+              {hud.boss.angry && <span className="pop-in px-1.5 rounded-full bg-red-600 text-[10px] font-black">NỔI GIẬN</span>}
+              <span className={`ml-auto text-sm font-black tabular-nums ${hud.left <= 15 ? 'text-rose-400 hint-pulse' : 'text-white'}`}>⏱ {fmt(hud.left)}</span>
+            </div>
+            <div className="relative mt-1 h-3.5 rounded-full bg-black/60 overflow-hidden border border-white/20">
+              <div className={`h-full transition-[width] duration-200 bg-gradient-to-r ${hud.boss.angry ? 'from-red-500 via-orange-500 to-red-700' : 'from-rose-400 via-red-500 to-rose-700'}`} style={{ width: `${hud.boss.hpRatio * 100}%` }} />
+              <span className="absolute inset-0 flex items-center justify-center text-[10px] font-black text-white drop-shadow">{Math.ceil(hud.boss.hpRatio * 100)}%</span>
+            </div>
+          </div>
+        ) : (
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 flex items-center gap-3 px-4 py-1.5 rounded-2xl bg-slate-950/75 border border-white/20 shadow-xl pointer-events-none" data-testid="moba-score">
+            <span className="text-2xl font-black text-sky-300 tabular-nums">{hud.score.blue}</span>
+            <span className={`text-lg font-black tabular-nums ${hud.left <= 10 ? 'text-rose-400 hint-pulse' : 'text-white'}`}>{fmt(hud.left)}</span>
+            <span className="text-2xl font-black text-rose-400 tabular-nums">{hud.score.red}</span>
+          </div>
+        )}
 
         {/* Top left: the child's team, tap to take control */}
         <div className="absolute top-2 left-2 flex gap-1.5" data-testid="moba-team">
@@ -431,6 +481,10 @@ function hudOf(s, count) {
     control: s.control,
     left: timeLeft(s),
     score: { ...s.score },
+    boss: s.boss ? (() => {
+      const b = bossOf(s);
+      return { name: b.name, hpRatio: Math.max(0, b.hp / b.maxHp), angry: b.angry };
+    })() : null,
     fighters: s.fighters.map((f) => ({ id: f.id, team: f.team, name: f.name, image: f.image, types: f.types, kit: f.kit, dead: f.dead, respawnIn: f.respawnIn, hpRatio: Math.max(0, f.hp / f.maxHp), ult: f.ult, ultReady: f.ult >= ULT_MAX, cd: { ...f.cd } })),
   };
 }

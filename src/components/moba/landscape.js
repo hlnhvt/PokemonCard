@@ -21,3 +21,21 @@ export const landscapeStyle = (portrait) =>
   portrait
     ? { position: 'fixed', top: 0, left: '100vw', width: '100vh', height: '100vw', transform: 'rotate(90deg)', transformOrigin: 'top left' }
     : { position: 'fixed', inset: 0 };
+
+/** Ask for full screen and a landscape lock (not every browser allows it). */
+export async function enterLandscape() {
+  try {
+    await document.documentElement.requestFullscreen?.();
+    await window.screen?.orientation?.lock?.('landscape');
+  } catch {
+    // Not supported (iPhone, desktop): the game turns itself when the phone is upright
+  }
+}
+export function leaveLandscape() {
+  try {
+    window.screen?.orientation?.unlock?.();
+    if (document.fullscreenElement) document.exitFullscreen?.();
+  } catch {
+    // ignore
+  }
+}

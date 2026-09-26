@@ -170,4 +170,21 @@ describe('LeagueGame (5 vs 5)', () => {
     await advance(400);
     expect(screen.getByTestId('team-intro')).toHaveTextContent(LEAGUE[0].name);
   }, 120000);
+
+describe('LeagueGame first Pokemon', () => {
+  it('NG-06 the road lets the child choose who goes out first for every gym', async () => {
+    const COLLECTION = ['pikachu', 'charmander', 'squirtle', 'bulbasaur', 'eevee'].map((id, i) => ({ id, name: id[0].toUpperCase() + id.slice(1), speciesName: id, pokedexNumber: String(i + 1), types: ['Normal'], fallbackImage: `${id}.png` }));
+    mocks.fetchBattlePokemon.mockReset();
+    mocks.fetchBattlePokemon.mockImplementation(async (q) => ({ key: 'x', name: 'X', id: 25, types: ['normal'], stats: { hp: 50, attack: 50, defense: 50, spAttack: 50, spDefense: 50, speed: 50 }, moves: fallbackMoves(['normal']), image: 'x.png', q }));
+    render(<LeagueGame collection={COLLECTION} allowScanned onGold={vi.fn()} onClose={vi.fn()} random={seeded(6)} />);
+    for (const c2 of COLLECTION) fireEvent.click(screen.getByLabelText(`Thêm ${c2.name} vào đội`));
+    fireEvent.click(screen.getByRole('button', { name: 'Chọn sàn đấu' }));
+    const lead = within(screen.getByTestId('league-road')).getByRole('radiogroup', { name: 'Pokémon ra sân đầu tiên' });
+    fireEvent.click(within(lead).getByRole('radio', { name: 'Ra sân đầu: Eevee' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Thách đấu' }));
+    await advance(400);
+    const players = mocks.fetchBattlePokemon.mock.calls.map(([q]) => q).filter(Array.isArray).map((q) => q.find((x) => typeof x === 'string'));
+    expect(players).toEqual(['eevee', 'pikachu', 'charmander', 'squirtle', 'bulbasaur']);
+  });
+});
 });

@@ -12,6 +12,8 @@ import { TeamBuilder } from '../team/TeamBuilder';
 import { TeamArena } from '../team/TeamArena';
 import { TeamVsIntro } from '../team/TeamIntro';
 import { loadTeamBattle } from '../team/loadTeam';
+import { LeadPicker } from '../team/LeadPicker';
+import { withLead } from '../../utils/team/teamBattle';
 
 const TEMPO = { slow: 1.5, normal: 1 };
 const SPEED_KEY = 'pokescan_battle_speed';
@@ -53,7 +55,7 @@ function BadgeCase({ badges, highlight }) {
 }
 
 /** The road: 8 gyms and the Champion; the next stop shows its team of 5. */
-function Road({ state, team, onChallenge, onChangeTeam }) {
+function Road({ state, team, lead, onLead, onChallenge, onChangeTeam }) {
   return (
     <div className="px-4 pt-3 pb-6 space-y-3" data-testid="league-road">
       <div className="flex items-center gap-2">
@@ -70,6 +72,7 @@ function Road({ state, team, onChallenge, onChangeTeam }) {
           <Users className="w-4 h-4" /> Đổi đội
         </button>
       </div>
+      <LeadPicker team={team} lead={lead} onPick={onLead} />
       <BadgeCase badges={state.badges} />
       <ol className="relative space-y-2 pl-2">
         <span className="absolute left-7 top-4 bottom-4 w-1.5 rounded-full bg-gradient-to-b from-amber-300 via-rose-400 to-violet-500 opacity-60" aria-hidden="true" />
@@ -124,6 +127,7 @@ export function LeagueGame({ collection = [], allowScanned = false, onScanned, o
   const [state, setState] = useState(createLeague);
   const [screen, setScreen] = useState('build'); // build | road | loading | intro | battle | badge | lost | champion | error
   const [team, setTeam] = useState([]);
+  const [lead, setLead] = useState(0);
   const [battle, setBattle] = useState(null);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState(null);
@@ -151,7 +155,7 @@ export function LeagueGame({ collection = [], allowScanned = false, onScanned, o
     setProgress(0);
     setError(null);
     try {
-      const s = await loadTeamBattle({ team, opponentNames: gym.team, arena, levelFactor: gym.level, random, onProgress: () => alive.current && setProgress((p) => p + 1) });
+      const s = await loadTeamBattle({ team: withLead(team, lead), opponentNames: gym.team, arena, levelFactor: gym.level, random, onProgress: () => alive.current && setProgress((p) => p + 1) });
       if (!alive.current) return;
       setBattle(s);
       setRound((r) => r + 1);
@@ -206,10 +210,13 @@ export function LeagueGame({ collection = [], allowScanned = false, onScanned, o
         </div>
 
         {screen === 'build' && (
-          <TeamBuilder collection={collection} allowScanned={allowScanned} team={team} setTeam={setTeam} onScanned={onScanned} onNext={() => setScreen('road')} random={random} />
+          <TeamBuilder collection={collection} allowScanned={allowScanned} team={team} setTeam={setTeam} onScanned={onScanned} onNext={() => {
+              setLead((l) => Math.min(l, team.length - 1));
+              setScreen('road');
+            }} random={random} />
         )}
 
-        {screen === 'road' && <Road state={state} team={team} onChallenge={challenge} onChangeTeam={() => setScreen('build')} />}
+        {screen === 'road' && <Road state={state} team={team} lead={lead} onLead={setLead} onChallenge={challenge} onChangeTeam={() => setScreen('build')} />}
 
         {screen === 'loading' && (
           <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 min-h-[400px]" role="status">

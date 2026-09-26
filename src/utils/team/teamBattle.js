@@ -6,6 +6,9 @@ import { pickOpponent, hasTypeAdvantage } from '../battle/matchmaking';
 
 export const TEAM_SIZE = 5;
 
+/** The team with the chosen first Pokemon moved to the front (the rest keep their order). */
+export const withLead = (team, lead = 0) => (lead > 0 && lead < team.length ? [team[lead], ...team.filter((_, i) => i !== lead)] : team);
+
 const speciesOf = (p) => String(p.name || p.speciesName || '').toLowerCase();
 
 function shuffle(list, random) {

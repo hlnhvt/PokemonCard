@@ -1,7 +1,7 @@
 // Real-time 1 vs 1, 3 vs 3 or 5 vs 5 arena (MOBA style). Pure simulation, stepped with a fixed dt;
 // the component draws `state` and plays `state.events`. The child controls one fighter,
 // every other fighter is driven by utils/moba/ai.js.
-import { BASES, collide, blocked, insideObstacle } from './map';
+import { BASES, collide, blocked, insideObstacle, selectMap } from './map';
 import { effectiveness } from '../battle/typeChart';
 
 export const RESPAWN_TIME = 5;
@@ -116,8 +116,10 @@ export function spawnPoint(team, idx, slots = 5) {
  * blue / red: 1, 3 or 5 members each { name, image, types, power }. duration in seconds.
  * The child starts controlling blue fighter `control`.
  */
-export function createMatch({ blue, red, duration = 180, random = Math.random, control = 0 }) {
+export function createMatch({ blue, red, duration = 180, random = Math.random, control = 0, mapId = 'forest' }) {
+  selectMap(mapId);
   return {
+    mapId,
     fighters: [...blue.map((m, i) => makeFighter(m, 'blue', i, blue.length)), ...red.map((m, i) => makeFighter(m, 'red', i, red.length))],
     pace: PACE[Math.min(blue.length, red.length)] || 1,
     projectiles: [],
@@ -169,6 +171,9 @@ function damage(state, attacker, target, mult) {
   return dealt;
 }
 
+/** Deal damage from outside the engine (the boss attacks in boss.js). */
+export const dealDamage = (state, attacker, target, mult) => damage(state, attacker, target, mult);
+
 const MULTI = ['', '', 'HẠ GỤC ĐÔI!', 'TAM SÁT!', 'TỨ SÁT!', 'HUYỀN THOẠI!'];
 
 function kill(state, killer, victim) {
@@ -191,6 +196,13 @@ function kill(state, killer, victim) {
   victim.hitters = {};
   const first = state.score.blue + state.score.red === 1;
   state.events.push({ kind: 'kill', killer: killer.id, victim: victim.id, assists, x: victim.x, y: victim.y, multi: MULTI[Math.min(5, killer.streak)] || '', first });
+  // Boss raid: knocking out the boss wins at once
+  if (victim.boss) {
+    state.over = true;
+    state.winner = 'blue';
+    state.events.push({ kind: 'boss-down', x: victim.x, y: victim.y, killer: killer.id });
+    state.events.push({ kind: 'end', winner: 'blue' });
+  }
 }
 
 function shoot(state, f, skill, dir) {
@@ -270,7 +282,7 @@ export function act(state, f, input) {
     for (const o of enemiesOf(state, f)) {
       if (dist(f, o) <= SKILLS.s2.radius + o.r) {
         const d = norm(o.x - f.x, o.y - f.y);
-        o.knock = { vx: d.x * SKILLS.s2.knock * 6, vy: d.y * SKILLS.s2.knock * 6, t: 0.18 };
+        if (!o.boss) o.knock = { vx: d.x * SKILLS.s2.knock * 6, vy: d.y * SKILLS.s2.knock * 6, t: 0.18 };
         damage(state, f, o, SKILLS.s2.dmg);
       }
     }
@@ -325,7 +337,7 @@ function stepCombo(state, f, dt) {
     const mult = SKILLS.ult.hits[c.hit];
     const final = c.hit === SKILLS.ult.hits.length - 1;
     state.events.push({ kind: 'combo-hit', who: f.id, target: target.id, n: c.hit + 1, final, x: target.x, y: target.y, type: f.types[0] });
-    if (final) {
+    if (final && !target.boss) {
       const d = norm(target.x - f.x, target.y - f.y);
       target.knock = { vx: d.x * 700, vy: d.y * 700, t: 0.2 };
     }
@@ -342,6 +354,8 @@ function stepCombo(state, f, dt) {
 export function step(state, dt, inputs = {}) {
   if (state.over) return state;
   state.time += dt;
+  // Boss raid: the boss chooses and lands its attacks first
+  if (state.bossStep) state.bossStep(state, dt);
 
   for (const f of state.fighters) {
     if (f.dead) {
@@ -357,7 +371,7 @@ export function step(state, dt, inputs = {}) {
     f.cd.s1 = Math.max(0, f.cd.s1 - dt);
     f.cd.s2 = Math.max(0, f.cd.s2 - dt);
     f.cd.blink = Math.max(0, f.cd.blink - dt);
-    if (inputs[f.id]) act(state, f, inputs[f.id]);
+    if (inputs[f.id] && !f.boss) act(state, f, inputs[f.id]);
 
     if (f.combo) stepCombo(state, f, dt);
     else if (f.knock) {
@@ -371,8 +385,20 @@ export function step(state, dt, inputs = {}) {
     }
     collide(f);
 
+    // The boss never enters the children's base (their safe place to heal)
+    if (f.boss) {
+      const hb = BASES.blue;
+      const d = Math.hypot(f.x - hb.x, f.y - hb.y);
+      const min = hb.r + f.r + 10;
+      if (d < min) {
+        f.x = hb.x + ((f.x - hb.x) / (d || 1)) * min;
+        f.y = hb.y + ((f.y - hb.y) / (d || 1)) * min;
+      }
+      continue;
+    }
     // Bases: allies heal, enemies burn (no camping at the respawn point)
     for (const team of ['blue', 'red']) {
+      if (state.boss && team === 'red') continue; // no red base in a boss raid
       const b = BASES[team];
       if (Math.hypot(f.x - b.x, f.y - b.y) > b.r) continue;
       if (team === f.team) {
@@ -423,7 +449,8 @@ export function step(state, dt, inputs = {}) {
 
   if (state.time >= state.duration) {
     state.over = true;
-    state.winner = state.score.blue > state.score.red ? 'blue' : state.score.red > state.score.blue ? 'red' : 'draw';
+    if (state.boss) state.winner = state.fighters.some((f) => f.boss && !f.dead) ? 'red' : 'blue';
+    else state.winner = state.score.blue > state.score.red ? 'blue' : state.score.red > state.score.blue ? 'red' : 'draw';
     state.events.push({ kind: 'end', winner: state.winner });
   }
   return state;
@@ -434,5 +461,10 @@ export function summary(state) {
   const rate = (f) => f.kills * 3 + f.assists * 1.5 - f.deaths + f.dealt / 400;
   const rows = state.fighters.map((f) => ({ id: f.id, team: f.team, name: f.name, image: f.image, types: f.types, kills: f.kills, deaths: f.deaths, assists: f.assists, dealt: Math.round(f.dealt), taken: Math.round(f.taken), healed: Math.round(f.healed), rating: rate(f) }));
   const mvp = rows.reduce((a, b) => (b.rating > a.rating ? b : a), rows[0]);
-  return { winner: state.winner, score: { ...state.score }, duration: state.duration, rows, mvp: mvp.id };
+  const boss = state.fighters.find((f) => f.boss);
+  const bossInfo = boss ? { name: boss.name, image: boss.image, hp: Math.max(0, Math.round(boss.hp)), maxHp: boss.maxHp, time: state.time } : null;
+  // In a boss raid the MVP is one of the children (the one who dealt the most damage)
+  const pool = boss ? rows.filter((r) => r.team === 'blue') : rows;
+  const best = boss ? pool.reduce((a, r) => (r.dealt > a.dealt ? r : a), pool[0]) : mvp;
+  return { winner: state.winner, score: { ...state.score }, duration: state.duration, rows, mvp: best.id, boss: bossInfo, difficulty: state.difficulty };
 }

@@ -939,3 +939,58 @@ Cả 3 trò nằm trong nhóm "🏆 Thi đấu thể thao" (tab Trò chơi và t
 | NG3-00..04 | P1 | AUTO | Có trong danh sách và có hạng; giao diện Đào vàng, Bắn trúng đích, Đèn xanh đèn đỏ chơi hết trận và trả vàng đúng 1 lần | Đạt |
 | GH-04 | P1 | AUTO | Nhóm Thi đấu thể thao có 7 trò | Đạt |
 | UI-21 | P1 | MANUAL (Chrome) | Chơi thử cả 3 trò | Hiển thị đúng, không lỗi JS |
+
+---
+
+## 32. Đường thông thoáng, 4 bản đồ, chọn Pokémon ra sân đầu, Săn Boss (2026-09-26)
+
+**Đường đi thông thoáng.** Trên cả 3 đường (kể cả đoạn cong ra khỏi nhà chính) không còn cây, đá hay bụi cây nào.
+- Trước đây đường giữa có 4 vật cản: đá ở (360, 450), cây ở (650, 450) và 2 vật đối xứng bên phải. Đoạn cong gần nhà chính cũng có 8 vật cản sát đường.
+- `laneDistance` đo khoảng cách từ mỗi vật cản tới tim đường gần nhất. Test yêu cầu khoảng cách ≥ bán kính vật + 45 (đường rộng 66). Với bụi cây là ≥ bán kính + 30.
+
+**4 bản đồ** (`utils/moba/map.js`, chọn ở màn chuẩn bị của Đấu trường và Săn Boss; lựa chọn được nhớ trong `pokescan_moba_map`):
+- 🌳 **Rừng xanh:** cây, thông, đá.
+- 🌵 **Sa mạc cát:** xương rồng, đá.
+- ❄️ **Núi tuyết:** thông phủ tuyết, cụm băng, đá tuyết.
+- 🌋 **Núi lửa:** hồ dung nham (chặn đường đi nhưng không chặn chiêu), đá bazan, cây khô.
+- Bản đồ nào cũng đối xứng trái / phải và trên / dưới. Mỗi bản đồ có màu đất, màu đường, bản đồ nhỏ và hình xem trước riêng.
+
+**Chọn Pokémon ra sân đầu tiên** (Đấu đội 5 vs 5 và Giải đấu Liên minh):
+- Sau khi lập đội có ô "⭐ Chọn Pokémon ra sân đầu tiên" (5 ảnh, ảnh được chọn có nhãn "RA SÂN").
+- Ở Đấu đội 5 vs 5, ô này nằm ở màn chọn sàn đấu. Ở Liên minh, ô này nằm trên đường Liên minh và áp dụng cho mọi nhà thi đấu.
+- Các Pokémon khác vào sân theo thứ tự trong đội (`withLead`).
+
+**👑 Săn Boss** (`utils/moba/boss.js`, `BossGame.jsx`, banner trong tab Trò chơi):
+- Đội 5 Pokémon (quét thẻ / mượn / chọn đã quét nếu được phép) đánh 1 Boss trên bản đồ Đấu trường.
+- 6 Boss: Mewtwo, Rayquaza, Groudon, Kyogre, Tyranitar, Dragonite. 3 độ khó. Thời gian 2 / 3 / 5 phút. Chọn được bản đồ.
+- Boss to gấp khoảng 2,3 lần, có hào quang, không bị đẩy lùi và không vào được nhà chính của bé (bé về đó hồi máu).
+- 4 đòn lớn, đòn nào cũng có vùng đỏ báo trước trên mặt đất (vùng đỏ lấp đầy dần tới lúc đánh):
+  - **Dậm đất:** vòng tròn quanh Boss.
+  - **Mưa thiên thạch:** vòng tròn dưới 3 Pokémon, có tảng đá rơi xuống.
+  - **Lao tới:** dải dài có mũi tên chỉ hướng.
+  - **Vòng tia:** 14 viên bắn ra mọi hướng.
+- Còn dưới 40% máu thì Boss "NỔI GIẬN": viền lửa đỏ, đánh nhanh hơn, đi nhanh hơn, thêm thiên thạch và tia.
+- Hạ Boss là thắng ngay. Hết giờ mà Boss còn máu là thua. Thanh máu Boss thay cho bảng tỉ số.
+- Bảng kết quả: Boss còn bao nhiêu % máu, thời gian hạ Boss, sát thương của từng Pokémon, MVP là Pokémon gây nhiều sát thương nhất.
+- Vàng: thắng Dễ 35 / Vừa 55 / Khó 80; thua được 10 + tối đa 20 theo lượng máu đã đánh mất của Boss.
+- Máy tự né vùng đỏ (chậm khoảng 0,18 giây, giống bé).
+- Mô phỏng 8 trận mỗi mức độ khó (Boss và bản đồ thay đổi mỗi trận):
+
+| Độ khó | Thắng | Thời gian hạ Boss trung bình | Số lần bé bị hạ mỗi trận |
+|---|---|---|---|
+| Dễ | 8/8 | 65 giây | 3 |
+| Vừa | 6/8 | 119 giây | 12 |
+| Khó | 3/8 | 144 giây | 30 |
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| BM-01 | P1 | AUTO | 4 bản đồ: đối xứng, không vật cản hay bụi cây nào trên đường, nhà chính trống | Đạt |
+| BM-02 | P1 | AUTO | Boss to; Dậm đất báo trước bằng vòng đỏ và chỉ trúng Pokémon đứng trong vòng | Đạt |
+| BM-03 | P1 | AUTO | Hạ Boss là thắng ngay; hết giờ thì Boss thắng | Đạt |
+| BM-04 | P1 | AUTO | 24 trận bot: Boss không vào nhà của bé; Dễ thắng ≥ 75%, Vừa thắng 40–90%, Khó không dễ hơn Vừa | Đạt |
+| TT-09 | P1 | AUTO | Đấu đội: chọn Squirtle ra sân đầu thì Squirtle được tải trước và vào sân đầu tiên | Đạt |
+| NG-06 | P1 | AUTO | Liên minh: chọn Eevee ra sân đầu trên đường Liên minh | Đạt |
+| MG-06 | P1 | AUTO | Có 4 bản đồ; chọn Núi lửa thì được nhớ và dùng cho trận | Đạt |
+| MG-07 | P1 | AUTO | Săn Boss: lập đội, chọn Groudon / Dễ / 2 phút, có thanh máu Boss, đấu xong có bảng kết quả 5 dòng, trả vàng 1 lần | Đạt |
+| MG-08 | P2 | AUTO | Tab Trò chơi có banner Săn Boss | Đạt |
+| UI-22 | P1 | MANUAL (Chrome) | Xem 4 bản đồ trong trận, màn chọn Boss, trận Săn Boss với vùng đỏ và thanh máu | Hiển thị đúng, không lỗi JS |

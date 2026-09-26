@@ -2,6 +2,9 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act, within } from '@testing-library/react';
 import { MobaGame, MobaDashboard } from './MobaGame';
+import { BossGame } from './BossGame';
+import { goldForBoss } from '../../utils/gold';
+import { currentMap } from '../../utils/moba/map';
 import { GamesHub } from '../GamesHub';
 import { goldForMoba } from '../../utils/gold';
 import { sounds } from '../../utils/soundEffects';
@@ -132,4 +135,48 @@ describe('MobaGame', () => {
     expect(within(screen.getByTestId('moba-dashboard')).getAllByTestId('dash-row')).toHaveLength(2);
     localStorage.removeItem('pokescan_moba_mode');
   }, 120000);
+
+  it('MG-06 the setup offers 4 maps; the chosen one is remembered and used for the match', async () => {
+    localStorage.removeItem('pokescan_moba_map');
+    render(<MobaGame collection={COLLECTION} allowScanned onClose={vi.fn()} random={seeded(6)} />);
+    await toSetup();
+    const maps = screen.getByRole('radiogroup', { name: 'Bản đồ' });
+    expect(within(maps).getAllByRole('radio')).toHaveLength(4);
+    expect(within(maps).getByRole('radio', { name: 'Rừng xanh' })).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(within(maps).getByRole('radio', { name: 'Núi lửa' }));
+    expect(localStorage.getItem('pokescan_moba_map')).toBe('volcano');
+    fireEvent.click(screen.getByText('Vào trận!'));
+    expect(currentMap.id).toBe('volcano');
+    localStorage.removeItem('pokescan_moba_map');
+  });
+
+  it('MG-07 boss raid: build the team, choose the boss, difficulty and time, fight, then the boss dashboard and gold once', async () => {
+    const onGold = vi.fn();
+    render(<BossGame collection={COLLECTION} allowScanned onGold={onGold} onClose={vi.fn()} random={seeded(7)} />);
+    await toSetup();
+    const setup = screen.getByTestId('boss-setup');
+    const bosses = within(setup).getByRole('radiogroup', { name: 'Boss' });
+    expect(within(bosses).getAllByRole('radio')).toHaveLength(6);
+    fireEvent.click(within(bosses).getByRole('radio', { name: 'Groudon' }));
+    fireEvent.click(within(setup).getByRole('radio', { name: 'Dễ' }));
+    fireEvent.click(within(setup).getByRole('radio', { name: '2 phút' }));
+    fireEvent.click(screen.getByText('Săn Boss!'));
+    await advance(3200);
+    expect(screen.getByTestId('boss-bar')).toHaveTextContent('Groudon');
+    expect(screen.queryByTestId('moba-score')).toBeNull();
+    for (let t = 0; t < 160000 && !screen.queryByTestId('boss-dashboard'); t += 1000) await advance(1000, 250);
+    const dash = screen.getByTestId('boss-dashboard');
+    expect(within(dash).getAllByTestId('boss-row')).toHaveLength(5);
+    expect(dash).toHaveTextContent('MVP');
+    expect(onGold).toHaveBeenCalledTimes(1);
+    const won = dash.dataset.winner === 'blue';
+    if (won) expect(onGold).toHaveBeenCalledWith(goldForBoss(true, 'easy'));
+    else expect(onGold.mock.calls[0][0]).toBeGreaterThanOrEqual(10);
+  }, 160000);
+
+  it('MG-08 the Games tab has the boss raid banner', () => {
+    render(<GamesHub collection={[]} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Săn Boss' }));
+    expect(screen.getByRole('dialog', { name: 'Săn Boss' })).toBeInTheDocument();
+  });
 });

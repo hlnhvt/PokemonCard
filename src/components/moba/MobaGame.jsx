@@ -12,6 +12,9 @@ import { TeamBuilder } from '../team/TeamBuilder';
 import { GoldReward } from '../kidgames/Common';
 import { MobaMatch } from './MobaMatch';
 import { LandscapeFrame } from './LandscapeFrame';
+import { enterLandscape, leaveLandscape } from './landscape';
+import { MapPicker } from './MapPicker';
+import { readMapId } from './mapChoice';
 
 const MINUTES = [1, 2, 3, 5];
 const MINUTES_KEY = 'pokescan_moba_minutes';
@@ -70,23 +73,6 @@ function ModePicker({ size, onChange }) {
       </div>
     </div>
   );
-}
-
-async function enterLandscape() {
-  try {
-    await document.documentElement.requestFullscreen?.();
-    await window.screen?.orientation?.lock?.('landscape');
-  } catch {
-    // Not supported (iPhone, desktop): the game turns itself when the phone is upright
-  }
-}
-function leaveLandscape() {
-  try {
-    window.screen?.orientation?.unlock?.();
-    if (document.fullscreenElement) document.exitFullscreen?.();
-  } catch {
-    // ignore
-  }
 }
 
 function DashTeam({ team, result, maxDealt }) {
@@ -186,6 +172,7 @@ export function MobaGame({ collection = [], allowScanned = false, onScanned, onG
   const [screen, setScreen] = useState('build'); // build | setup | play | result
   const [team, setTeam] = useState([]);
   const [size, setSize] = useState(readMode);
+  const [mapId, setMapId] = useState(readMapId);
   const [minutes, setMinutes] = useState(readMinutes);
   const [control, setControl] = useState(0);
   const [foes, setFoes] = useState([]);
@@ -246,6 +233,7 @@ export function MobaGame({ collection = [], allowScanned = false, onScanned, onG
             blue={team.map(toFighter)}
             red={foes.map(toFighter)}
             minutes={minutes}
+            mapId={mapId}
             control={control}
             random={random}
             onEnd={finish}
@@ -321,6 +309,8 @@ export function MobaGame({ collection = [], allowScanned = false, onScanned, onG
                 ))}
               </div>
             </div>
+
+            <MapPicker value={mapId} onChange={setMapId} />
 
             <div className="rounded-2xl bg-black/30 p-3">
               <p className="text-sm font-black text-rose-300">🔴 Đội đối thủ</p>

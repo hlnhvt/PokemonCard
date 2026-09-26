@@ -2,6 +2,7 @@
 // Simple and readable: retreat when hurt, fight the nearest enemy, otherwise walk a lane.
 import { BASES, LANES_Y, CENTER, OBSTACLES } from './map';
 import { SKILLS, ULT_MAX, nearestEnemy } from './engine';
+import { insideWarning } from './boss';
 
 // Enemy bots react a bit slower and use their skills less often than allies (children)
 export const AI_SKILL = {
@@ -42,9 +43,31 @@ export function steer(f, to) {
 }
 
 /** The input for one bot this step. `memory` is a per-fighter object the caller keeps. */
+/** Boss raid: the way out of a red warning shape the fighter stands in, or null. */
+function escape(state, f) {
+  for (const w of state.telegraphs || []) {
+    if (!insideWarning(f, w)) continue;
+    if (w.shape === 'strip') {
+      const side = { x: -Math.sin(w.ang), y: Math.cos(w.ang) };
+      const s = (f.x - w.x) * side.x + (f.y - w.y) * side.y >= 0 ? 1 : -1;
+      return { x: side.x * s, y: side.y * s };
+    }
+    return norm(f.x - w.x || 1, f.y - w.y);
+  }
+  return null;
+}
+
 export function decide(state, f, memory) {
   const cfg = AI_SKILL[f.team];
   const r = state.random;
+  // Run out of a boss warning first (bots react a little late, like children)
+  if (state.boss) {
+    const out = escape(state, f);
+    if (out) {
+      memory.dodge = (memory.dodge || 0) + 1 / 60;
+      if (memory.dodge > 0.18) return { move: steer(f, { x: f.x + out.x * 100, y: f.y + out.y * 100 }), basic: true };
+    } else memory.dodge = 0;
+  }
   const home = BASES[f.team];
   const enemyBase = BASES[f.team === 'blue' ? 'red' : 'blue'];
   const inBase = Math.hypot(f.x - home.x, f.y - home.y) < home.r * 0.7;
@@ -80,6 +103,11 @@ export function decide(state, f, memory) {
     return input;
   }
 
+  // Boss raid: head for the boss wherever it is
+  if (state.boss) {
+    const boss = state.fighters.find((o) => o.boss && !o.dead);
+    if (boss) return { move: steer(f, waypoint(f, boss.x, boss.y)) };
+  }
   // Walk the lane towards the enemy base
   const lanes = LANES_FOR[f.slots] || LANES_FOR[5];
   const laneY = LANES_Y[lanes[f.idx % lanes.length]];

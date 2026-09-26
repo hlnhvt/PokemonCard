@@ -218,4 +218,22 @@ describe('TeamBattle', () => {
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(screen.queryByRole('dialog', { name: 'Đấu đội 5 vs 5' })).toBeNull();
   });
+
+  it('TT-09 after building the team the child picks who goes out first; that Pokemon leads the battle', async () => {
+    render(<TeamBattle allowScanned collection={COLLECTION} onClose={vi.fn()} random={seeded(9)} />);
+    await buildFullTeam();
+    const lead = screen.getByRole('radiogroup', { name: 'Pokémon ra sân đầu tiên' });
+    expect(within(lead).getAllByRole('radio')).toHaveLength(5);
+    expect(within(lead).getByRole('radio', { name: 'Ra sân đầu: Pikachu' })).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(within(lead).getByRole('radio', { name: 'Ra sân đầu: Squirtle' }));
+    expect(within(lead).getByRole('radio', { name: 'Ra sân đầu: Squirtle' })).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(screen.getByText('Bắt đầu trận đấu!'));
+    await advance(400);
+    // The children's Pokemon are loaded in battle order: Squirtle first, then the others in team order
+    const players = mocks.fetchBattlePokemon.mock.calls.map(([q]) => q).filter(Array.isArray).map((q) => q.find((x) => typeof x === 'string'));
+    expect(players).toEqual(['squirtle', 'pikachu', 'charmander', 'bulbasaur', 'eevee']);
+    fireEvent.click(screen.getByTestId('team-intro'));
+    await advance(400);
+    expect(screen.getByTestId('team-arena')).toHaveTextContent('Squirtle');
+  });
 });

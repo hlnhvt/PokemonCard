@@ -62,3 +62,7 @@ export function spendGold(amount) {
   if (!save(balance - cost)) return null;
   return balance - cost;
 }
+
+/** Boss raid: a win pays by difficulty; a loss still pays for the damage done (0..1 of the boss HP). */
+export const goldForBoss = (won, difficulty = 'normal', damage = 0) =>
+  won ? { easy: 35, normal: 55, hard: 80 }[difficulty] ?? 55 : 10 + Math.round(Math.max(0, Math.min(1, damage)) * 20);
