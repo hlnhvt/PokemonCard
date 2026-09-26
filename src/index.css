@@ -989,3 +989,158 @@
   .fly-away, .sound-wave, .dance-bob, .coin-spin, .coin-rain, .item-drop, .wiggle, .toy-play { animation: none; }
   .card-flip { transform: rotateY(180deg); }
 }
+
+/* ---------- 5 vs 5 team battle ---------- */
+@keyframes ballThrowPlayer {
+  0% { transform: translate(-160%, 160%) rotate(0deg) scale(0.6); opacity: 0; }
+  15% { opacity: 1; }
+  60% { transform: translate(-40%, -90%) rotate(540deg) scale(1.1); }
+  100% { transform: translate(0, 0) rotate(900deg) scale(1); opacity: 1; }
+}
+@keyframes ballThrowOpponent {
+  0% { transform: translate(160%, -120%) rotate(0deg) scale(0.6); opacity: 0; }
+  15% { opacity: 1; }
+  60% { transform: translate(40%, -70%) rotate(-540deg) scale(1.1); }
+  100% { transform: translate(0, 0) rotate(-900deg) scale(1); opacity: 1; }
+}
+.ball-throw-player { animation: ballThrowPlayer calc(0.7s * var(--battle-tempo, 1)) cubic-bezier(0.3, 0.6, 0.4, 1) forwards; }
+.ball-throw-opponent { animation: ballThrowOpponent calc(0.7s * var(--battle-tempo, 1)) cubic-bezier(0.3, 0.6, 0.4, 1) forwards; }
+
+@keyframes ballBurst {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(3.2); opacity: 0; }
+}
+.ball-burst { animation: ballBurst calc(0.6s * var(--battle-tempo, 1)) ease-out forwards; }
+
+@keyframes pokeEmerge {
+  0% { transform: scale(var(--flip, 1), 1) scale(0.05); filter: brightness(8) saturate(0); opacity: 0.6; }
+  55% { transform: scale(var(--flip, 1), 1) scale(1.15); filter: brightness(3) saturate(0.4); opacity: 1; }
+  100% { transform: scale(var(--flip, 1), 1) scale(1); filter: brightness(1) saturate(1); }
+}
+.poke-emerge { animation: pokeEmerge calc(0.75s * var(--battle-tempo, 1)) cubic-bezier(0.3, 0.9, 0.4, 1) both; }
+
+@keyframes pokeRecall {
+  0% { transform: scale(var(--flip, 1), 1) scale(1); filter: brightness(1); opacity: 1; }
+  40% { filter: brightness(2.5) sepia(1) hue-rotate(-40deg) saturate(6); }
+  100% { transform: scale(var(--flip, 1), 1) scale(0.05) translateY(40px); filter: brightness(4) sepia(1) hue-rotate(-40deg) saturate(8); opacity: 0; }
+}
+.poke-recall { animation: pokeRecall calc(0.7s * var(--battle-tempo, 1)) ease-in forwards; }
+
+@keyframes rouletteLand {
+  0% { transform: scale(1.35); filter: brightness(2.5); }
+  50% { transform: scale(0.92); filter: brightness(1.4); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+.roulette-land { animation: rouletteLand 0.5s cubic-bezier(0.3, 0.9, 0.4, 1) both; }
+@keyframes rouletteBlur {
+  0%, 100% { filter: blur(0.5px) brightness(1.1); }
+  50% { filter: blur(1.5px) brightness(1.4); }
+}
+.roulette-spin { animation: rouletteBlur 0.15s linear infinite; }
+
+@keyframes cardReveal {
+  0% { transform: perspective(900px) rotateY(180deg) scale(0.3); opacity: 0; }
+  50% { transform: perspective(900px) rotateY(20deg) scale(1.08); opacity: 1; }
+  70% { transform: perspective(900px) rotateY(-8deg) scale(1); }
+  100% { transform: perspective(900px) rotateY(0deg) scale(1); opacity: 1; }
+}
+.card-reveal { animation: cardReveal 0.9s cubic-bezier(0.3, 0.9, 0.4, 1) both; }
+@keyframes holoSweep {
+  0% { background-position: -150% 0; }
+  100% { background-position: 250% 0; }
+}
+.holo-sweep {
+  background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.65) 45%, rgba(255,255,255,0.1) 55%, transparent 70%);
+  background-size: 200% 100%;
+  animation: holoSweep 1.6s ease-in-out infinite;
+}
+@keyframes rainbowBorder {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 300% 50%; }
+}
+.rainbow-border {
+  background: linear-gradient(90deg, #f43f5e, #f59e0b, #84cc16, #06b6d4, #8b5cf6, #f43f5e);
+  background-size: 300% 100%;
+  animation: rainbowBorder 3s linear infinite;
+}
+
+@keyframes slotPop {
+  0% { transform: scale(0.2) rotate(-30deg); opacity: 0; }
+  60% { transform: scale(1.25) rotate(8deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); }
+}
+.slot-pop { animation: slotPop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+@keyframes trophyDrop {
+  0% { transform: translate(-50%, -260px) scale(0.6) rotate(-12deg); opacity: 0; }
+  60% { transform: translate(-50%, 12px) scale(1.12) rotate(4deg); opacity: 1; }
+  78% { transform: translate(-50%, -6px) scale(0.98) rotate(-2deg); }
+  100% { transform: translate(-50%, 0) scale(1) rotate(0); opacity: 1; }
+}
+.trophy-drop { animation: trophyDrop 1.2s cubic-bezier(0.3, 0.8, 0.4, 1) both; }
+@keyframes trophyGlow {
+  0%, 100% { filter: drop-shadow(0 0 10px rgba(253, 224, 71, 0.7)); }
+  50% { filter: drop-shadow(0 0 28px rgba(253, 224, 71, 1)); }
+}
+.trophy-glow { animation: trophyGlow 1.4s ease-in-out infinite; }
+
+@keyframes podiumRise {
+  0% { transform: translateY(100%); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+.podium-rise { animation: podiumRise 0.6s cubic-bezier(0.3, 0.9, 0.4, 1) both; }
+
+@keyframes spotlightSwing {
+  0%, 100% { transform: rotate(-14deg); }
+  50% { transform: rotate(14deg); }
+}
+.spotlight-swing { animation: spotlightSwing 4s ease-in-out infinite; transform-origin: top center; }
+
+@keyframes sadTilt {
+  0%, 100% { transform: rotate(-6deg) translateY(4px); }
+  50% { transform: rotate(6deg) translateY(4px); }
+}
+.sad-tilt { animation: sadTilt 2.4s ease-in-out infinite; }
+
+@keyframes arenaDrift {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.arena-drift { animation: arenaDrift 60s linear infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .roulette-spin, .holo-sweep, .rainbow-border, .trophy-glow, .spotlight-swing, .sad-tilt, .arena-drift { animation: none; }
+}
+@keyframes ambFall {
+  0% { transform: translate(0, -20px) rotate(0deg); opacity: 0; }
+  10% { opacity: var(--amb-opacity, 0.9); }
+  50% { transform: translate(var(--sway, 30px), 50%) rotate(180deg); }
+  90% { opacity: var(--amb-opacity, 0.9); }
+  100% { transform: translate(0, var(--dist, 420px)) rotate(360deg); opacity: 0; }
+}
+@keyframes ambRise {
+  0% { transform: translate(0, 0) scale(0.6); opacity: 0; }
+  15% { opacity: var(--amb-opacity, 0.9); }
+  100% { transform: translate(var(--sway, 20px), calc(var(--dist, 420px) * -1)) scale(1.1); opacity: 0; }
+}
+@keyframes ambTwinkle {
+  0%, 100% { opacity: 0.2; transform: scale(0.7); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+@keyframes shootingStar {
+  0%, 80% { transform: translate(0, 0); opacity: 0; }
+  83% { opacity: 1; }
+  100% { transform: translate(-260px, 140px); opacity: 0; }
+}
+@keyframes lavaGlow {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.95; }
+}
+.amb-fall { animation: ambFall var(--dur, 7s) linear infinite; }
+.amb-rise { animation: ambRise var(--dur, 6s) ease-out infinite; }
+.amb-twinkle { animation: ambTwinkle var(--dur, 2.4s) ease-in-out infinite; }
+.shooting-star { animation: shootingStar 6s ease-in infinite; }
+.lava-glow { animation: lavaGlow 2.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .amb-fall, .amb-rise, .amb-twinkle, .shooting-star, .lava-glow { animation: none; }
+}

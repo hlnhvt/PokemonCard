@@ -12,6 +12,10 @@ export const GOLD_REWARDS = {
   quizCorrect: 2,
 };
 
+/** 5 vs 5 team battle: a big win bonus plus 5 per Pokemon still standing; a loss still pays. */
+export const TEAM_GOLD = { win: 30, perSurvivor: 5, lose: 10 };
+export const goldForTeam = (won, survivors = 0) => (won ? TEAM_GOLD.win + TEAM_GOLD.perSurvivor * Math.max(0, survivors) : TEAM_GOLD.lose);
+
 export const goldForMatch = (result) => GOLD_REWARDS.match[result] ?? GOLD_REWARDS.match.lose;
 /** At least one star's worth, so finishing a game is always rewarded. */
 export const goldForStars = (stars) => Math.max(1, Math.round(stars)) * GOLD_REWARDS.perStar;

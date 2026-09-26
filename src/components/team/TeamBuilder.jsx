@@ -1,0 +1,282 @@
+import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import confetti from 'canvas-confetti';
+import { X, Camera, Dice5, ArrowRight } from 'lucide-react';
+import { TEAM_SIZE, borrowPokemon } from '../../utils/team/teamBattle';
+import { OPPONENT_POOL } from '../../utils/battle/opponentPool';
+import { artworkUrl } from '../../services/pokemonOnlineService';
+import { SOURCE_BADGE, memberFromCard, memberFromPool } from '../../utils/team/members';
+import { sounds } from '../../utils/soundEffects';
+import { PokeballIcon } from '../PokeballIcon';
+import { ScannerModal } from '../ScannerModal';
+
+/** One slot spinning through Pokemon like a slot machine, then landing on the lent one. */
+function RouletteSlot({ target, delay, onLanded }) {
+  const [shown, setShown] = useState(null);
+  const [landed, setLanded] = useState(false);
+  const done = useRef(onLanded);
+  useEffect(() => {
+    done.current = onLanded;
+  });
+  useEffect(() => {
+    // Fast at first, then slowing down before it stops
+    const steps = [...Array(12).fill(60), 80, 100, 130, 170, 220, 290, 380];
+    const timers = [];
+    let t = delay;
+    steps.forEach((ms, i) => {
+      t += ms;
+      timers.push(setTimeout(() => {
+        const p = OPPONENT_POOL[(i * 7 + target.name.length * 3) % OPPONENT_POOL.length];
+        setShown(artworkUrl(p.id));
+        sounds.playNote(880 + (i % 4) * 110, { duration: 0.07, volume: 0.07 });
+      }, t));
+    });
+    timers.push(setTimeout(() => {
+      setLanded(true);
+      sounds.playPop();
+      done.current?.();
+    }, t + 420));
+    return () => timers.forEach(clearTimeout);
+  }, [delay, target]);
+
+  return (
+    <div className="relative w-full h-full rounded-full bg-gradient-to-b from-amber-200 to-orange-400 overflow-hidden flex items-center justify-center" data-testid="roulette-slot">
+      {landed ? (
+        <>
+          <span className="ball-burst absolute left-1/2 top-1/2 w-10 h-10 rounded-full bg-white" />
+          <img src={target.image} alt={target.name} className="roulette-land w-[88%] h-[88%] object-contain drop-shadow" />
+        </>
+      ) : (
+        shown ? <img src={shown} alt="" className="roulette-spin w-[80%] h-[80%] object-contain opacity-90" /> : <Dice5 className="w-7 h-7 text-white animate-spin" />
+      )}
+    </div>
+  );
+}
+
+/** Full-screen celebration after a card was scanned: the card flips in, shines, then joins the team. */
+function ScanSuccess({ member, onDone }) {
+  const done = useRef(onDone);
+  useEffect(() => {
+    done.current = onDone;
+  });
+  useEffect(() => {
+    sounds.playSuccessFanfare();
+    try {
+      confetti({ particleCount: 90, spread: 80, origin: { y: 0.45 }, zIndex: 9999 });
+    } catch {
+      // decoration
+    }
+    const t = setTimeout(() => done.current(), 1900);
+    return () => clearTimeout(t);
+  }, []);
+  return createPortal(
+    <button type="button" onClick={() => done.current()} className="fixed inset-0 z-[70] flex flex-col items-center justify-center gap-4 bg-slate-950/85" data-testid="scan-success" aria-label="Tiếp tục">
+      <div className="vs-rays absolute inset-0 opacity-30" />
+      <div className="card-reveal relative w-52 h-72 p-1.5 rounded-3xl rainbow-border shadow-[0_0_60px_rgba(250,204,21,0.6)]">
+        <div className="relative w-full h-full rounded-[1.25rem] bg-gradient-to-b from-amber-100 via-white to-sky-100 overflow-hidden flex flex-col items-center justify-center">
+          <img src={member.image} alt={member.name} className="w-40 h-40 object-contain drop-shadow-xl" />
+          <span className="mt-1 text-xl font-black text-slate-800">{member.name}</span>
+          <span className="holo-sweep absolute inset-0 pointer-events-none" />
+        </div>
+      </div>
+      <p className="bubble-pop relative text-2xl font-black text-white text-center px-6">
+        ✨ Quét thành công! ✨<br />
+        <span className="text-amber-300">{member.name}</span> gia nhập đội!
+      </p>
+    </button>,
+    document.body
+  );
+}
+
+/**
+ * Building the 5 vs 5 team: scan cards (or pick Pokemon already scanned); empty places can
+ * be filled with Pokemon lent at random, shown with a slot-machine spin.
+ */
+export function TeamBuilder({ collection = [], team, setTeam, onScanned, onNext, random = Math.random }) {
+  const [scanning, setScanning] = useState(false);
+  const [success, setSuccess] = useState(null);
+  const [rolling, setRolling] = useState([]); // lent Pokemon still spinning
+  const [message, setMessage] = useState(null);
+  const landedCount = useRef(0);
+  const has = (m) => team.some((t) => t.species === m.species);
+  const busy = rolling.length > 0 || !!success;
+  const free = TEAM_SIZE - team.length;
+
+  const say = (text) => {
+    setMessage({ text, id: (message?.id || 0) + 1 });
+  };
+
+  const add = (member) => {
+    if (busy) return false;
+    if (team.length >= TEAM_SIZE) {
+      say('Đội đã đủ 5 Pokémon rồi!');
+      return false;
+    }
+    if (has(member)) {
+      say(`${member.name} đã ở trong đội rồi!`);
+      return false;
+    }
+    setTeam((list) => [...list, member]);
+    sounds.playPop();
+    return true;
+  };
+
+  const scanned = (pokemon) => {
+    setScanning(false);
+    const saved = onScanned?.(pokemon) || pokemon;
+    const member = memberFromCard(saved, 'scan');
+    if (has(member)) {
+      say(`${member.name} đã ở trong đội rồi!`);
+      return;
+    }
+    if (team.length >= TEAM_SIZE) {
+      say('Đội đã đủ 5 Pokémon rồi!');
+      return;
+    }
+    setSuccess(member);
+  };
+
+  const borrow = () => {
+    if (busy || free <= 0) return;
+    landedCount.current = 0;
+    const lent = borrowPokemon(team, free, OPPONENT_POOL, random).map(memberFromPool);
+    sounds.playEnergySurge();
+    setRolling(lent);
+  };
+
+  const landed = (total) => {
+    landedCount.current += 1;
+    if (landedCount.current < total) return;
+    setTimeout(() => {
+      setTeam((list) => [...list, ...rolling.filter((m) => !list.some((t) => t.species === m.species))].slice(0, TEAM_SIZE));
+      setRolling([]);
+      try {
+        confetti({ particleCount: 50, spread: 70, origin: { y: 0.3 }, zIndex: 9999 });
+      } catch {
+        // decoration
+      }
+    }, 500);
+  };
+
+  const remove = (i) => {
+    if (busy) return;
+    setTeam((list) => list.filter((_, j) => j !== i));
+  };
+
+  const choices = collection.map((c) => memberFromCard(c, 'owned'));
+
+  return (
+    <div className="px-4 pt-3 pb-5 space-y-4" data-testid="team-builder">
+      <div className="text-center">
+        <p className="text-2xl font-black text-white drop-shadow">Lập đội hình 5 Pokémon</p>
+        <p className="text-sm font-bold text-white/80">Quét thẻ để chọn Pokémon bé muốn. Thiếu thẻ thì hệ thống cho mượn!</p>
+      </div>
+
+      {/* The five places */}
+      <div className="grid grid-cols-5 gap-2" data-testid="team-slots">
+        {Array.from({ length: TEAM_SIZE }).map((_, i) => {
+          const m = team[i];
+          const spin = !m ? rolling[i - team.length] : null;
+          return (
+            <div key={m ? m.key : `empty-${i}`} className="flex flex-col items-center gap-1">
+              <div className={`relative w-full aspect-square rounded-full border-4 ${m ? 'border-white bg-white/90 shadow-lg' : 'border-dashed border-white/50 bg-black/20'}`}>
+                {m ? (
+                  <>
+                    <img src={m.image} alt={m.name} className="slot-pop w-full h-full object-contain p-1" />
+                    <button onClick={() => remove(i)} aria-label={`Bỏ ${m.name} khỏi đội`} className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-slate-800 text-white flex items-center justify-center shadow">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </>
+                ) : spin ? (
+                  <RouletteSlot target={spin} delay={(i - team.length) * 450} onLanded={() => landed(rolling.length)} />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <PokeballIcon className="w-[60%] h-[60%] opacity-40" />
+                  </div>
+                )}
+              </div>
+              <span className="w-full text-center text-[10px] font-black text-white truncate">{m ? m.name : spin ? '???' : `Ô ${i + 1}`}</span>
+              {m && <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black text-white ${SOURCE_BADGE[m.source].cls}`}>{SOURCE_BADGE[m.source].text}</span>}
+            </div>
+          );
+        })}
+      </div>
+
+      {message && (
+        <p key={message.id} role="alert" className="bubble-pop text-center text-sm font-black text-amber-200">
+          {message.text}
+        </p>
+      )}
+
+      <button
+        onClick={() => setScanning(true)}
+        disabled={busy || free <= 0}
+        className="w-full py-4 rounded-2xl bg-gradient-to-r from-red-500 via-rose-500 to-pink-500 text-white text-lg font-black shadow-lg flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+      >
+        <Camera className="w-6 h-6" /> Quét thẻ thêm Pokémon
+      </button>
+
+      {choices.length > 0 && (
+        <div className="rounded-2xl bg-black/25 p-3 space-y-2">
+          <p className="text-sm font-black text-white">⭐ Pokémon bé đã quét</p>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {choices.map((m) => {
+              const inTeam = has(m);
+              return (
+                <button
+                  key={m.key}
+                  onClick={() => add(m)}
+                  disabled={inTeam || busy}
+                  aria-label={`Thêm ${m.name} vào đội`}
+                  className={`shrink-0 w-20 p-1.5 rounded-2xl border-2 flex flex-col items-center active:scale-95 transition-transform ${inTeam ? 'border-emerald-400 bg-emerald-400/20 opacity-60' : 'border-white/30 bg-white/10'}`}
+                >
+                  <img src={m.image} alt="" className="w-14 h-14 object-contain" />
+                  <span className="text-[11px] font-bold text-white truncate w-full text-center">{m.name}</span>
+                  {inTeam && <span className="text-[10px] font-black text-emerald-300">Trong đội</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {free > 0 ? (
+        <button
+          onClick={borrow}
+          disabled={busy}
+          className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 text-slate-900 text-lg font-black shadow-lg flex items-center justify-center gap-2 active:scale-95 disabled:opacity-60"
+        >
+          <Dice5 className="w-6 h-6" /> Cho mượn ngẫu nhiên {free} Pokémon
+        </button>
+      ) : (
+        <button onClick={onNext} disabled={busy} className="pop-in w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xl font-black shadow-lg flex items-center justify-center gap-2 active:scale-95">
+          Chọn sàn đấu <ArrowRight className="w-6 h-6" />
+        </button>
+      )}
+
+      {scanning &&
+        createPortal(
+          <div className="fixed inset-0 z-[60] overflow-y-auto app-bg" role="dialog" aria-label="Quét thẻ thêm vào đội">
+            <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-slate-950/90 backdrop-blur">
+              <span className="text-lg font-black text-white">📷 Quét thẻ để thêm vào đội</span>
+              <button onClick={() => setScanning(false)} aria-label="Đóng quét thẻ" className="p-2 rounded-full bg-white/15 text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <ScannerModal onCardDetected={scanned} recentCards={collection} onOpenCard={(card) => { setScanning(false); add(memberFromCard(card, 'owned')); }} />
+          </div>,
+          document.body
+        )}
+      {success && (
+        <ScanSuccess
+          member={success}
+          onDone={() => {
+            const m = success;
+            setSuccess(null);
+            setTeam((list) => (list.length < TEAM_SIZE && !list.some((t) => t.species === m.species) ? [...list, m] : list));
+          }}
+        />
+      )}
+    </div>
+  );
+}

@@ -8,6 +8,7 @@ import { ShopGame } from './kidgames/ShopGame';
 import { SPORTS, findSport } from './sports';
 import { LOGIC_GAMES, findLogicGame } from './logic';
 import { PokeballIcon } from './PokeballIcon';
+import { TeamBattle } from './team/TeamBattle';
 import { artworkUrl, getCardMedia } from '../services/pokemonOnlineService';
 import { BERRY_TYPES, BERRIES } from '../utils/friendship';
 import { BerryIcon } from './BerryIcon';
@@ -48,7 +49,7 @@ function GameTile({ game, onPlay, locked }) {
  * Games tab: every game is played with one of the child's scanned Pokemon. Before the
  * first scan the games stay locked (only the silhouette quiz is open).
  */
-export function GamesHub({ collection = [], berries, onBerries, onBattleResult, onOpenCollection, onGold, onOpenShop, onScan }) {
+export function GamesHub({ collection = [], berries, onBerries, onBattleResult, onOpenCollection, onGold, onOpenShop, onScan, onTeamScan }) {
   const [selectedId, setSelectedId] = useState(collection[0]?.id || null);
   const [playing, setPlaying] = useState(null); // { section, id }
   const selected = collection.find((c) => c.id === selectedId) || collection[0] || null;
@@ -112,6 +113,26 @@ export function GamesHub({ collection = [], berries, onBerries, onBattleResult, 
         </div>
       )}
 
+      {/* 5 vs 5 team battle: open even before the first scan (cards are scanned while building the team) */}
+      <button
+        onClick={() => setPlaying({ section: 'team', id: 'team' })}
+        className="relative w-full overflow-hidden rounded-3xl p-4 text-left text-white shadow-2xl bg-gradient-to-r from-red-600 via-rose-600 to-purple-700 border-2 border-amber-300/70 active:scale-[0.98] transition-transform"
+        aria-label="Đấu đội 5 vs 5"
+      >
+        <div className="vs-rays absolute inset-0 opacity-20" />
+        <div className="relative flex items-center gap-3">
+          <span className="text-5xl drop-shadow" aria-hidden="true">🏆</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-xl font-black">Đấu đội 5 vs 5</p>
+            <p className="text-xs font-bold text-white/90">Quét thẻ lập đội, chọn sàn đấu, giành cúp vô địch!</p>
+            <div className="mt-1.5 flex gap-1">
+              {Array.from({ length: 5 }).map((_, i) => <PokeballIcon key={i} className="w-5 h-5" />)}
+            </div>
+          </div>
+          <span className="px-2 py-1 rounded-full bg-amber-300 text-slate-900 text-[11px] font-black shadow">+45 🪙</span>
+        </div>
+      </button>
+
       {SECTIONS.map((section) => (
         <section key={section.id} className="glass-panel rounded-3xl p-4 space-y-3" aria-label={section.title}>
           <h3 className="text-lg font-black text-slate-50">
@@ -141,6 +162,7 @@ export function GamesHub({ collection = [], berries, onBerries, onBattleResult, 
         </div>
       )}
 
+      {playing?.section === 'team' && <TeamBattle collection={collection} onScanned={onTeamScan} onGold={onGold} onClose={close} />}
       {selected && is('battle') && <BattleArena card={card} onClose={close} onResult={(result) => onBattleResult?.(selected.id, result)} />}
       {selected && is('cooking') && <CookingGame chef={card} onBerries={onBerries} onGold={onGold} onClose={close} />}
       {selected && is('shop') && <ShopGame shopkeeper={card} onBerries={onBerries} onGold={onGold} onClose={close} />}

@@ -515,3 +515,73 @@ Mỗi lần nhận vàng hiện thông báo "+N vàng" có đồng xu xoay. Màn
 Lỗi phát hiện và đã sửa (qua ảnh chụp Chrome):
 - Nhiều hình Pokémon lặp lại (ở Làm toán lúc sang câu trừ và ở Tiệm quà khi Meowth nói), bong bóng câu hỏi biến mất. Nguyên nhân: hai phần tử cạnh nhau dùng key dạng số trùng nhau, React giữ lại phần tử cũ. Đã thêm tiền tố cho key, gồm cả Chơi nhạc và khung Pokémon (lỗi tiềm ẩn từ trước).
 - Cờ 🇻🇳 hiện thành chữ "VN" trên Windows: thay bằng nhãn "Nghĩa:".
+
+---
+
+## 20. Đấu đội 5 vs 5 (2026-09-26)
+
+Mở từ banner "🏆 Đấu đội 5 vs 5" ở tab Trò Chơi. Banner vẫn mở được khi bé chưa có thẻ nào, vì bé có thể quét thẻ ngay trong màn lập đội.
+
+**Lập đội**
+- Có 5 ô Pokéball.
+- Nút **📷 Quét thẻ thêm Pokémon** mở màn quét thẻ.
+  - Quét thành công: thẻ holo viền cầu vồng lật ra, có vệt sáng quét qua, pháo giấy và câu "X gia nhập đội!", rồi Pokémon bay vào ô.
+  - Thẻ vừa quét cũng được lưu vào bộ sưu tập như một lần quét bình thường.
+- Pokémon đã quét trước đó có thể chạm để thêm vào đội.
+- Không cho thêm trùng Pokémon hoặc thêm quá 5 con.
+- Nút **🎲 Cho mượn ngẫu nhiên N Pokémon**: mỗi ô trống quay như máy xèng (hình Pokémon chạy nhanh rồi chậm dần, có tiếng tích tắc), dừng lại thì chớp sáng và gắn nhãn "🎲 Mượn".
+- Mỗi Pokémon có nhãn nguồn: 📷 Vừa quét / ⭐ Của bé / 🎲 Mượn. Chạm ✕ để bỏ Pokémon khỏi đội.
+
+**Sàn đấu (6 sàn)**
+
+| Sàn | Hệ được tăng sức mạnh |
+|---|---|
+| Đồng cỏ xanh | Cỏ, Côn trùng, Thường |
+| Núi lửa rực cháy | Lửa, Đất, Đá |
+| Bãi biển nắng | Nước, Bay |
+| Núi băng tuyết | Băng, Tiên |
+| Thành phố đêm | Điện, Thép, Bóng tối |
+| Vũ trụ huyền bí | Siêu linh, Rồng, Ma |
+
+- Chiêu thuộc hệ được tăng mạnh hơn ×1.2 cho cả hai đội. Nút chiêu hiện nhãn "Sân nhà ↑".
+- Mỗi sàn có cảnh nền và hạt bay riêng: lá, tàn lửa, bong bóng, tuyết, tia neon, sao và sao băng.
+- Thẻ sàn cho biết sàn đó "Hợp với N Pokémon của bé".
+
+**Trận đấu**
+- Màn đối đầu: hai đội chạy vào từ hai bên, chữ VS bật ra, hiện tên sàn và các hệ được tăng.
+- Mỗi lần đổi Pokémon: Pokéball bay theo đường cong và xoay, bung ra chớp sáng theo màu hệ, Pokémon lớn lên từ vùng sáng, có tiếng kêu.
+- Pokémon gục thì đỏ lên và thu nhỏ về bóng, có dòng "HẠ GỤC!".
+- Hàng đội hình trên và dưới cho thấy máu, ai đang đấu, ai đã gục (✕).
+- Máu giữ nguyên qua các cặp đấu. Năng lượng Tuyệt Kỹ Liên Hoàn dùng chung cho cả đội.
+- Pokémon của bé gục thì bé tự chọn Pokémon tiếp theo, có nhãn "Khắc hệ!". Đối thủ ra lần lượt.
+- Tất cả hiệu ứng chiêu, số sát thương, rung màn hình, chí mạng, siêu hiệu quả giống trận 1v1. Có nút 🐢 Chậm / 🐇 Nhanh.
+
+**Kết thúc**
+- **Thắng:** lễ trao cúp.
+  - Sân khấu có tia sáng xoay và hai đèn rọi lắc qua lại.
+  - Bục 5 bậc xếp theo số lần hạ gục; bậc giữa cao nhất có nhãn ⭐ MVP.
+  - Cúp vàng rơi xuống, nảy nhẹ rồi phát sáng.
+  - Pháo giấy nổ 3 đợt, số vàng đếm tăng dần.
+- **Thua:** cả đội lắc lư buồn bã, kèm lời khuyên chọn chiêu và sàn đấu.
+- **Vàng:** thắng được 30 + 5 cho mỗi Pokémon còn đứng (tối đa 55), thua được 10. Vàng chỉ trao 1 lần mỗi trận.
+
+**Cân bằng** (mô phỏng 180 trận, 3 đội mạnh/trung bình/yếu, cả 6 sàn):
+- Đối thủ của đấu đội mạnh hơn trận 1v1: cấp độ ×1.16, vì bé có 5 Pokémon, được cộng thêm máu và năng lượng liên hoàn dùng chung.
+- Không có hệ số này thì bé thắng 100%.
+- Với hệ số này: chạm chiêu bất kỳ thắng khoảng 61%, chọn chiêu mạnh thắng khoảng 82%.
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| TB-01, TB-02 | P1 | AUTO | Mượn ngẫu nhiên không trùng, không lấy Pokémon đã có trong đội; đội đối thủ có 5 con khác nhau và không trùng đội bé | Đúng |
+| AR-01 | P1 | AUTO | 6 sàn; chiêu cùng hệ mạnh hơn ×1.2 và có nhãn; mã sàn lạ thì về sàn mặc định | Đúng |
+| TM-01..05 | P1 | AUTO | Hạ gục thì đối thủ tiếp theo vào, máu và năng lượng liên hoàn giữ nguyên; bé chọn Pokémon tiếp theo (chỉ con còn đứng); mọi trận đều kết thúc, đếm KO và MVP đúng; tỉ lệ thắng trong khoảng mong muốn; công thức vàng | Đúng |
+| TT-01..03 | P1 | AUTO | Lập đội từ Pokémon đã quét; không thêm trùng; vòng quay mượn 3 ô có tiếng rồi gắn nhãn; bỏ Pokémon; quét thẻ trong màn lập đội thì có màn chúc mừng, lưu vào bộ sưu tập, gắn nhãn "Vừa quét"; 6 sàn, chọn được, có dòng "Hợp với" | Đúng |
+| TT-04 | P1 | AUTO | Cả trận thắng: tải 10 Pokémon, màn đối đầu, ném Pokéball, đấu hết 5 đối thủ, lễ trao cúp (VÔ ĐỊCH, MVP, cúp), vàng trao 1 lần đúng số, "Đấu trận mới" quay về lập đội | Đúng |
+| TT-05 | P1 | AUTO | Trận thua: hiện màn chọn Pokémon tiếp theo, kết thúc thua, vẫn có 10 vàng | Đúng |
+| TT-06, TT-07 | P1 | AUTO | Lỗi tải dữ liệu có nút Thử lại; tab Trò Chơi mở đấu đội cả khi chưa có thẻ; Esc đóng | Đúng |
+| UI-11 | P1 | MANUAL (Chrome, dữ liệu PokeAPI thật) | Lập đội, vòng quay mượn, chọn sàn, màn đối đầu, ném Pokéball, trận đấu trên sàn Núi lửa, chọn Pokémon tiếp theo, lễ trao cúp | Không lỗi JS |
+
+Lỗi phát hiện qua ảnh chụp Chrome và đã sửa:
+- Nền sàn đấu không hiện ở màn đối đầu, trận đấu và lễ trao cúp. Nguyên nhân 1: class `relative` thắng `absolute` theo thứ tự CSS của Tailwind. Nguyên nhân 2: lệnh sửa đầu tiên vô tình ghi ký tự backspace vào regex. Đã sửa cả hai.
+- Nút Tuyệt Kỹ Liên Hoàn trông như bấm được trong lúc chọn Pokémon tiếp theo: giờ mờ đi.
+- Bot trong test chọn chiêu thứ 4 cho Pokémon hệ Thường chỉ có 3 chiêu dự phòng. Giao diện không bị lỗi này vì chỉ hiện đúng số chiêu có.

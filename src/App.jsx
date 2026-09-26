@@ -142,6 +142,13 @@ export function App() {
     setGoldToast({ amount: n, id: Date.now() + Math.random() });
   };
 
+  // A card scanned while building a 5 vs 5 team is a real scan: it joins the collection
+  const handleTeamScan = (pokemon) => {
+    const saved = saveCardToPokedex(pokemon);
+    setCollection(getSavedCollection());
+    return saved || pokemon;
+  };
+
   const handleBuy = (itemId) => {
     const outcome = buyItem(itemId);
     setGold(outcome.gold);
@@ -300,6 +307,7 @@ export function App() {
             onGold={handleGold}
             onOpenShop={() => setShowShop(true)}
             onScan={() => setCurrentTab('scan')}
+            onTeamScan={handleTeamScan}
           />
         )}
       </main>
