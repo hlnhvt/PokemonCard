@@ -60,6 +60,16 @@ export function App() {
     return () => clearTimeout(timer);
   }, [notice]);
 
+  // A new page (tab or Pokemon) always starts at the top, never half-way down
+  const pageKey = `${currentTab}:${activePokemon?.id ?? activePokemon?.name ?? ''}`;
+  useEffect(() => {
+    try {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    } catch {
+      // jsdom / old browsers
+    }
+  }, [pageKey]);
+
   // Species the child has scanned (unlocked); every other Pokemon stays locked
   const ownedSpecies = new Set(collection.flatMap((c) => [c.id, (c.speciesName || '').toLowerCase()]).filter(Boolean));
   const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);

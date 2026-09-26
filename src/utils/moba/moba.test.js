@@ -146,4 +146,31 @@ describe('arena engine', () => {
     expect(blueWins / N).toBeGreaterThanOrEqual(0.5);
     expect(blueWins / N).toBeLessThanOrEqual(0.9);
   }, 60000); // 16 simulated 3-minute matches
+
+  it('MB-07 1 vs 1 and 3 vs 3: spawns centred in front of the base, bots spread over the lanes, matches run and end', () => {
+    expect(spawnPoint('blue', 0, 1).y).toBeCloseTo(BASES.blue.y);
+    expect(spawnPoint('red', 1, 3).y).toBeCloseTo(BASES.red.y);
+    expect(spawnPoint('blue', 0, 3).y).toBeLessThan(BASES.blue.y);
+    expect(spawnPoint('blue', 2, 3).y).toBeGreaterThan(BASES.blue.y);
+    for (const n of [1, 3]) {
+      let kills = 0;
+      let blueWins = 0;
+      for (let i = 0; i < 6; i++) {
+        const { s, moved } = botMatch(i + 11, { duration: 120, blue: BLUE.slice(0, n), red: RED.slice(0, n) });
+        expect(s.over).toBe(true);
+        expect(s.fighters).toHaveLength(n * 2);
+        for (const fi of s.fighters) {
+          expect(fi.slots).toBe(n);
+          expect(moved[fi.id]).toBeGreaterThan(400);
+        }
+        const sum = summary(s);
+        expect(sum.rows).toHaveLength(n * 2);
+        kills += s.score.blue + s.score.red;
+        if (s.winner === 'blue') blueWins++;
+      }
+      console.info(`[arena] ${n} vs ${n}: ${(kills / 6).toFixed(1)} knock-outs per 2-minute match, blue wins ${blueWins}/6`);
+      expect(kills / 6).toBeGreaterThan(n === 1 ? 2.5 : 7);
+      expect(blueWins).toBeGreaterThanOrEqual(3);
+    }
+  }, 60000);
 });

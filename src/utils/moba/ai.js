@@ -9,7 +9,8 @@ export const AI_SKILL = {
   red: { castChance: 0.82, retreat: 0.3 },
 };
 const AGGRO = 430;
-const LANE_OF = [0, 1, 2, 1, 0]; // five fighters over three lanes (two in the middle)
+// Lanes by team size: alone in the middle, three one per lane, five with two in the middle
+const LANES_FOR = { 1: [1], 3: [0, 1, 2], 5: [0, 1, 2, 1, 0] };
 
 const norm = (x, y) => {
   const l = Math.hypot(x, y) || 1;
@@ -80,7 +81,8 @@ export function decide(state, f, memory) {
   }
 
   // Walk the lane towards the enemy base
-  const laneY = LANES_Y[LANE_OF[f.idx % LANE_OF.length]];
+  const lanes = LANES_FOR[f.slots] || LANES_FOR[5];
+  const laneY = LANES_Y[lanes[f.idx % lanes.length]];
   const dir = f.team === 'blue' ? 1 : -1;
   const ahead = f.x * dir < (CENTER.x + dir * 300) * dir ? { x: CENTER.x + dir * 300, y: laneY } : { x: enemyBase.x - dir * 170, y: enemyBase.y + (laneY - 450) * 0.5 };
   return { move: steer(f, waypoint(f, ahead.x, ahead.y)) };

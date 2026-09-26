@@ -115,6 +115,18 @@ describe('App flows', () => {
     expect(screen.getByText('Quét thẻ Pokémon')).toBeInTheDocument();
   });
 
+  it('AP-18 changing page scrolls back to the top', () => {
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    render(<App />);
+    scrollTo.mockClear();
+    fireEvent.click(collectionTab());
+    expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }));
+    scrollTo.mockClear();
+    fireEvent.click(screen.getAllByRole('button', { name: 'Trò Chơi' })[0]);
+    expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ top: 0 }));
+    scrollTo.mockRestore();
+  });
+
   it('AP-06 mute toggle keeps the sound manager in sync', () => {
     render(<App />);
     const before = sounds.isMuted();

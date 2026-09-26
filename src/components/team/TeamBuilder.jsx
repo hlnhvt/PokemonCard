@@ -96,7 +96,7 @@ function ScanSuccess({ member, onDone }) {
  * allowScanned (a parent setting): Pokemon scanned before may be picked. When off, every
  * Pokemon must be scanned with the camera now (the scanner's shortcuts to saved cards are refused).
  */
-export function TeamBuilder({ collection = [], allowScanned = false, team, setTeam, onScanned, onNext, random = Math.random }) {
+export function TeamBuilder({ collection = [], allowScanned = false, team, setTeam, onScanned, onNext, random = Math.random, size = TEAM_SIZE }) {
   const [scanning, setScanning] = useState(false);
   const [success, setSuccess] = useState(null);
   const [rolling, setRolling] = useState([]); // lent Pokemon still spinning
@@ -104,7 +104,7 @@ export function TeamBuilder({ collection = [], allowScanned = false, team, setTe
   const landedCount = useRef(0);
   const has = (m) => team.some((t) => t.species === m.species);
   const busy = rolling.length > 0 || !!success;
-  const free = TEAM_SIZE - team.length;
+  const free = size - team.length;
 
   const say = (text) => {
     setMessage({ text, id: (message?.id || 0) + 1 });
@@ -112,8 +112,8 @@ export function TeamBuilder({ collection = [], allowScanned = false, team, setTe
 
   const add = (member) => {
     if (busy) return false;
-    if (team.length >= TEAM_SIZE) {
-      say('Đội đã đủ 5 Pokémon rồi!');
+    if (team.length >= size) {
+      say(`Đội đã đủ ${size} Pokémon rồi!`);
       return false;
     }
     if (has(member)) {
@@ -133,8 +133,8 @@ export function TeamBuilder({ collection = [], allowScanned = false, team, setTe
       say(`${member.name} đã ở trong đội rồi!`);
       return;
     }
-    if (team.length >= TEAM_SIZE) {
-      say('Đội đã đủ 5 Pokémon rồi!');
+    if (team.length >= size) {
+      say(`Đội đã đủ ${size} Pokémon rồi!`);
       return;
     }
     setSuccess(member);
@@ -152,7 +152,7 @@ export function TeamBuilder({ collection = [], allowScanned = false, team, setTe
     landedCount.current += 1;
     if (landedCount.current < total) return;
     setTimeout(() => {
-      setTeam((list) => [...list, ...rolling.filter((m) => !list.some((t) => t.species === m.species))].slice(0, TEAM_SIZE));
+      setTeam((list) => [...list, ...rolling.filter((m) => !list.some((t) => t.species === m.species))].slice(0, size));
       setRolling([]);
       try {
         confetti({ particleCount: 50, spread: 70, origin: { y: 0.3 }, zIndex: 9999 });
@@ -172,7 +172,7 @@ export function TeamBuilder({ collection = [], allowScanned = false, team, setTe
   return (
     <div className="px-4 pt-3 pb-5 space-y-4" data-testid="team-builder">
       <div className="text-center">
-        <p className="text-2xl font-black text-white drop-shadow">Lập đội hình 5 Pokémon</p>
+        <p className="text-2xl font-black text-white drop-shadow">Lập đội hình {size} Pokémon</p>
         <p className="text-sm font-bold text-white/80">Quét thẻ để chọn Pokémon bé muốn. Thiếu thẻ thì hệ thống cho mượn!</p>
         {!allowScanned && collection.length > 0 && (
           <p className="mt-1 text-xs font-bold text-amber-200" data-testid="scan-required">📷 Mỗi Pokémon cần được quét thẻ lại (phụ huynh có thể đổi trong ⚙️ Cài đặt)</p>
@@ -180,8 +180,8 @@ export function TeamBuilder({ collection = [], allowScanned = false, team, setTe
       </div>
 
       {/* The five places */}
-      <div className="grid grid-cols-5 gap-2" data-testid="team-slots">
-        {Array.from({ length: TEAM_SIZE }).map((_, i) => {
+      <div className="grid gap-2 mx-auto" style={{ gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`, maxWidth: `${Math.max(28, size * 20)}%` }} data-testid="team-slots">
+        {Array.from({ length: size }).map((_, i) => {
           const m = team[i];
           const spin = !m ? rolling[i - team.length] : null;
           return (
@@ -288,7 +288,7 @@ export function TeamBuilder({ collection = [], allowScanned = false, team, setTe
           onDone={() => {
             const m = success;
             setSuccess(null);
-            setTeam((list) => (list.length < TEAM_SIZE && !list.some((t) => t.species === m.species) ? [...list, m] : list));
+            setTeam((list) => (list.length < size && !list.some((t) => t.species === m.species) ? [...list, m] : list));
           }}
         />
       )}

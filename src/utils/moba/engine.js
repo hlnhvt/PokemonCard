@@ -1,4 +1,4 @@
-// Real-time 5 vs 5 arena (MOBA style). Pure simulation, stepped with a fixed dt;
+// Real-time 1 vs 1, 3 vs 3 or 5 vs 5 arena (MOBA style). Pure simulation, stepped with a fixed dt;
 // the component draws `state` and plays `state.events`. The child controls one fighter,
 // every other fighter is driven by utils/moba/ai.js.
 import { BASES, collide, blocked, insideObstacle } from './map';
@@ -62,15 +62,16 @@ export function statsFor(power, types) {
   return { maxHp, atk, speed };
 }
 
-function makeFighter(m, team, idx) {
+function makeFighter(m, team, idx, slots) {
   const types = (m.types || ['normal']).map((t) => String(t).toLowerCase());
   const s = statsFor(m.power || 400, types);
   const base = BASES[team];
-  const spawn = spawnPoint(team, idx);
+  const spawn = spawnPoint(team, idx, slots);
   return {
     id: `${team}${idx}`,
     team,
     idx,
+    slots, // team size (1, 3 or 5)
     name: m.name,
     image: m.image,
     types,
@@ -101,19 +102,24 @@ function makeFighter(m, team, idx) {
   };
 }
 
-export function spawnPoint(team, idx) {
+// Fewer Pokemon means fewer fights: hits land harder so small matches stay lively
+export const PACE = { 1: 1.8, 3: 1.25, 5: 1 };
+
+/** Where fighter `idx` of a team of `slots` starts and respawns: a fan in front of the base. */
+export function spawnPoint(team, idx, slots = 5) {
   const b = BASES[team];
-  const a = ((idx - 2) / 2) * 0.9;
+  const a = ((idx - (slots - 1) / 2) / 2) * 0.9;
   return { x: b.x + (team === 'blue' ? 1 : -1) * 35 * Math.cos(a), y: b.y + 70 * Math.sin(a) };
 }
 
 /**
- * blue / red: 5 members { name, image, types, power }. duration in seconds.
+ * blue / red: 1, 3 or 5 members each { name, image, types, power }. duration in seconds.
  * The child starts controlling blue fighter `control`.
  */
 export function createMatch({ blue, red, duration = 180, random = Math.random, control = 0 }) {
   return {
-    fighters: [...blue.map((m, i) => makeFighter(m, 'blue', i)), ...red.map((m, i) => makeFighter(m, 'red', i))],
+    fighters: [...blue.map((m, i) => makeFighter(m, 'blue', i, blue.length)), ...red.map((m, i) => makeFighter(m, 'red', i, red.length))],
+    pace: PACE[Math.min(blue.length, red.length)] || 1,
     projectiles: [],
     events: [],
     time: 0,
@@ -150,7 +156,7 @@ function damage(state, attacker, target, mult) {
   // Immunities would be frustrating in a fast game: they count as "not very effective"
   const eff = Math.max(0.5, effectiveness(attacker.types[0], target.types));
   const crit = state.random() < 0.08;
-  const amount = Math.max(1, Math.round(attacker.atk * mult * eff * TEAM_POWER[attacker.team] * (0.9 + state.random() * 0.2) * (crit ? 1.6 : 1)));
+  const amount = Math.max(1, Math.round(attacker.atk * mult * eff * TEAM_POWER[attacker.team] * (state.pace || 1) * (0.9 + state.random() * 0.2) * (crit ? 1.6 : 1)));
   const dealt = Math.min(target.hp, amount);
   target.hp -= dealt;
   attacker.dealt += dealt;
@@ -341,7 +347,7 @@ export function step(state, dt, inputs = {}) {
     if (f.dead) {
       f.respawnIn -= dt;
       if (f.respawnIn <= 0) {
-        const p = spawnPoint(f.team, f.idx);
+        const p = spawnPoint(f.team, f.idx, f.slots);
         Object.assign(f, { dead: false, hp: f.maxHp, x: p.x, y: p.y, knock: null, combo: null, cd: { basic: 0, s1: 0, s2: 0, blink: f.cd.blink } });
         state.events.push({ kind: 'respawn', who: f.id, x: f.x, y: f.y });
       }

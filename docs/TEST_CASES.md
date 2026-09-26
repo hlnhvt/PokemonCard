@@ -860,3 +860,38 @@ Lỗi phát hiện qua ảnh chụp Chrome và đã sửa:
 |---|---|---|---|---|
 | MB-01..06, MG-01..02 | P1 | AUTO | Test Đấu trường hiện có vẫn đạt (sự kiện 'cast' có thêm vị trí và hướng, 'pop' có thêm id đạn) | Đạt |
 | UI-18 | P1 | MANUAL (Chrome) | Lần lượt điều khiển Charizard, Pikachu, Lapras, Gengar, Lucario và bấm chiêu 1, chiêu 2 | Mỗi hệ một kiểu hiệu ứng riêng, không lỗi JS |
+
+---
+
+## 29. Đấu trường: chọn chế độ 1 vs 1, 3 vs 3 hoặc 5 vs 5 (2026-09-26)
+
+- **Chọn chế độ** ở đầu màn lập đội: 3 thẻ 🥊 1 vs 1 (Đấu tay đôi), ⚔️ 3 vs 3 (Đội nhỏ), 🏟️ 5 vs 5 (Đội đầy đủ). Mặc định 5 vs 5 và lần sau mở lại vẫn nhớ chế độ đã chọn (`pokescan_moba_mode`).
+- Số ô trong đội, lời "Lập đội hình N Pokémon", số Pokémon cho mượn và số đối thủ đều theo chế độ. Đổi sang chế độ nhỏ hơn thì chỉ giữ lại những Pokémon đầu tiên.
+- Tiêu đề hiện chế độ đang chơi (ví dụ "1 vs 1"). Ở 1 vs 1 không hiện lời nhắc đổi Pokémon.
+- **Trong trận:**
+  - Pokémon đứng thành hình quạt trước nhà chính, căn giữa theo số lượng.
+  - Máy chia đường: 1 Pokémon đi đường giữa; 3 Pokémon mỗi Pokémon một đường; 5 Pokémon như cũ.
+- **Nhịp trận (`PACE`):** ít Pokémon thì ít va chạm, nên đòn mạnh hơn (1 vs 1: ×1,8; 3 vs 3: ×1,25; 5 vs 5: ×1). Kết quả mô phỏng bot, trận 2 phút:
+  - 1 vs 1: trung bình 3,7 lần hạ gục; đội bé thắng 5/6 trận.
+  - 3 vs 3: trung bình 11,5 lần hạ gục; đội bé thắng 6/6 trận.
+  - 5 vs 5 không đổi: 56% thắng, khoảng 23 lần hạ gục mỗi trận 3 phút.
+  - Mẫu chỉ 6 trận cho mỗi chế độ nên tỉ lệ thắng mới là ước lượng.
+- Công thức vàng không đổi (thắng / hòa / thua + số lần hạ gục, tối đa 20).
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| MB-07 | P1 | AUTO | Vị trí xuất phát căn giữa cho 1 và 3 Pokémon; 6 trận bot mỗi chế độ 1 vs 1 và 3 vs 3: kết thúc đúng giờ, ai cũng rời nhà, bảng tổng kết có đủ 2 hoặc 6 dòng, đủ số lần hạ gục, đội bé thắng ít nhất 3/6 | Đạt |
+| MG-05 | P1 | AUTO | Chọn 3 vs 3 thì còn 3 ô (đội đã đủ, không còn nút cho mượn); chọn 1 vs 1 thì còn 1 ô, chế độ được lưu; đối thủ có 1 Pokémon; đấu xong bảng tổng kết có 2 dòng | Đạt |
+| MB-05, MG-01, MG-02 | P1 | AUTO | 5 vs 5 vẫn như cũ | Đạt |
+| UI-19 | P2 | MANUAL (Chrome) | Thẻ chọn chế độ, lập đội 3 và 1 Pokémon, màn chuẩn bị 1 vs 1, trận 1 vs 1 | Hiển thị đúng, không lỗi JS |
+
+---
+
+## 30. Chuyển trang luôn về đầu trang (2026-09-26)
+
+- Khi chuyển tab (Quét thẻ, Bộ sưu tập, Trò chơi) hoặc mở trang chi tiết của một Pokémon khác, trang luôn cuộn về đầu ngay lập tức, không còn dừng ở giữa trang như trước.
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| AP-18 | P1 | AUTO | Bấm tab Bộ sưu tập rồi tab Trò chơi | Mỗi lần chuyển đều gọi cuộn về vị trí 0 |
+| UI-20 | P1 | MANUAL (Chrome) | Cuộn xuống 1200px rồi bấm Bộ sưu tập; cuộn xuống 600px rồi mở Charizard | Cả hai lần vị trí cuộn đều là 0 |

@@ -24,6 +24,54 @@ const readMinutes = () => {
   }
 };
 
+// Team size: a duel, three a side or the full five
+const MODES = [
+  { size: 1, label: '1 vs 1', hint: 'Đấu tay đôi', icon: '🥊' },
+  { size: 3, label: '3 vs 3', hint: 'Đội nhỏ', icon: '⚔️' },
+  { size: 5, label: '5 vs 5', hint: 'Đội đầy đủ', icon: '🏟️' },
+];
+const MODE_KEY = 'pokescan_moba_mode';
+const readMode = () => {
+  try {
+    const n = Number(localStorage.getItem(MODE_KEY));
+    return MODES.some((m) => m.size === n) ? n : 5;
+  } catch {
+    return 5;
+  }
+};
+
+function ModePicker({ size, onChange }) {
+  return (
+    <div className="px-4 pt-3" data-testid="moba-mode">
+      <p className="text-sm font-black text-white/90">Chọn chế độ</p>
+      <div className="mt-1.5 grid grid-cols-3 gap-2" role="radiogroup" aria-label="Chế độ đấu">
+        {MODES.map((m) => {
+          const on = m.size === size;
+          return (
+            <button
+              key={m.size}
+              role="radio"
+              aria-checked={on}
+              aria-label={m.label}
+              onClick={() => onChange(m.size)}
+              className={`relative overflow-hidden flex flex-col items-center py-2 rounded-2xl border-2 transition-all active:scale-95 ${on ? 'border-amber-300 bg-gradient-to-b from-amber-400 to-orange-500 text-slate-900 scale-105 shadow-lg shadow-amber-500/30' : 'border-white/20 bg-white/10 text-white'}`}
+            >
+              <span className="text-2xl leading-none" aria-hidden="true">{m.icon}</span>
+              <span className="mt-1 text-base font-black leading-none">{m.label}</span>
+              <span className={`text-[10px] font-bold ${on ? 'text-slate-900/75' : 'text-white/60'}`}>{m.hint}</span>
+              <span className="mt-1 flex gap-0.5" aria-hidden="true">
+                {Array.from({ length: m.size }).map((_, i) => (
+                  <span key={i} className={`w-1.5 h-1.5 rounded-full ${on ? 'bg-slate-900/70' : 'bg-sky-300'}`} />
+                ))}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 async function enterLandscape() {
   try {
     await document.documentElement.requestFullscreen?.();
@@ -130,13 +178,14 @@ export function MobaDashboard({ result, gold, onReplay, onClose }) {
 }
 
 /**
- * "Đấu trường Pokémon": 5 vs 5 in real time on a landscape map. Build a team (scan cards,
+ * "Đấu trường Pokémon": 1 vs 1, 3 vs 3 or 5 vs 5 in real time on a landscape map. Build a team (scan cards,
  * missing places lent), pick the match length and who to control, then fight. When the
  * time is up the team with more knock-outs wins; a dashboard shows everyone's stats.
  */
 export function MobaGame({ collection = [], allowScanned = false, onScanned, onGold, onClose, random = Math.random }) {
   const [screen, setScreen] = useState('build'); // build | setup | play | result
   const [team, setTeam] = useState([]);
+  const [size, setSize] = useState(readMode);
   const [minutes, setMinutes] = useState(readMinutes);
   const [control, setControl] = useState(0);
   const [foes, setFoes] = useState([]);
@@ -149,6 +198,17 @@ export function MobaGame({ collection = [], allowScanned = false, onScanned, onG
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose, screen]);
   useEffect(() => () => leaveLandscape(), []);
+
+  const changeMode = (n) => {
+    setSize(n);
+    setTeam((list) => list.slice(0, n));
+    setControl((c) => Math.min(c, n - 1));
+    try {
+      localStorage.setItem(MODE_KEY, String(n));
+    } catch {
+      // ignore
+    }
+  };
 
   const toSetup = () => {
     const players = team.map((m) => ({ ...m, bst: m.power, types: m.types?.length ? m.types : ['normal'] }));
@@ -224,12 +284,14 @@ export function MobaGame({ collection = [], allowScanned = false, onScanned, onG
       <div className="relative flex flex-col w-full h-full sm:h-auto sm:max-h-full max-w-md overflow-y-auto sm:rounded-3xl sm:border-4 border-white/70 shadow-2xl bg-gradient-to-b from-emerald-900 via-teal-900 to-slate-950">
         <div className="sticky top-0 z-40 flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-emerald-600 via-teal-600 to-sky-700 shadow-lg">
           <span className="shrink-0 text-white font-black">🗺️ Đấu trường Pokémon</span>
+          <span className="px-2 py-0.5 rounded-full bg-white/20 text-white text-xs font-black" data-testid="moba-mode-chip">{size} vs {size}</span>
           <button onClick={onClose} aria-label="Đóng đấu trường" className="ml-auto p-1.5 rounded-full bg-white/20 text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {screen === 'build' && <TeamBuilder collection={collection} allowScanned={allowScanned} team={team} setTeam={setTeam} onScanned={onScanned} onNext={toSetup} random={random} />}
+        {screen === 'build' && <ModePicker size={size} onChange={changeMode} />}
+        {screen === 'build' && <TeamBuilder collection={collection} allowScanned={allowScanned} team={team} setTeam={setTeam} onScanned={onScanned} onNext={toSetup} random={random} size={size} />}
 
         {screen === 'setup' && (
           <div className="px-4 pt-3 pb-5 space-y-4" data-testid="moba-setup">
@@ -248,8 +310,8 @@ export function MobaGame({ collection = [], allowScanned = false, onScanned, onG
 
             <div>
               <p className="text-lg font-black text-white">Bé điều khiển Pokémon nào?</p>
-              <p className="text-xs font-bold text-white/70">Trong trận có thể đổi bất cứ lúc nào bằng cách chạm ảnh đồng đội.</p>
-              <div className="mt-2 grid grid-cols-5 gap-2" role="radiogroup" aria-label="Pokémon điều khiển">
+              {team.length > 1 && <p className="text-xs font-bold text-white/70">Trong trận có thể đổi bất cứ lúc nào bằng cách chạm ảnh đồng đội.</p>}
+              <div className="mt-2 grid gap-2 mx-auto" style={{ gridTemplateColumns: `repeat(${team.length}, minmax(0, 1fr))`, maxWidth: `${Math.max(28, team.length * 20)}%` }} role="radiogroup" aria-label="Pokémon điều khiển">
                 {team.map((m, i) => (
                   <button key={m.key} role="radio" aria-checked={control === i} aria-label={m.name} onClick={() => setControl(i)} className={`flex flex-col items-center p-1 rounded-2xl border-2 ${control === i ? 'border-amber-300 bg-amber-300/20' : 'border-white/20 bg-white/5'}`}>
                     <img src={m.image} alt="" className="w-12 h-12 object-contain" />
@@ -262,7 +324,7 @@ export function MobaGame({ collection = [], allowScanned = false, onScanned, onG
 
             <div className="rounded-2xl bg-black/30 p-3">
               <p className="text-sm font-black text-rose-300">🔴 Đội đối thủ</p>
-              <div className="mt-1 flex justify-between">
+              <div className={`mt-1 flex ${foes.length > 1 ? 'justify-between' : 'justify-center'}`}>
                 {foes.map((f) => (
                   <span key={f.key} className="flex flex-col items-center w-14">
                     <img src={f.image} alt={f.name} className="w-12 h-12 object-contain" />

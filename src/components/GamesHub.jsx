@@ -175,7 +175,7 @@ export function GamesHub({ collection = [], berries, onBerries, onBattleResult, 
           <span className="text-5xl drop-shadow" aria-hidden="true">🗺️</span>
           <div className="flex-1 min-w-0">
             <p className="text-xl font-black">Đấu trường Pokémon</p>
-            <p className="text-xs font-bold text-white/90">5 vs 5 trên bản đồ, điều khiển Pokémon, tung chiêu liên hoàn! (màn ngang)</p>
+            <p className="text-xs font-bold text-white/90">1 vs 1, 3 vs 3 hoặc 5 vs 5 trên bản đồ, điều khiển Pokémon, tung chiêu liên hoàn! (màn ngang)</p>
           </div>
           <span className="px-2 py-1 rounded-full bg-amber-300 text-slate-900 text-[11px] font-black shadow">+60 🪙</span>
         </div>

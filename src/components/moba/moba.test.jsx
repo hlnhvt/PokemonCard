@@ -106,4 +106,30 @@ describe('MobaGame', () => {
     expect(screen.getByRole('dialog', { name: 'Đấu trường Pokémon' })).toBeInTheDocument();
     expect(screen.getByTestId('team-builder')).toBeInTheDocument();
   });
+
+  it('MG-05 modes: 3 vs 3 and 1 vs 1 change the team size, the opponents and the match', async () => {
+    localStorage.removeItem('pokescan_moba_mode');
+    render(<MobaGame collection={COLLECTION} allowScanned onGold={vi.fn()} onClose={vi.fn()} random={seeded(5)} />);
+    const modes = screen.getByRole('radiogroup', { name: 'Chế độ đấu' });
+    expect(within(modes).getByRole('radio', { name: '5 vs 5' })).toHaveAttribute('aria-checked', 'true');
+    for (const c2 of COLLECTION) fireEvent.click(screen.getByLabelText(`Thêm ${c2.name} vào đội`));
+    // 3 vs 3: three places, already full
+    fireEvent.click(within(modes).getByRole('radio', { name: '3 vs 3' }));
+    expect(screen.getByTestId('team-slots').children).toHaveLength(3);
+    expect(screen.getByText('Lập đội hình 3 Pokémon')).toBeInTheDocument();
+    expect(screen.queryByText(/Cho mượn ngẫu nhiên/)).toBeNull();
+    // 1 vs 1: the team is cut to the first Pokemon
+    fireEvent.click(within(modes).getByRole('radio', { name: '1 vs 1' }));
+    expect(screen.getByTestId('team-slots').children).toHaveLength(1);
+    expect(screen.getByTestId('moba-mode-chip')).toHaveTextContent('1 vs 1');
+    expect(localStorage.getItem('pokescan_moba_mode')).toBe('1');
+    fireEvent.click(screen.getByRole('button', { name: 'Chọn sàn đấu' }));
+    const setup = screen.getByTestId('moba-setup');
+    expect(within(setup).getByText('🔴 Đội đối thủ').parentElement.querySelectorAll('img')).toHaveLength(1);
+    fireEvent.click(screen.getByRole('radio', { name: '1 phút' }));
+    fireEvent.click(screen.getByText('Vào trận!'));
+    for (let t = 0; t < 120000 && !screen.queryByTestId('moba-dashboard'); t += 1000) await advance(1000, 250);
+    expect(within(screen.getByTestId('moba-dashboard')).getAllByTestId('dash-row')).toHaveLength(2);
+    localStorage.removeItem('pokescan_moba_mode');
+  }, 120000);
 });
