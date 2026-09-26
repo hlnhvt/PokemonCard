@@ -58,7 +58,7 @@ export function GamesHub({ collection = [], berries, onBerries, onBattleResult, 
   const [playing, setPlaying] = useState(null); // { section, id }
   const selected = collection.find((c) => c.id === selectedId) || collection[0] || null;
   const locked = !selected;
-  const player = selected ? { name: selected.name, image: playerImage(selected) } : null;
+  const player = selected ? { name: selected.name, image: playerImage(selected), types: selected.types } : null;
   const card = selected ? { ...selected, fallbackImage: playerImage(selected) } : null;
   const close = () => setPlaying(null);
   const rank = selected ? rankOf(selected) : null;

@@ -159,7 +159,7 @@ describe('GamesHub', () => {
     render(<GamesHub collection={[makeCard()]} onOpenShop={onOpenShop} />);
     const logic = screen.getByRole('region', { name: '🧠 Trò chơi trí tuệ' });
     for (const t of ['Thoát mê cung', 'Làm toán', 'Học tiếng Anh', 'Nhớ thứ tự', 'Chơi nhạc']) expect(within(logic).getByLabelText(t)).toBeEnabled();
-    expect(within(screen.getByRole('region', { name: '🏆 Thi đấu thể thao' })).getAllByRole('button')).toHaveLength(4);
+    expect(within(screen.getByRole('region', { name: '🏆 Thi đấu thể thao' })).getAllByRole('button')).toHaveLength(7);
     fireEvent.click(screen.getByText('🎁 Tiệm quà'));
     expect(onOpenShop).toHaveBeenCalled();
   });

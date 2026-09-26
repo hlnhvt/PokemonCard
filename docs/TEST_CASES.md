@@ -895,3 +895,47 @@ Lỗi phát hiện qua ảnh chụp Chrome và đã sửa:
 |---|---|---|---|---|
 | AP-18 | P1 | AUTO | Bấm tab Bộ sưu tập rồi tab Trò chơi | Mỗi lần chuyển đều gọi cuộn về vị trí 0 |
 | UI-20 | P1 | MANUAL (Chrome) | Cuộn xuống 1200px rồi bấm Bộ sưu tập; cuộn xuống 600px rồi mở Charizard | Cả hai lần vị trí cuộn đều là 0 |
+
+---
+
+## 31. Ba trò chơi mới: Đào vàng, Bắn trúng đích, Đèn xanh đèn đỏ (2026-09-26)
+
+Cả 3 trò nằm trong nhóm "🏆 Thi đấu thể thao" (tab Trò chơi và trang chi tiết Pokémon). Thưởng quả mọng và vàng theo thắng / hòa / thua như các trận thể thao khác.
+
+**⛏️ Đào vàng** (`utils/sports/goldminer.js`, `GoldMinerGame.jsx`, cần hạng Bạc)
+- Móc câu đung đưa dưới Pokémon; chạm màn hình để thả móc. Móc gắp món đầu tiên chạm phải và kéo về: món càng nặng kéo càng chậm (vàng to, đá to).
+- Các món: vàng nhỏ / vừa / to, đá nhỏ / to, kim cương, túi bí ẩn (30–700), Diglett chạy qua lại (từ cửa 3 có con cầm kim cương).
+- 🧨 Thuốc nổ: phá món đang kéo để móc về nhanh (mỗi cửa được thêm 1 thuốc nổ).
+- 5 cửa, mỗi cửa 40 giây. Mục tiêu tiền cộng dồn: 700 / 1800 / 3700 / 6200 / 9400. Vàng to và kim cương nằm sâu. Cửa sau nhiều đá hơn.
+- Kết quả: qua cả 5 cửa = thắng, qua 2–4 cửa = hòa, dưới 2 cửa = thua.
+- Hiệu ứng: bầu trời có mây trôi, lòng đất nhiều lớp, vàng lấp lánh, kim cương sáng, bụi đất khi gắp, số tiền bay lên, pháo hoa khi qua cửa, vụ nổ thuốc nổ.
+
+**🎯 Bắn trúng đích** (`utils/sports/archery.js`, `ArcheryGame.jsx`, cần hạng Vàng)
+- Pokémon của bé và 1 đối thủ thay phiên nhau bắn, mỗi bên 5 lượt. Chạm giữ để ngắm (tâm ngắm nằm phía trên ngón tay và hơi rung), thả tay để bắn.
+- Gió đẩy chiêu lệch sang một bên (mũi tên và độ mạnh gió hiện ở trên). Bia nhỏ dần qua từng lượt và trượt qua lại từ lượt 3.
+- Điểm theo vòng: tâm 10 điểm, ra ngoài 1 điểm, trượt bia 0 điểm. Tổng điểm cao hơn thì thắng.
+- Chiêu bay theo đúng hệ của Pokémon (lửa, nước, sét, lá...), dùng chung hiệu ứng với Đấu trường. Trúng bia có nổ hình sao, bia rung, điểm bật lên, "HỒNG TÂM!" khi được 10.
+
+**🦑 Đèn xanh, đèn đỏ** (`utils/sports/redlight.js`, `RedLightGame.jsx`, cần hạng Bạc)
+- Bé và 5 Pokémon khác cùng chạy về đích. Giữ nút "GIỮ ĐỂ CHẠY" (hoặc phím Space / ↑) để chạy khi quản trò Jigglypuff quay lưng hát.
+- Khi nó quay lại (có 0,55 giây báo trước) thì phải buông tay. Còn cử động sau 0,28 giây là bị loại.
+- Đèn xanh ngắn dần về cuối trận. Đối thủ đôi khi phản ứng chậm và bị loại (tia sáng đỏ từ mắt quản trò, dấu ✖).
+- Kết quả: về nhất = thắng, về đích sau = hòa, bị loại hoặc hết 60 giây = thua.
+
+**Cân bằng đo bằng mô phỏng:**
+
+| Trò | Kiểu người chơi mô phỏng | Kết quả |
+|---|---|---|
+| Đào vàng | Ngắm món đáng giá nhất | trung bình qua 4,8/5 cửa |
+| Đào vàng | Bấm bừa không ngắm | trung bình qua 1 cửa |
+| Bắn trúng đích | Ngắm giữa bia, bù một nửa sức gió | thắng 70%, hòa 10% |
+| Đèn xanh đèn đỏ | Buông tay 0,15 giây sau khi quản trò bắt đầu quay | thắng 77%, không lần nào bị loại |
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| GM-01..04 | P1 | AUTO | Mục tiêu tăng dần, món không chồng nhau, vàng to nằm sâu; gắp, kéo chậm, thuốc nổ; người chơi cẩn thận qua ≥ 4 cửa, bấm bừa qua ít cửa hơn | Đạt |
+| AR-01..03 | P1 | AUTO | Điểm theo vòng; bia nhỏ dần và trượt; thay phiên 5 lượt; gió; bé thắng 45–85% | Đạt |
+| RL-01..03 | P1 | AUTO | Cử động khi đèn đỏ thì bị loại, đứng im kịp thì an toàn; chu kỳ đèn; dừng đúng lúc thường thắng, không dừng thì bị loại | Đạt |
+| NG3-00..04 | P1 | AUTO | Có trong danh sách và có hạng; giao diện Đào vàng, Bắn trúng đích, Đèn xanh đèn đỏ chơi hết trận và trả vàng đúng 1 lần | Đạt |
+| GH-04 | P1 | AUTO | Nhóm Thi đấu thể thao có 7 trò | Đạt |
+| UI-21 | P1 | MANUAL (Chrome) | Chơi thử cả 3 trò | Hiển thị đúng, không lỗi JS |

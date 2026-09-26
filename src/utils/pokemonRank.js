@@ -30,9 +30,12 @@ export const GAME_RANK = {
   memory: 2,
   music: 2,
   rhythm: 2,
+  goldminer: 2,
+  redlight: 2,
   battle: 3,
   bowling: 3,
   penalty: 3,
+  archery: 3,
   basketball: 4,
   racing: 4,
 };

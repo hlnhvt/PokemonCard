@@ -668,7 +668,7 @@ export function PokemonCardDetail({
 
       {extra && (() => {
         const Game = (extra.kind === 'sport' ? findSport(extra.id) : findLogicGame(extra.id)).Component;
-        return <Game player={{ name: pokemon.name, image: buddyImage }} onBerries={onBerries} onGold={onGold} onClose={() => setExtra(null)} />;
+        return <Game player={{ name: pokemon.name, image: buddyImage, types: pokemon.types }} onBerries={onBerries} onGold={onGold} onClose={() => setExtra(null)} />;
       })()}
 
       {isBattling && savedItem && (
