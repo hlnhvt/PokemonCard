@@ -69,6 +69,10 @@ describe('MobaGame', () => {
     expect(arena().dataset.control).toBe('blue1');
     fireEvent.pointerDown(screen.getByTestId('skill-s2'));
     await advance(300);
+    // Flash: then the button shows its 10 s cooldown
+    fireEvent.pointerDown(screen.getByTestId('skill-blink'));
+    await advance(300);
+    expect(screen.getByTestId('skill-blink').textContent).toMatch(/10|9/);
     // Keyboard works too
     fireEvent.keyDown(window, { code: 'KeyD' });
     await advance(500);

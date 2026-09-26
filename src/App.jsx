@@ -17,6 +17,7 @@ import { fetchPokemonOnline } from './services/pokemonOnlineService';
 import { sounds } from './utils/soundEffects';
 import { rollShiny } from './utils/shiny';
 import { applyTheme, getInitialTheme } from './utils/theme';
+import { PokeballIcon } from './components/PokeballIcon';
 
 export function App() {
   const [currentTab, setCurrentTab] = useState('scan'); // 'scan' | 'collection' | 'games' | 'detail'
@@ -339,9 +340,14 @@ export function App() {
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-30 sm:hidden">
           <button
             onClick={() => setCurrentTab('scan')}
-            className="flex items-center space-x-2 px-5 py-3 rounded-full bg-gradient-to-r from-red-600 to-rose-600 text-white font-bold text-xs shadow-2xl shadow-red-600/50 border border-white/20 active:scale-95"
+            aria-label="Quét thẻ mới"
+            className="group relative flex items-center gap-2.5 pl-1.5 pr-5 py-1.5 rounded-full bg-gradient-to-r from-red-600 via-rose-500 to-orange-500 text-white font-black text-sm shadow-[0_8px_24px_rgba(225,29,72,0.55)] border-2 border-white/60 active:scale-95 transition-transform"
           >
-            <span>Quét thẻ mới</span>
+            <span className="scan-ping absolute left-1.5 top-1.5 w-10 h-10 rounded-full bg-white/40" aria-hidden="true" />
+            <span className="relative flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-inner">
+              <PokeballIcon className="w-8 h-8 group-active:rotate-180 transition-transform duration-300" />
+            </span>
+            <span className="relative tracking-wide drop-shadow">Quét thẻ mới</span>
           </button>
         </div>
       )}

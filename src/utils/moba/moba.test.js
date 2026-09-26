@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createMatch, step, act, summary, statsFor, fighterById, RESPAWN_TIME, ULT_MAX, spawnPoint } from './engine';
 import { decide, waypoint, steer } from './ai';
-import { OBSTACLES, BUSHES, WORLD, BASES, collide, inRiver, blocked, BRIDGES, RIVER } from './map';
+import { OBSTACLES, BUSHES, WORLD, BASES, collide, blocked, CENTER } from './map';
 import { OPPONENT_POOL } from '../battle/opponentPool';
 import { seeded } from '../../test/seeded';
 
@@ -32,21 +32,20 @@ function botMatch(seed, { duration = 180, blue = BLUE, red = RED, dt = 1 / 30 } 
 }
 
 describe('arena map', () => {
-  it('MB-01 the map is mirrored; bases and bridges are free; the river blocks except on bridges', () => {
+  it('MB-01 the map is mirrored with no river; bases are free; trees and rocks block', () => {
     for (const o of OBSTACLES) expect(OBSTACLES.some((m) => Math.abs(m.x - (WORLD.w - o.x)) < 0.01 && m.y === o.y && m.kind === o.kind)).toBe(true);
     expect(BUSHES.length % 2).toBe(0);
     for (const b of Object.values(BASES)) for (const o of OBSTACLES) expect(Math.hypot(o.x - b.x, o.y - b.y)).toBeGreaterThan(b.r * 0.9 + o.r * 0.5);
-    for (const y of BRIDGES) expect(inRiver(RIVER.x, y)).toBe(false);
-    expect(inRiver(RIVER.x, 300)).toBe(true);
-    const e = collide({ x: RIVER.x - 10, y: 300, r: 20 });
-    expect(e.x).toBeLessThan(RIVER.x - RIVER.half);
+    // The middle of the lanes is open ground now (nothing pushes a Pokemon back there)
+    for (const y of [170, 450, 730]) expect(collide({ x: CENTER.x, y, r: 20 })).toMatchObject({ x: CENTER.x, y });
+    const rock = OBSTACLES.find((o) => o.x === CENTER.x);
+    const e = collide({ x: rock.x + 5, y: rock.y, r: 20 });
+    expect(Math.hypot(e.x - rock.x, e.y - rock.y)).toBeGreaterThanOrEqual(20 + rock.r * 0.85 - 0.01);
     expect(blocked(OBSTACLES[0].x - 100, OBSTACLES[0].y, OBSTACLES[0].x + 100, OBSTACLES[0].y)).toBe(true);
   });
 
-  it('MB-02 bots go round the river by a bridge and round trees', () => {
-    const f = { x: 500, y: 300, r: 20 };
-    const w = waypoint(f, 1100, 300);
-    expect(BRIDGES).toContain(w.y);
+  it('MB-02 bots walk straight across the open middle and round trees', () => {
+    expect(waypoint({ x: 500, y: 300, r: 20 }, 1100, 300)).toEqual({ x: 1100, y: 300 });
     const d = steer({ x: OBSTACLES[5].x - 70, y: OBSTACLES[5].y, r: 20 }, { x: OBSTACLES[5].x + 200, y: OBSTACLES[5].y });
     expect(Math.abs(d.y)).toBeGreaterThan(0.1); // turns aside instead of walking into the tree
   });
@@ -95,6 +94,32 @@ describe('arena engine', () => {
     expect(foe.dead).toBe(false);
     expect(foe.hp).toBe(foe.maxHp);
     expect(Math.hypot(foe.x - spawnPoint('red', 0).x, foe.y - spawnPoint('red', 0).y)).toBeLessThan(40);
+  });
+
+  it('MB-06 skills 1 and 2 are ready again after 0.5 s; flash teleports and waits 10 s', () => {
+    const s = createMatch({ blue: BLUE, red: RED, duration: 60, random: seeded(2) });
+    const me = fighterById(s, 'blue0');
+    Object.assign(me, { x: 400, y: 450 });
+    act(s, me, { cast: 's1' });
+    expect(me.cd.s1).toBeCloseTo(0.5, 5);
+    for (let t = 0; t < 0.52; t += 1 / 60) step(s, 1 / 60, {});
+    expect(me.cd.s1).toBe(0);
+    expect(act(s, me, { cast: 's2' })).toBe(true);
+    expect(me.cd.s2).toBeCloseTo(0.5, 5);
+    // Flash to the right
+    s.events.length = 0;
+    const x0 = me.x;
+    expect(act(s, me, { move: { x: 1, y: 0 }, cast: 'blink' })).toBe(true);
+    expect(me.x - x0).toBeCloseTo(170, 0);
+    expect(s.events.find((e) => e.kind === 'blink')).toMatchObject({ who: 'blue0' });
+    expect(act(s, me, { move: { x: 1, y: 0 }, cast: 'blink' })).toBe(false);
+    for (let t = 0; t < 10.05; t += 1 / 60) step(s, 1 / 60, {});
+    expect(me.cd.blink).toBe(0);
+    // Never lands inside a tree
+    const tree = OBSTACLES.find((o) => o.kind === 'tree');
+    Object.assign(me, { x: tree.x - 170, y: tree.y });
+    act(s, me, { move: { x: 1, y: 0 }, cast: 'blink' });
+    expect(Math.hypot(me.x - tree.x, me.y - tree.y)).toBeGreaterThanOrEqual(me.r + tree.r * 0.85 - 0.01);
   });
 
   it('MB-05 bot matches end on time with plenty of action, nobody gets stuck at home, and the children\'s team usually wins', () => {

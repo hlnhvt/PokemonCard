@@ -2,9 +2,8 @@
 // Everything on the left half is mirrored on the right, so both teams get the same map.
 
 export const WORLD = { w: 1600, h: 900 };
-export const RIVER = { x: 800, half: 40 };
-export const BRIDGES = [170, 450, 730]; // y of the three bridges = the three lanes
-export const BRIDGE_HALF = 58;
+export const CENTER = { x: 800, y: 450 };
+export const LANES_Y = [170, 450, 730]; // the three dirt lanes
 export const BASES = {
   blue: { x: 115, y: 450, r: 105 },
   red: { x: WORLD.w - 115, y: 450, r: 105 },
@@ -50,13 +49,16 @@ const BUSHES_LEFT = [
 ];
 
 const mirror = (o) => ({ ...o, x: WORLD.w - o.x });
-export const OBSTACLES = [...LEFT, ...LEFT.map(mirror)];
+// Two rocks in the middle, between the lanes (on the mirror line, so not mirrored)
+const MIDDLE = [
+  { x: CENTER.x, y: 305, r: 30, kind: 'rock' },
+  { x: CENTER.x, y: 595, r: 30, kind: 'rock' },
+];
+export const OBSTACLES = [...LEFT, ...LEFT.map(mirror), ...MIDDLE];
 export const BUSHES = [...BUSHES_LEFT, ...BUSHES_LEFT.map(mirror)];
 
-export const onBridge = (y) => BRIDGES.some((b) => Math.abs(y - b) < BRIDGE_HALF);
-export const inRiver = (x, y) => Math.abs(x - RIVER.x) < RIVER.half && !onBridge(y);
 
-/** Push a circle (x, y, r) out of trees, rocks, the river and the map edge. Mutates `e`. */
+/** Push a circle (x, y, r) out of trees, rocks and the map edge. Mutates `e`. */
 export function collide(e) {
   for (const o of OBSTACLES) {
     const dx = e.x - o.x;
@@ -64,21 +66,22 @@ export function collide(e) {
     const min = e.r + o.r * 0.85;
     const d2 = dx * dx + dy * dy;
     if (d2 < min * min) {
-      const d = Math.sqrt(d2) || 0.01;
-      e.x = o.x + (dx / d) * min;
-      e.y = o.y + (dy / d) * min;
+      const d = Math.sqrt(d2);
+      // Exactly on the centre: push out sideways rather than getting stuck inside
+      const [ux, uy] = d > 0.001 ? [dx / d, dy / d] : [0, 1];
+      e.x = o.x + ux * min;
+      e.y = o.y + uy * min;
     }
-  }
-  if (Math.abs(e.x - RIVER.x) < RIVER.half + e.r * 0.5 && !onBridge(e.y)) {
-    // Out of the water, back to the bank the Pokemon came from
-    e.x = e.x < RIVER.x ? RIVER.x - RIVER.half - e.r * 0.5 : RIVER.x + RIVER.half + e.r * 0.5;
   }
   e.x = Math.max(e.r, Math.min(WORLD.w - e.r, e.x));
   e.y = Math.max(e.r, Math.min(WORLD.h - e.r, e.y));
   return e;
 }
 
-/** Does a straight shot from a to b fly through a tree or rock? (the river does not block shots) */
+/** Is a circle (x, y, r) overlapping a tree or rock? */
+export const insideObstacle = (x, y, r) => OBSTACLES.some((o) => Math.hypot(x - o.x, y - o.y) < r + o.r * 0.85);
+
+/** Does a straight shot from a to b fly through a tree or rock? */
 export function blocked(ax, ay, bx, by, pad = 4) {
   for (const o of OBSTACLES) {
     const vx = bx - ax;
@@ -92,5 +95,3 @@ export function blocked(ax, ay, bx, by, pad = 4) {
   return false;
 }
 
-/** Nearest bridge y for crossing the river. */
-export const nearestBridge = (y) => BRIDGES.reduce((best, b) => (Math.abs(b - y) < Math.abs(best - y) ? b : best), BRIDGES[0]);

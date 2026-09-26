@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { PAIR_LEVELS, createBoard, flipCard, hideMiss, pairStars } from './pairs';
 import { RHYTHM_SONGS, makeChart, createRun, tapLane, sweepMisses, accuracy, rhythmStars, laneOf, LANES, WINDOWS } from './rhythm';
-import { GYMS, LEAGUE, createLeague, recordGym, goldForGym } from '../league';
+import { GYMS, LEAGUE, createLeague, recordGym, goldForGym, arenaForGym, aceOf } from '../league';
 import { seeded } from '../../test/seeded';
 
 describe('memory pairs', () => {
@@ -97,6 +97,15 @@ describe('league', () => {
     for (let i = 1; i < LEAGUE.length; i++) expect(LEAGUE[i].level).toBeGreaterThan(LEAGUE[i - 1].level);
     expect(new Set(GYMS.map((g) => g.type)).size).toBe(8);
     expect(goldForGym(8)).toBeGreaterThan(goldForGym(7));
+    // 5 vs 5: every gym has 5 different Pokemon, the ace last, and a ground that suits its type
+    for (const g of LEAGUE) {
+      expect(g.team).toHaveLength(5);
+      expect(new Set(g.team).size).toBe(5);
+      expect(aceOf(g)).toBe(g.team[4]);
+    }
+    expect(arenaForGym(GYMS[6]).id).toBe('volcano');
+    expect(arenaForGym(GYMS[1]).id).toBe('ocean');
+    expect(arenaForGym(GYMS[4]).id).toBe('stadium');
   });
 
   it('LE-02 a loss stays at the gym; wins collect badges until champion', () => {

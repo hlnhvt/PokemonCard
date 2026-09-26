@@ -17,6 +17,53 @@ const KEYS = { ArrowLeft: 0, ArrowDown: 1, ArrowUp: 2, ArrowRight: 3, d: 0, f: 1
 
 const laneX = (lane) => LANE_W * (lane + 0.5);
 
+// A bold arrow (shaft + head) pointing right in a 24 x 24 box; rotated per lane
+const ARROW_PATH = 'M3 10.2h10.2V5.4L21 12l-7.8 6.6v-4.8H3z';
+const arrowShape = typeof Path2D === 'function' ? new Path2D(ARROW_PATH) : null;
+
+function drawArrow(ctx, x, y, size, rot, fill, stroke) {
+  if (!arrowShape) return;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate((rot * Math.PI) / 180);
+  ctx.scale(size / 24, size / 24);
+  ctx.translate(-12, -12);
+  ctx.lineJoin = 'round';
+  if (stroke) {
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = 3;
+    ctx.stroke(arrowShape);
+  }
+  ctx.fillStyle = fill;
+  ctx.fill(arrowShape);
+  ctx.restore();
+}
+
+/** Round glassy pad with a glowing ring in the lane colour and a vector arrow. */
+function Pad({ lane, pressed, onTap }) {
+  const { color, rot, name } = LANE_INFO[lane];
+  return (
+    <button
+      onPointerDown={(e) => {
+        e.preventDefault();
+        onTap(lane);
+      }}
+      aria-label={`Làn ${lane + 1} (${name})`}
+      className={`relative mx-auto w-[70px] h-[70px] rounded-full p-[3px] touch-none select-none transition-transform duration-100 ${pressed ? 'scale-90' : 'active:scale-90'}`}
+      style={{
+        background: `conic-gradient(from 210deg, ${color}, #ffffffcc, ${color}, ${color}88, ${color})`,
+        boxShadow: pressed ? `0 0 28px 8px ${color}` : `0 0 14px 2px ${color}88, 0 6px 14px rgba(0,0,0,0.45)`,
+      }}
+    >
+      <span className="flex w-full h-full items-center justify-center rounded-full" style={{ background: `radial-gradient(circle at 32% 26%, rgba(255,255,255,0.35), rgba(30,27,75,0.92) 58%, rgba(15,12,40,0.98))` }}>
+        <svg viewBox="0 0 24 24" className="w-9 h-9 drop-shadow-[0_2px_3px_rgba(0,0,0,0.6)]" style={{ transform: `rotate(${rot}deg)` }} aria-hidden="true">
+          <path d={ARROW_PATH} fill={color} stroke="#ffffff" strokeWidth="1.2" strokeLinejoin="round" />
+        </svg>
+      </span>
+    </button>
+  );
+}
+
 /**
  * "Pokémon nhảy theo nhạc": notes fall in 4 lanes; tap the lane when a note reaches the
  * ring. Every hit plays the song's own note and makes the Pokemon dance; combos grow.
@@ -26,6 +73,7 @@ export function RhythmGame({ player, onClose, onGold }) {
   const getCtx = useCanvas(canvasRef, W, H);
   const [screen, setScreen] = useState('pick'); // pick | play | done
   const [ui, setUi] = useState({ combo: 0, score: 0, judge: null, run: null });
+  const [pressed, setPressed] = useState(-1);
   const game = useRef(null);
   const paid = useRef(false);
   const later = useLater();
@@ -43,6 +91,8 @@ export function RhythmGame({ player, onClose, onGold }) {
     const g = game.current;
     if (!g || screen !== 'play') return;
     g.flash[lane] = 1;
+    setPressed(lane);
+    later(() => setPressed((p) => (p === lane ? -1 : p)), 120);
     const { state, judgement, note } = tapLane(g.run, lane, g.t);
     if (!judgement) {
       sounds.playNote(NOTES[lane * 2].freq, { duration: 0.2, volume: 0.08 });
@@ -131,11 +181,8 @@ export function RhythmGame({ player, onClose, onGold }) {
       ctx.arc(laneX(l), RING_Y, 30 + g.flash[l] * 6, 0, Math.PI * 2);
       ctx.stroke();
       ctx.shadowBlur = 0;
-      ctx.font = '26px system-ui, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.globalAlpha = 0.55;
-      ctx.fillText(LANE_INFO[l].arrow, laneX(l), RING_Y);
+      ctx.globalAlpha = 0.45 + g.flash[l] * 0.55;
+      drawArrow(ctx, laneX(l), RING_Y, 30, LANE_INFO[l].rot, LANE_INFO[l].color);
       ctx.globalAlpha = 1;
     }
     // Falling notes (with a trail)
@@ -158,14 +205,12 @@ export function RhythmGame({ player, onClose, onGold }) {
       ctx.arc(x, y, 24, 0, Math.PI * 2);
       ctx.fill();
       ctx.shadowBlur = 0;
-      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
       ctx.beginPath();
-      ctx.arc(x - 7, y - 8, 6, 0, Math.PI * 2);
+      ctx.arc(x - 7, y - 8, 7, 0, Math.PI * 2);
       ctx.fill();
-      ctx.font = '22px system-ui, sans-serif';
-      ctx.fillText(LANE_INFO[n.lane].arrow, x, y + 1);
+      drawArrow(ctx, x, y, 28, LANE_INFO[n.lane].rot, '#ffffff', 'rgba(0,0,0,0.25)');
     }
-    ctx.textBaseline = 'alphabetic';
     updateParticles(ctx, g.particles, dt);
   }, screen === 'play');
 
@@ -238,11 +283,9 @@ export function RhythmGame({ player, onClose, onGold }) {
               </span>
             )}
           </div>
-          <div className="grid grid-cols-4 gap-2" data-testid="rhythm-pads">
+          <div className="grid grid-cols-4 gap-2 py-1" data-testid="rhythm-pads">
             {LANE_INFO.map((l, i) => (
-              <button key={i} onPointerDown={(e) => { e.preventDefault(); tap(i); }} aria-label={`Làn ${i + 1}`} className="py-4 rounded-2xl text-3xl shadow-lg active:scale-90 border-b-4 border-black/30" style={{ background: `linear-gradient(180deg, ${l.color}, ${l.color}bb)` }}>
-                {l.arrow}
-              </button>
+              <Pad key={i} lane={i} pressed={pressed === i} onTap={tap} />
             ))}
           </div>
         </div>

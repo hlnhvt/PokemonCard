@@ -103,27 +103,41 @@ describe('RhythmGame', () => {
   });
 });
 
-describe('LeagueGame', () => {
-  const data = (name, s) => ({ key: name, name: name[0].toUpperCase() + name.slice(1), id: 25, types: ['electric'], stats: { hp: s, attack: s, defense: s, spAttack: s, spDefense: s, speed: s }, moves: fallbackMoves(['electric']), image: `${name}.png` });
+describe('LeagueGame (5 vs 5)', () => {
+  const COLLECTION = ['pikachu', 'charmander', 'squirtle', 'bulbasaur', 'eevee'].map((id, i) => ({ id, name: id[0].toUpperCase() + id.slice(1), speciesName: id, pokedexNumber: String(i + 1), types: ['Normal'], fallbackImage: `${id}.png` }));
+  const data = (name, s) => ({ key: name, name: name[0].toUpperCase() + name.slice(1), id: 25, types: ['normal'], stats: { hp: s, attack: s, defense: s, spAttack: s, spDefense: s, speed: s }, moves: fallbackMoves(['normal']), image: `${name}.png` });
+  const isPlayer = (q) => Array.isArray(q) || typeof q === 'object';
 
-  async function fight() {
-    for (let t = 0; t < 200000 && dialog().dataset.phase !== 'won' && dialog().dataset.phase !== 'lost'; t += 300) {
-      const d = dialog();
-      if (d.dataset.phase === 'choose') fireEvent.click(within(d).getAllByRole('button').find((b) => b.textContent.includes('Sức mạnh')));
-      await advance(300, 300);
-    }
-    await advance(2200, 200);
+  async function buildTeam() {
+    for (const c2 of COLLECTION) fireEvent.click(screen.getByLabelText(`Thêm ${c2.name} vào đội`));
+    fireEvent.click(screen.getByRole('button', { name: 'Chọn sàn đấu' }));
   }
 
-  it('NG-04 winning every gym collects 9 badges and gold, then the champion ceremony', async () => {
-    mocks.fetchBattlePokemon.mockImplementation(async (q) => (typeof q === 'object' ? data('pikachu', 200) : data(String(q), 20)));
+  /** Play a team battle: first move every time, first Pokemon when asked to switch. */
+  async function fight() {
+    for (let t = 0; t < 400000 && !screen.queryByTestId('league-badge') && !screen.queryByTestId('league-lost') && !screen.queryByTestId('league-champion'); t += 300) {
+      const arena = screen.queryByTestId('team-arena');
+      if (arena?.dataset.phase === 'choose') fireEvent.click(within(arena).getAllByRole('button').find((b) => b.textContent.includes('Sức mạnh')));
+      else if (arena?.dataset.phase === 'switch') fireEvent.click(within(screen.getByTestId('switch-picker')).getAllByRole('button')[0]);
+      await advance(300, 300);
+    }
+  }
+
+  it('NG-04 a team of 5 beats every gym team of 5: 9 badges, gold each time, the champion ceremony', async () => {
+    mocks.fetchBattlePokemon.mockImplementation(async (q) => (isPlayer(q) ? data('pikachu', 220) : data(String(q), 20)));
     const onGold = vi.fn();
-    render(<LeagueGame card={{ id: 'pikachu', name: 'Pikachu', pokedexNumber: '025' }} player={PLAYER} onGold={onGold} onClose={vi.fn()} random={seeded(3)} />);
+    render(<LeagueGame collection={COLLECTION} allowScanned onGold={onGold} onClose={vi.fn()} random={seeded(3)} />);
+    await buildTeam();
     expect(screen.getByTestId('league-road')).toBeInTheDocument();
-    fireEvent.click(screen.getByText('Thách đấu'));
+    expect(within(screen.getByLabelText('Đội của nhà thi đấu')).getAllByRole('img')).toHaveLength(5);
+    fireEvent.click(screen.getByRole('button', { name: 'Thách đấu' }));
     for (let i = 0; i < LEAGUE.length; i++) {
-      await advance(3000);
-      expect(mocks.fetchBattlePokemon).toHaveBeenLastCalledWith(LEAGUE[i].ace);
+      await advance(400);
+      // The gym's own 5 Pokemon were loaded, the ace last
+      const loaded = mocks.fetchBattlePokemon.mock.calls.map(([q]) => q).filter((q) => typeof q === 'string').slice(-5);
+      expect(loaded).toEqual(LEAGUE[i].team);
+      expect(screen.getByTestId('team-intro')).toHaveTextContent(LEAGUE[i].name);
+      fireEvent.click(screen.getByTestId('team-intro'));
       await fight();
       if (i < LEAGUE.length - 1) {
         expect(screen.getByTestId('league-badge')).toBeInTheDocument();
@@ -134,19 +148,26 @@ describe('LeagueGame', () => {
     expect(onGold).toHaveBeenCalledTimes(LEAGUE.length);
     expect(onGold).toHaveBeenLastCalledWith(goldForGym(8));
     expect(screen.getByTestId('badge-case').getAttribute('aria-label')).toBe('Huy hiệu 9/9');
-  }, 120000);
+  }, 240000);
 
-  it('NG-05 a lost gym can be tried again right away', async () => {
-    mocks.fetchBattlePokemon.mockImplementation(async (q) => (typeof q === 'object' ? data('pikachu', 10) : data(String(q), 250)));
+  it('NG-05 a lost gym can be tried again; scanned Pokemon need the parent setting', async () => {
+    mocks.fetchBattlePokemon.mockImplementation(async (q) => (isPlayer(q) ? data('pikachu', 8) : data(String(q), 250)));
     const onGold = vi.fn();
-    render(<LeagueGame card={{ id: 'pikachu', name: 'Pikachu', pokedexNumber: '025' }} player={PLAYER} onGold={onGold} onClose={vi.fn()} random={seeded(4)} />);
-    fireEvent.click(screen.getByText('Thách đấu'));
-    await advance(3000);
+    const { unmount } = render(<LeagueGame collection={COLLECTION} onGold={onGold} onClose={vi.fn()} random={seeded(4)} />);
+    // Setting off: scanning is required, the saved Pokemon are not offered
+    expect(screen.queryByLabelText('Thêm Pikachu vào đội')).toBeNull();
+    expect(screen.getByTestId('scan-required')).toBeInTheDocument();
+    unmount();
+    render(<LeagueGame collection={COLLECTION} allowScanned onGold={onGold} onClose={vi.fn()} random={seeded(4)} />);
+    await buildTeam();
+    fireEvent.click(screen.getByRole('button', { name: 'Thách đấu' }));
+    await advance(400);
+    fireEvent.click(screen.getByTestId('team-intro'));
     await fight();
     expect(screen.getByTestId('league-lost')).toBeInTheDocument();
     expect(onGold).not.toHaveBeenCalled();
     fireEvent.click(screen.getByText('Thử lại'));
-    await advance(3000);
-    expect(mocks.fetchBattlePokemon).toHaveBeenLastCalledWith(LEAGUE[0].ace);
-  }, 60000);
+    await advance(400);
+    expect(screen.getByTestId('team-intro')).toHaveTextContent(LEAGUE[0].name);
+  }, 120000);
 });

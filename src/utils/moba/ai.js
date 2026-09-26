@@ -1,6 +1,6 @@
 // Bots for the arena: allies of the child and the whole enemy team.
 // Simple and readable: retreat when hurt, fight the nearest enemy, otherwise walk a lane.
-import { BASES, BRIDGES, RIVER, OBSTACLES, nearestBridge } from './map';
+import { BASES, LANES_Y, CENTER, OBSTACLES } from './map';
 import { SKILLS, ULT_MAX, nearestEnemy } from './engine';
 
 // Enemy bots react a bit slower and use their skills less often than allies (children)
@@ -15,18 +15,8 @@ const norm = (x, y) => {
   const l = Math.hypot(x, y) || 1;
   return { x: x / l, y: y / l };
 };
-const side = (x) => (x < RIVER.x ? -1 : 1);
-
-/** Where to walk next towards (x, y): over the nearest bridge when the river is in the way. */
-export function waypoint(f, x, y) {
-  if (side(f.x) !== side(x) && Math.abs(f.x - RIVER.x) > RIVER.half - 5) {
-    const by = nearestBridge((f.y + y) / 2);
-    // Line up with the bridge first, then cross
-    if (Math.abs(f.y - by) > 30) return { x: RIVER.x + side(f.x) * (RIVER.half + 70), y: by };
-    return { x: RIVER.x - side(f.x) * (RIVER.half + 90), y: by };
-  }
-  return { x, y };
-}
+/** Where to walk next towards (x, y). The map is open, trees are handled by `steer`. */
+export const waypoint = (f, x, y) => ({ x, y });
 
 /** Walking direction with a push away from trees and rocks just ahead. */
 export function steer(f, to) {
@@ -63,7 +53,8 @@ export function decide(state, f, memory) {
   if (memory.retreating) {
     const threat = nearestEnemy(state, f, SKILLS.basic.range);
     const to = inBase ? home : steer(f, waypoint(f, home.x, home.y));
-    return { move: inBase ? { x: 0, y: 0 } : to, basic: !!threat };
+    const flee = !!threat && f.cd.blink <= 0 && f.hp < f.maxHp * 0.25 && r() < cfg.castChance * 0.1;
+    return { move: inBase ? { x: 0, y: 0 } : to, basic: !!threat, cast: flee ? 'blink' : undefined };
   }
 
   const target = nearestEnemy(state, f, AGGRO);
@@ -75,6 +66,7 @@ export function decide(state, f, memory) {
       if (f.ult >= ULT_MAX && d < SKILLS.ult.range && target.hp > target.maxHp * 0.25) input.cast = 'ult';
       else if (f.cd.s2 <= 0 && d < SKILLS.s2.radius + 10) input.cast = 's2';
       else if (f.cd.s1 <= 0 && d < SKILLS.s1.range) input.cast = 's1';
+      else if (f.cd.blink <= 0 && d > 160 && d < 260 && target.hp < target.maxHp * 0.3) input.cast = 'blink';
     }
     if (d > SKILLS.basic.range * 0.8) {
       input.move = steer(f, waypoint(f, target.x, target.y));
@@ -88,8 +80,8 @@ export function decide(state, f, memory) {
   }
 
   // Walk the lane towards the enemy base
-  const laneY = BRIDGES[LANE_OF[f.idx % LANE_OF.length]];
+  const laneY = LANES_Y[LANE_OF[f.idx % LANE_OF.length]];
   const dir = f.team === 'blue' ? 1 : -1;
-  const ahead = f.x * dir < (RIVER.x + dir * 300) * dir ? { x: RIVER.x + dir * 300, y: laneY } : { x: enemyBase.x - dir * 170, y: enemyBase.y + (laneY - 450) * 0.5 };
+  const ahead = f.x * dir < (CENTER.x + dir * 300) * dir ? { x: CENTER.x + dir * 300, y: laneY } : { x: enemyBase.x - dir * 170, y: enemyBase.y + (laneY - 450) * 0.5 };
   return { move: steer(f, waypoint(f, ahead.x, ahead.y)) };
 }

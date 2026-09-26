@@ -61,7 +61,7 @@ export function MobaMatch({ blue, red, minutes, control = 0, random = Math.rando
   const memory = useRef({});
   const camera = useRef({ x: 0, y: 0 });
   const acc = useRef(0);
-  const clock = useRef({ count: COUNTDOWN, time: 0, lastPop: 0, zoom: 1 });
+  const clock = useRef({ count: COUNTDOWN, time: 0, lastPop: 0 });
   const joyEl = useRef(null);
   const [hud, setHud] = useState(() => hudOf(initial, COUNTDOWN));
   const [feed, setFeed] = useState([]);
@@ -76,7 +76,8 @@ export function MobaMatch({ blue, red, minutes, control = 0, random = Math.rando
     fxRef.current.hitFlash = {};
   }, [initial]);
 
-  const say = (text, tone = 'gold') => setBanner((b) => ({ id: (b?.id || 0) + 1, text, tone }));
+  // small: a compact label under the score (skill names) instead of a big centre banner
+  const say = (text, tone = 'gold', small = false) => setBanner((b) => ({ id: (b?.id || 0) + 1, text, tone, small }));
   const nameOf = (id) => fighterById(stateRef.current, id)?.name || '';
   const teamOf = (id) => (id?.startsWith('blue') ? 'blue' : 'red');
 
@@ -98,6 +99,7 @@ export function MobaMatch({ blue, red, minutes, control = 0, random = Math.rando
       } else if (e.code === 'KeyQ' || e.code === 'KeyJ') input.current.cast = 's1';
       else if (e.code === 'KeyE' || e.code === 'KeyK') input.current.cast = 's2';
       else if (e.code === 'KeyR' || e.code === 'Space') input.current.cast = 'ult';
+      else if (e.code === 'KeyF' || e.code === 'ShiftLeft' || e.code === 'ShiftRight') input.current.cast = 'blink';
       else if (/^Digit[1-5]$/.test(e.code)) switchTo(`blue${Number(e.code.slice(5)) - 1}`);
     };
     const up = (e) => input.current.keys.delete(e.code);
@@ -145,7 +147,6 @@ export function MobaMatch({ blue, red, minutes, control = 0, random = Math.rando
           burstFx(fx, e.x, e.y + 10, c, { count: e.crit ? 18 : 9, speed: e.crit ? 240 : 160, size: e.crit ? 5 : 3.5 });
           fx.numbers.push({ x: e.x + (Math.random() - 0.5) * 16, y: e.y, text: `${e.crit ? '💥' : ''}-${e.amount}`, color: e.crit ? '#fde047' : e.eff >= 2 ? '#fb923c' : '#ffffff', size: e.crit ? 26 : e.eff >= 2 ? 22 : 17, life: 0.9, max: 0.9 });
           fx.hitFlash[e.target] = 1;
-          if (e.target === me || e.from === me) fx.shake = Math.max(fx.shake, e.crit ? 0.25 : 0.1);
           if (clock.current.time - clock.current.lastPop > 0.08) {
             clock.current.lastPop = clock.current.time;
             sounds.playPop();
@@ -155,21 +156,15 @@ export function MobaMatch({ blue, red, minutes, control = 0, random = Math.rando
         case 'nova':
           fx.rings.push({ x: e.x, y: e.y, from: 10, to: e.r, life: 0.45, max: 0.45, color: typeColor(e.type), width: 10, fill: true });
           burstFx(fx, e.x, e.y, typeColor(e.type), { count: 26, speed: 300, size: 4 });
-          if (e.who === me) {
-            fx.shake = Math.max(fx.shake, 0.2);
-            sounds.playWhoosh();
-          }
+          if (e.who === me) sounds.playWhoosh();
           break;
         case 'cast':
           fx.rings.push({ x: fighterById(s, e.who).x, y: fighterById(s, e.who).y - 20, from: 8, to: 40, life: 0.3, max: 0.3, color: typeColor(e.type), width: 5 });
           if (e.who === me) sounds.playWhoosh();
           break;
         case 'ult':
-          fx.slow = 0.55;
-          fx.flash = 0.6;
-          clock.current.zoom = 1.18;
           sounds.playEnergySurge();
-          say(`${nameOf(e.who)}: ${e.name}!`, teamOf(e.who) === 'blue' ? 'blue' : 'red');
+          say(`⚡ ${nameOf(e.who)}: ${e.name}`, teamOf(e.who) === 'blue' ? 'blue' : 'red', true);
           fx.rings.push({ x: e.x, y: e.y - 10, from: 10, to: 90, life: 0.5, max: 0.5, color: typeColor(e.type), width: 12, fill: true });
           break;
         case 'combo-hit': {
@@ -177,11 +172,6 @@ export function MobaMatch({ blue, red, minutes, control = 0, random = Math.rando
           fx.rings.push({ x: e.x, y: e.y - 20, from: 6, to: e.final ? 120 : 60, life: e.final ? 0.6 : 0.3, max: e.final ? 0.6 : 0.3, color: e.final ? '#ffffff' : c, width: e.final ? 14 : 8 });
           burstFx(fx, e.x, e.y - 20, c, { count: e.final ? 50 : 18, speed: e.final ? 420 : 240, size: e.final ? 6 : 4 });
           fx.numbers.push({ x: e.x, y: e.y - 70, text: `x${e.n}${e.final ? '!!' : ''}`, color: '#facc15', size: e.final ? 42 : 30, life: 0.8, max: 0.8 });
-          fx.shake = Math.max(fx.shake, e.final ? 0.55 : 0.2);
-          if (e.final) {
-            fx.flash = 0.8;
-            clock.current.zoom = 1.25;
-          }
           break;
         }
         case 'kill': {
@@ -194,6 +184,17 @@ export function MobaMatch({ blue, red, minutes, control = 0, random = Math.rando
           else if (e.first) say('HẠ GỤC ĐẦU TIÊN!', teamOf(e.killer) === 'blue' ? 'gold' : 'red');
           else if (e.victim === me) say('Hồi sinh sau 5 giây...', 'red');
           if (teamOf(e.killer) === 'blue') sounds.playCoin();
+          break;
+        }
+        case 'blink': {
+          const c = TEAM_COLORS[teamOf(e.who)];
+          const f = fighterById(s, e.who);
+          fx.afterimages.push({ id: e.who, x: e.from.x, y: e.from.y, flip: f.facing < 0, life: 0.45, max: 0.45 });
+          fx.streaks.push({ from: e.from, to: e.to, color: c, life: 0.35, max: 0.35 });
+          burstFx(fx, e.from.x, e.from.y - 20, '#ffffff', { count: 14, speed: 140, size: 3, life: 0.45 });
+          burstFx(fx, e.to.x, e.to.y - 20, c, { count: 18, speed: 170, size: 3.5, life: 0.5 });
+          fx.rings.push({ x: e.to.x, y: e.to.y - 10, from: 6, to: 46, life: 0.35, max: 0.35, color: '#ffffff', width: 4 });
+          if (e.who === me) sounds.playWhoosh();
           break;
         }
         case 'respawn':
@@ -229,8 +230,7 @@ export function MobaMatch({ blue, red, minutes, control = 0, random = Math.rando
         setHud(hudOf(s, c.count));
       }
     } else if (!s.over) {
-      fx.slow = Math.max(0, fx.slow - rawDt);
-      acc.current += rawDt * (fx.slow > 0 ? 0.35 : 1);
+      acc.current += rawDt;
       let guard = 0;
       while (acc.current >= SIM_DT && guard++ < 6) {
         acc.current -= SIM_DT;
@@ -265,9 +265,6 @@ export function MobaMatch({ blue, red, minutes, control = 0, random = Math.rando
       }
     }
     for (const id of Object.keys(fx.hitFlash)) fx.hitFlash[id] = Math.max(0, fx.hitFlash[id] - rawDt * 5);
-    fx.shake = Math.max(0, fx.shake - rawDt);
-    fx.flash = Math.max(0, fx.flash - rawDt * 2);
-    c.zoom += (1 - c.zoom) * Math.min(1, rawDt * 4);
 
     // Throttled HUD (10 times a second)
     c.hudT = (c.hudT || 0) + rawDt;
@@ -286,7 +283,7 @@ export function MobaMatch({ blue, red, minutes, control = 0, random = Math.rando
       canvas.width = Math.round(cw * dpr);
       canvas.height = Math.round(ch * dpr);
     }
-    const scale = (ch / VIEW_H) * c.zoom;
+    const scale = ch / VIEW_H;
     const view = { w: cw / scale, h: ch / scale };
     const me = fighterById(s, s.control);
     const target = me && !me.dead ? me : me ? { x: me.base.x, y: me.base.y } : { x: WORLD.w / 2, y: WORLD.h / 2 };
@@ -300,25 +297,11 @@ export function MobaMatch({ blue, red, minutes, control = 0, random = Math.rando
     ctx.fillStyle = '#14532d';
     ctx.fillRect(0, 0, cw, ch);
     ctx.save();
-    const shake = fx.shake > 0 ? fx.shake * 14 : 0;
-    ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
     ctx.scale(scale, scale);
     ctx.translate(-cam.x, -cam.y);
     if (mapRef.current) ctx.drawImage(mapRef.current, 0, 0, WORLD.w, WORLD.h);
     drawWorld(ctx, s, fx, images.current, c.time, rawDt, s.control);
     ctx.restore();
-    if (fx.flash > 0) {
-      ctx.fillStyle = `rgba(255,255,255,${fx.flash * 0.45})`;
-      ctx.fillRect(0, 0, cw, ch);
-    }
-    if (fx.slow > 0) {
-      // Slow motion: dark edges while an ultimate plays
-      const g = ctx.createRadialGradient(cw / 2, ch / 2, ch * 0.3, cw / 2, ch / 2, ch * 0.9);
-      g.addColorStop(0, 'rgba(0,0,0,0)');
-      g.addColorStop(1, 'rgba(30,0,60,0.55)');
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, cw, ch);
-    }
     drawMinimap(ctx, s, cam, view, cw - 170, 54, 160);
   }, true);
 
@@ -399,6 +382,7 @@ export function MobaMatch({ blue, red, minutes, control = 0, random = Math.rando
         {/* Skills */}
         {me && (
           <div className="absolute right-4 bottom-4 flex items-end gap-3" data-testid="moba-skills">
+            <SkillButton label="💨" name="Tốc biến" cd={me.cd.blink} max={SKILLS.blink.cd} ready={me.cd.blink <= 0 && !me.dead} color="#a855f7" onPress={() => (input.current.cast = 'blink')} testId="skill-blink" />
             <div className="flex flex-col gap-3 mb-1">
               <SkillButton label="1" name={me.kit[1]} cd={me.cd.s1} max={SKILLS.s1.cd} ready={me.cd.s1 <= 0 && !me.dead} color={typeColor(me.types[0])} onPress={() => (input.current.cast = 's1')} testId="skill-s1" />
               <SkillButton label="2" name={me.kit[2]} cd={me.cd.s2} max={SKILLS.s2.cd} ready={me.cd.s2 <= 0 && !me.dead} color={typeColor(me.types[0])} onPress={() => (input.current.cast = 's2')} testId="skill-s2" />
@@ -418,8 +402,13 @@ export function MobaMatch({ blue, red, minutes, control = 0, random = Math.rando
           </div>
         )}
         {banner && (
-          <div key={banner.id} className="banner-slam absolute z-40 left-1/2 top-[32%] pointer-events-none" data-testid="moba-banner">
-            <span className={`block px-5 py-2 rounded-2xl text-white text-2xl sm:text-3xl font-black whitespace-nowrap shadow-2xl border-2 border-white/70 bg-gradient-to-r ${banner.tone === 'blue' ? 'from-sky-400 to-blue-700' : banner.tone === 'red' ? 'from-rose-500 to-red-800' : 'from-amber-300 to-orange-600'}`}>
+          <div
+            key={banner.id}
+            className={`absolute z-40 left-1/2 pointer-events-none ${banner.small ? 'top-[60px] -translate-x-1/2' : 'banner-slam top-[32%]'}`}
+            data-testid="moba-banner"
+            data-small={!!banner.small}
+          >
+            <span className={`block ${banner.small ? 'pop-in px-3 py-1 rounded-full text-xs sm:text-sm border' : 'px-5 py-2 rounded-2xl text-2xl sm:text-3xl border-2'} text-white font-black whitespace-nowrap shadow-xl border-white/70 bg-gradient-to-r ${banner.tone === 'blue' ? 'from-sky-400 to-blue-700' : banner.tone === 'red' ? 'from-rose-500 to-red-800' : 'from-amber-300 to-orange-600'}`}>
               {banner.text}
             </span>
           </div>

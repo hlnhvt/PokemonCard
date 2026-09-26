@@ -1,6 +1,6 @@
 // Drawing for the Pokemon arena. The map (grass, paths, river, bridges, trees, rocks,
 // bases) is painted once into an offscreen canvas; each frame only the moving parts are drawn.
-import { WORLD, RIVER, BRIDGES, BRIDGE_HALF, BASES, OBSTACLES, BUSHES } from '../../utils/moba/map';
+import { WORLD, CENTER, LANES_Y, BASES, OBSTACLES, BUSHES } from '../../utils/moba/map';
 import { TYPE_COLORS } from '../../utils/battle/typeChart';
 import { drawSprite, imageReady } from '../sports/sportsKit';
 
@@ -175,7 +175,7 @@ export function renderMap() {
   }
 
   // Dirt lanes over the bridges
-  for (const y of BRIDGES) {
+  for (const y of LANES_Y) {
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     lanePath(ctx, y);
@@ -198,7 +198,6 @@ export function renderMap() {
   for (let i = 0; i < 160; i++) {
     const x = r() * WORLD.w;
     const y = r() * WORLD.h;
-    if (Math.abs(x - RIVER.x) < 70) continue;
     ctx.fillStyle = ['#fde047', '#f9a8d4', '#ffffff', '#c4b5fd'][i % 4];
     for (let k = 0; k < 4; k++) {
       ctx.beginPath();
@@ -207,27 +206,30 @@ export function renderMap() {
     }
   }
 
-  // River with banks
-  const river = ctx.createLinearGradient(RIVER.x - RIVER.half, 0, RIVER.x + RIVER.half, 0);
-  river.addColorStop(0, '#0369a1');
-  river.addColorStop(0.5, '#38bdf8');
-  river.addColorStop(1, '#0369a1');
-  ctx.fillStyle = '#65a30d';
-  ctx.fillRect(RIVER.x - RIVER.half - 8, 0, RIVER.half * 2 + 16, WORLD.h);
-  ctx.fillStyle = river;
-  ctx.fillRect(RIVER.x - RIVER.half, 0, RIVER.half * 2, WORLD.h);
-  // Wooden bridges
-  for (const y of BRIDGES) {
-    ctx.fillStyle = 'rgba(0,0,0,0.25)';
-    ctx.fillRect(RIVER.x - RIVER.half - 16, y - BRIDGE_HALF + 6, RIVER.half * 2 + 32, BRIDGE_HALF * 2);
-    ctx.fillStyle = '#92400e';
-    ctx.fillRect(RIVER.x - RIVER.half - 16, y - BRIDGE_HALF, RIVER.half * 2 + 32, BRIDGE_HALF * 2);
-    ctx.fillStyle = '#b45309';
-    for (let px = RIVER.x - RIVER.half - 14; px < RIVER.x + RIVER.half + 14; px += 14) ctx.fillRect(px, y - BRIDGE_HALF + 2, 11, BRIDGE_HALF * 2 - 4);
-    ctx.fillStyle = '#78350f';
-    ctx.fillRect(RIVER.x - RIVER.half - 16, y - BRIDGE_HALF - 4, RIVER.half * 2 + 32, 6);
-    ctx.fillRect(RIVER.x - RIVER.half - 16, y + BRIDGE_HALF - 2, RIVER.half * 2 + 32, 6);
-  }
+  // Centre of the arena: a stone ring with a Pokeball painted on the ground
+  ctx.fillStyle = 'rgba(120,113,108,0.35)';
+  ctx.beginPath();
+  ctx.arc(CENTER.x, CENTER.y, 95, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+  ctx.lineWidth = 5;
+  ctx.stroke();
+  ctx.save();
+  ctx.globalAlpha = 0.5;
+  ctx.fillStyle = '#ef4444';
+  ctx.beginPath();
+  ctx.arc(CENTER.x, CENTER.y, 60, Math.PI, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#f8fafc';
+  ctx.beginPath();
+  ctx.arc(CENTER.x, CENTER.y, 60, 0, Math.PI);
+  ctx.fill();
+  ctx.fillStyle = '#1e293b';
+  ctx.fillRect(CENTER.x - 60, CENTER.y - 5, 120, 10);
+  ctx.beginPath();
+  ctx.arc(CENTER.x, CENTER.y, 16, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
 
   drawBasePlatform(ctx, 'blue');
   drawBasePlatform(ctx, 'red');
@@ -247,7 +249,7 @@ export function renderMap() {
 
 /** Frame effects kept by the component: particles, rings, floating numbers, trails. */
 export function createFx() {
-  return { particles: [], rings: [], numbers: [], trails: new Map(), beams: [], afterimages: [], flash: 0, shake: 0, slow: 0 };
+  return { particles: [], rings: [], numbers: [], trails: new Map(), beams: [], afterimages: [], streaks: [] };
 }
 
 export function burstFx(fx, x, y, color, { count = 14, speed = 180, size = 4, life = 0.6 } = {}) {
@@ -262,20 +264,6 @@ export const typeColor = (t) => TYPE_COLORS[t] || '#e5e7eb';
 
 /** Everything that moves: river shimmer, base crystals, fighters, shots, effects. World space. */
 export function drawWorld(ctx, state, fx, images, time, dt, controlId) {
-  // River shimmer
-  ctx.save();
-  ctx.strokeStyle = 'rgba(255,255,255,0.45)';
-  ctx.lineWidth = 2;
-  for (let i = 0; i < 18; i++) {
-    const y = ((i * 53 + time * 40) % WORLD.h + WORLD.h) % WORLD.h;
-    const x = RIVER.x - RIVER.half + 8 + ((i * 29) % (RIVER.half * 2 - 16));
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + 10, y + 3);
-    ctx.stroke();
-  }
-  ctx.restore();
-
   // Base crystals
   for (const team of ['blue', 'red']) {
     const b = BASES[team];
@@ -313,6 +301,30 @@ export function drawWorld(ctx, state, fx, images, time, dt, controlId) {
       continue;
     }
     drawSprite(ctx, images[a.id], a.x, a.y - 22, 60, { flip: a.flip, alpha: (a.life / a.max) * 0.5 });
+  }
+
+  // Flash trails: a fading streak of light from where the Pokemon was to where it landed
+  for (let i = fx.streaks.length - 1; i >= 0; i--) {
+    const k = fx.streaks[i];
+    k.life -= dt;
+    if (k.life <= 0) {
+      fx.streaks.splice(i, 1);
+      continue;
+    }
+    const a = k.life / k.max;
+    const g = ctx.createLinearGradient(k.from.x, k.from.y, k.to.x, k.to.y);
+    g.addColorStop(0, 'rgba(255,255,255,0)');
+    g.addColorStop(1, k.color);
+    ctx.globalAlpha = a;
+    ctx.strokeStyle = g;
+    ctx.lineWidth = 16 * a;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(k.from.x, k.from.y - 20);
+    ctx.lineTo(k.to.x, k.to.y - 20);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.lineCap = 'butt';
   }
 
   // Fighters and shots in depth order
@@ -514,10 +526,8 @@ export function drawMinimap(ctx, state, camera, view, x, y, w) {
   ctx.fill();
   ctx.fillStyle = '#16a34a';
   ctx.fillRect(x, y, w, h);
-  ctx.fillStyle = '#38bdf8';
-  ctx.fillRect(x + (RIVER.x - RIVER.half) * s, y, RIVER.half * 2 * s, h);
   ctx.fillStyle = '#e7c98a';
-  for (const by of BRIDGES) ctx.fillRect(x, y + by * s - 1.5, w, 3);
+  for (const by of LANES_Y) ctx.fillRect(x, y + by * s - 1.5, w, 3);
   ctx.fillStyle = 'rgba(20,83,45,0.9)';
   for (const o of OBSTACLES) ctx.fillRect(x + o.x * s - 1.5, y + o.y * s - 1.5, 3, 3);
   for (const team of ['blue', 'red']) {

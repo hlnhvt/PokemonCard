@@ -274,7 +274,8 @@ export function MobaGame({ collection = [], allowScanned = false, onScanned, onG
 
             <ul className="rounded-2xl bg-white/10 p-3 text-xs font-bold text-white/85 space-y-1">
               <li>🕹️ Kéo ngón tay ở nửa trái màn hình để di chuyển. Pokémon tự đánh thường khi đối thủ ở gần.</li>
-              <li>1️⃣ 2️⃣ Hai chiêu thức, ⚡ Tuyệt kỹ liên hoàn khi đầy năng lượng.</li>
+              <li>1️⃣ 2️⃣ Hai chiêu thức hồi rất nhanh (0,5 giây), ⚡ Tuyệt kỹ liên hoàn khi đầy năng lượng.</li>
+              <li>💨 Tốc biến: dịch chuyển nhanh theo hướng đang đi, dùng lại sau 10 giây.</li>
               <li>🏠 Về nhà chính để hồi máu. Pokémon bị hạ gục sẽ hồi sinh ở nhà chính sau 5 giây.</li>
               <li>🏆 Hết giờ, đội hạ gục được nhiều hơn sẽ thắng. Game chơi màn hình ngang.</li>
             </ul>

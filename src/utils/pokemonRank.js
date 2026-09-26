@@ -30,7 +30,6 @@ export const GAME_RANK = {
   memory: 2,
   music: 2,
   rhythm: 2,
-  league: 2,
   battle: 3,
   bowling: 3,
   penalty: 3,

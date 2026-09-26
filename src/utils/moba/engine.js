@@ -1,7 +1,7 @@
 // Real-time 5 vs 5 arena (MOBA style). Pure simulation, stepped with a fixed dt;
 // the component draws `state` and plays `state.events`. The child controls one fighter,
 // every other fighter is driven by utils/moba/ai.js.
-import { BASES, collide, blocked } from './map';
+import { BASES, collide, blocked, insideObstacle } from './map';
 import { effectiveness } from '../battle/typeChart';
 
 export const RESPAWN_TIME = 5;
@@ -39,8 +39,11 @@ const KIT_NAMES = {
 // How each ability behaves (same shape for every type; the type decides looks and damage)
 export const SKILLS = {
   basic: { cd: 0.75, range: 175, speed: 520, dmg: 1.0, radius: 7 },
-  s1: { cd: 3.5, range: 320, speed: 700, dmg: 2.3, radius: 11, pierce: true },
-  s2: { cd: 7, radius: 115, dmg: 2.5, knock: 70 },
+  // Skills 1 and 2 are quick to use again (0.5 s): simple and lively for children
+  s1: { cd: 0.5, range: 320, speed: 700, dmg: 1.2, radius: 11, pierce: true },
+  s2: { cd: 0.5, radius: 115, dmg: 1.1, knock: 55 },
+  // Flash: a short teleport in the walking direction
+  blink: { cd: 10, dist: 170 },
   ult: { range: 280, hits: [1.4, 1.4, 1.6, 3.2], gap: 0.13, dash: 1400 },
 };
 const FAST = ['electric', 'flying'];
@@ -79,7 +82,7 @@ function makeFighter(m, team, idx) {
     y: spawn.y,
     facing: team === 'blue' ? 1 : -1,
     aim: { x: team === 'blue' ? 1 : -1, y: 0 },
-    cd: { basic: 0, s1: 0, s2: 0 },
+    cd: { basic: 0, s1: 0, s2: 0, blink: 0 },
     ult: 0,
     dead: false,
     respawnIn: 0,
@@ -230,6 +233,22 @@ export function act(state, f, input) {
   }
   f.wantMove = f.moving ? { x: (m.x / Math.max(1, len)) * f.speed, y: (m.y / Math.max(1, len)) * f.speed } : { x: 0, y: 0 };
 
+  if (input.cast === 'blink' && f.cd.blink <= 0) {
+    // Towards where the fighter is walking (or aiming); never lands inside a tree or rock
+    const dir = f.moving ? norm(m.x, m.y) : f.aim;
+    const from = { x: f.x, y: f.y };
+    // Land at the farthest free spot along the way (never inside a tree or rock)
+    let dist = SKILLS.blink.dist;
+    while (dist > 0 && insideObstacle(from.x + dir.x * dist, from.y + dir.y * dist, f.r)) dist -= 10;
+    f.x = from.x + dir.x * Math.max(0, dist);
+    f.y = from.y + dir.y * Math.max(0, dist);
+    collide(f);
+    f.cd.blink = SKILLS.blink.cd;
+    f.knock = null;
+    if (Math.abs(dir.x) > 0.1) f.facing = dir.x > 0 ? 1 : -1;
+    state.events.push({ kind: 'blink', who: f.id, from, to: { x: f.x, y: f.y }, team: f.team });
+    return true;
+  }
   if (input.cast === 'ult' && f.ult >= ULT_MAX) {
     const target = nearestEnemy(state, f, SKILLS.ult.range);
     if (target) {
@@ -323,7 +342,7 @@ export function step(state, dt, inputs = {}) {
       f.respawnIn -= dt;
       if (f.respawnIn <= 0) {
         const p = spawnPoint(f.team, f.idx);
-        Object.assign(f, { dead: false, hp: f.maxHp, x: p.x, y: p.y, knock: null, combo: null, cd: { basic: 0, s1: 0, s2: 0 } });
+        Object.assign(f, { dead: false, hp: f.maxHp, x: p.x, y: p.y, knock: null, combo: null, cd: { basic: 0, s1: 0, s2: 0, blink: f.cd.blink } });
         state.events.push({ kind: 'respawn', who: f.id, x: f.x, y: f.y });
       }
       continue;
@@ -331,6 +350,7 @@ export function step(state, dt, inputs = {}) {
     f.cd.basic = Math.max(0, f.cd.basic - dt);
     f.cd.s1 = Math.max(0, f.cd.s1 - dt);
     f.cd.s2 = Math.max(0, f.cd.s2 - dt);
+    f.cd.blink = Math.max(0, f.cd.blink - dt);
     if (inputs[f.id]) act(state, f, inputs[f.id]);
 
     if (f.combo) stepCombo(state, f, dt);

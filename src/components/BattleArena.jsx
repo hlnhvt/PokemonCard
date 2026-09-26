@@ -84,7 +84,7 @@ function HpBox({ fighter, shown, ghost, align }) {
  * and the combo finisher chains all four moves.
  */
 /**
- * challenge (optional, used by the Pokemon League): { ace, levelFactor, intro, title } fights that
+ * challenge (optional): { ace, levelFactor, intro, title } fights that
  * Pokemon at a stronger or weaker level instead of a random wild one.
  */
 export function BattleArena({ card, onClose, onResult, random = Math.random, tempo: tempoOverride, challenge }) {

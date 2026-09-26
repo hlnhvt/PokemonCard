@@ -778,3 +778,50 @@ Lỗi phát hiện qua ảnh chụp Chrome và đã sửa:
 - Bảng tổng quan không xoay khi điện thoại cầm dọc: dùng chung khung xoay ngang với trận đấu.
 - Nhảy theo nhạc: hình Pokémon che các nốt mới rơi, đã thu nhỏ và làm hơi trong suốt.
 - Test App (AP-01/02/04) chạy lúc đạt lúc không khi chạy cả bộ test cùng các trận mô phỏng: thời gian chờ trong hàm hỗ trợ quét của test được tăng lên 5 giây. Đây là lỗi của test, không phải của ứng dụng. Đã chạy cả bộ 2 lần liên tiếp đều đạt.
+
+---
+
+## 26. Đấu trường: chiêu hồi 0,5 giây, bỏ hiệu ứng giật màn hình, Tốc biến, bỏ sông (2026-09-26)
+
+- **Chiêu 1 và 2 hồi sau 0,5 giây** (trước đây 3,5 và 7 giây). Để trận không quá dồn dập, sát thương mỗi lần giảm (chiêu 1: 2,3 → 1,2; chiêu 2: 2,5 → 1,1; lực đẩy lùi nhỏ hơn).
+- **Bỏ mọi hiệu ứng làm giật màn hình:** rung màn hình khi trúng đòn, rung và phóng to camera khi dùng Tuyệt kỹ hay đòn liên hoàn, chậm hình kèm viền tối, chớp trắng toàn màn hình. Camera chỉ đi theo Pokémon một cách êm. Hiệu ứng combo vẫn còn nhưng chỉ nằm quanh Pokémon: vòng sáng, hạt, số x1–x4, bóng lướt và tên Tuyệt kỹ.
+- **💨 Tốc biến** (nút riêng, phím F hoặc Shift):
+  - Dịch chuyển 170 đơn vị theo hướng đang đi (hoặc hướng đang nhắm). Không bao giờ đáp vào trong cây hay đá: tự rút ngắn tới chỗ trống xa nhất.
+  - Hồi sau 10 giây, nút hiện vòng đếm ngược.
+  - Hiệu ứng: bóng mờ ở chỗ cũ, vệt sáng nối hai điểm, bụi sáng ở hai đầu, vòng sáng nơi đáp.
+  - Máy cũng biết dùng: tốc biến chạy về khi máu dưới 25% và đang bị đuổi, hoặc tốc biến lao tới Pokémon đối thủ sắp gục.
+- **Bỏ dòng sông:** giữa bản đồ giờ là bãi đất trống có vòng đá và huy hiệu Pokéball vẽ trên nền, thêm 2 tảng đá ở giữa các đường để giữ cấu trúc 3 đường. Máy đi thẳng qua giữa bản đồ, không còn phải đi vòng qua cầu.
+- **Sửa lỗi phát hiện nhờ test mới:** nếu một Pokémon bị đẩy đúng vào tâm cây hay đá, hàm đẩy ra không biết hướng nên để Pokémon kẹt trong đó. Nay có hướng dự phòng.
+- **Cân bằng sau thay đổi** (16 trận bot 3 phút): đội bé thắng 56%, khoảng 23 mạng mỗi trận. Cả hai nằm trong khoảng mục tiêu (thắng 50–90%, 15–45 mạng).
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| MB-01, MB-02 | P1 | AUTO | Bản đồ đối xứng không có sông, giữa các đường là đất trống, đá giữa bản đồ vẫn chặn; máy đi thẳng qua giữa | Đúng |
+| MB-06 | P1 | AUTO | Chiêu 1 và 2 hồi sau 0,5 giây; Tốc biến dịch chuyển 170 đơn vị, không dùng lại được trước 10 giây; không đáp vào trong cây | Đúng |
+| MB-05 | P1 | AUTO | 16 trận bot: kết thúc đúng giờ, ai cũng rời nhà, 15–45 mạng, đội bé thắng 50–90% | 56%, 23 mạng |
+| MG-02 | P1 | AUTO | Trong trận bấm Tốc biến thì nút hiện đếm ngược 10 giây | Đúng |
+| UI-16 | P1 | MANUAL (Chrome) | Trận thật: không rung hay giật màn hình khi có combo hoặc Tuyệt kỹ; Tốc biến có vệt sáng; bản đồ không có sông | Không lỗi JS |
+
+---
+
+## 27. Nút Nhảy theo nhạc, Liên minh 5 vs 5, tên Tuyệt kỹ gọn, nút Quét thẻ mới (2026-09-26)
+
+- **Nút Nhảy theo nhạc:** 4 nút tròn có viền màu theo làn, lòng nút dạng kính và mũi tên vẽ bằng vector (trái / xuống / lên / phải). Nút lún xuống khi bấm. Vòng đích và nốt nhạc trên nền cũng dùng mũi tên vector thay cho emoji. Nhãn cho trình đọc màn hình: "Làn N (Trái|Xuống|Lên|Phải)".
+- **Giải đấu Liên minh giờ đấu 5 vs 5:**
+  - Lập đội như Đấu đội 5 vs 5: quét thẻ, máy cho mượn ngẫu nhiên chỗ còn trống, và chỉ được chọn Pokémon đã quét khi phụ huynh bật cài đặt.
+  - Mỗi nhà thi đấu có đội 5 Pokémon, át chủ bài ra cuối. Nhà Vô địch dùng đội hệ Rồng.
+  - Sàn đấu hợp với hệ của nhà thi đấu (ví dụ nhà Lửa đấu ở Núi lửa, nhà Nước ở Đại dương). Nếu không có sàn nào hợp thì đấu ở Sân vận động.
+  - Độ mạnh đối thủ tăng dần qua các nhà (0,80 → 1,05), cộng thêm hệ số chung của chế độ đội.
+  - Thưởng 20 + 3 × thứ tự nhà thi đấu; Nhà Vô địch thưởng 80.
+  - Liên minh nay là một banner trong tab Trò chơi, không còn nằm trong danh sách trò chơi theo từng Pokémon và không còn bị khóa theo hạng.
+  - Phần tải trận đấu và màn giới thiệu VS được tách ra dùng chung (loadTeam.js, TeamIntro.jsx).
+- **Đấu trường: tên Tuyệt kỹ gọn hơn.** Tên hiện thành một nhãn nhỏ ngay dưới bảng tỉ số thay vì chữ to giữa màn hình. Thông báo lớn giữa màn hình (hạ gục, hết giờ...) vẫn giữ nguyên.
+- **Nút nổi "Quét thẻ mới" (điện thoại):** nút dạng viên thuốc màu đỏ sang cam, có biểu tượng Pokéball trong vòng tròn trắng với hiệu ứng tỏa sóng. Pokéball xoay khi bấm.
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| NG-02, NG-03 | P1 | AUTO | Nhảy theo nhạc với 4 nút mới: bấm đúng nhịp thì PERFECT hoặc GOOD, bỏ qua thì MISS | Đúng |
+| LE-01 | P1 | AUTO | 9 đội đều có 5 Pokémon khác nhau, át chủ bài ra cuối; nhà Lửa → Núi lửa, nhà Nước → Đại dương, nhà Độc → Sân vận động | Đúng |
+| NG-04 | P1 | AUTO | Đội 5 thắng lần lượt 9 đội 5: tải đúng đội của từng nhà, nhận thưởng 9 lần, đủ 9/9 huy hiệu, có lễ Nhà Vô địch | Đúng |
+| NG-05 | P1 | AUTO | Tắt cài đặt thì bắt buộc quét thẻ; thua thì không có thưởng và bấm "Thử lại" được | Đúng |
+| UI-17 | P2 | MANUAL (Chrome) | Xem nút nhạc, nút Quét thẻ mới, đường Liên minh, màn VS, trận 5 vs 5, nhãn Tuyệt kỹ nhỏ ở Đấu trường | Hiển thị đúng, không lỗi JS |

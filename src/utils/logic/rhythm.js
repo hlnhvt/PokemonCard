@@ -4,10 +4,11 @@ import { songById, noteTimes } from './music';
 
 export const LANES = 4;
 export const LANE_INFO = [
-  { arrow: '⬅️', color: '#f43f5e' },
-  { arrow: '⬇️', color: '#38bdf8' },
-  { arrow: '⬆️', color: '#34d399' },
-  { arrow: '➡️', color: '#facc15' },
+  // rot: direction of the arrow in degrees (0 = pointing right)
+  { arrow: '⬅️', name: 'Trái', rot: 180, color: '#f43f5e' },
+  { arrow: '⬇️', name: 'Xuống', rot: 90, color: '#38bdf8' },
+  { arrow: '⬆️', name: 'Lên', rot: -90, color: '#34d399' },
+  { arrow: '➡️', name: 'Phải', rot: 0, color: '#facc15' },
 ];
 // Seconds a note takes to fall to the ring (slow enough for children)
 export const FALL_TIME = 2.2;
