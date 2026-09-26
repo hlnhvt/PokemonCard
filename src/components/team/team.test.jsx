@@ -258,6 +258,10 @@ describe('TeamBattle', () => {
     const swap = screen.getByTestId('swap-picker');
     expect(swap).toHaveTextContent('mất lượt');
     fireEvent.click(within(swap).getByRole('button', { name: 'Đổi sang Charmander' }));
+    // The new Pokemon comes out with full HP (the opponent's free attack is shown afterwards)
+    await advance(800);
+    const bar = screen.getByRole('progressbar', { name: 'Máu Charmander' });
+    expect(bar.getAttribute('aria-valuenow')).toBe(bar.getAttribute('aria-valuemax'));
     for (let t = 0; t < 20000 && screen.getByTestId('team-arena').dataset.phase !== 'choose' && screen.getByTestId('team-arena').dataset.phase !== 'between'; t += 200) await advance(200);
     expect(screen.getByTestId('team-arena').dataset.pi).toBe('1');
     // Fight until the first knock-out: the keep-or-switch choice appears
@@ -277,4 +281,32 @@ describe('TeamBattle', () => {
     expect(screen.getByTestId('team-arena').dataset.oi).toBe('1');
     localStorage.removeItem('pokescan_team_difficulty');
   }, 120000);
+
+  it('TT-11 with scanned Pokemon allowed a line-up can be saved, used next time and deleted', async () => {
+    localStorage.removeItem('pokescan_saved_teams_v1');
+    const { unmount } = render(<TeamBattle allowScanned collection={COLLECTION} onClose={vi.fn()} random={seeded(11)} />);
+    expect(screen.queryByTestId('saved-teams')).toBeNull();
+    for (const name of ['Squirtle', 'Pikachu', 'Eevee']) fireEvent.click(screen.getByLabelText(`Thêm ${name} vào đội`));
+    fireEvent.click(screen.getByTestId('save-team'));
+    expect(screen.getByRole('alert')).toHaveTextContent('Đã lưu "Đội Squirtle +2"');
+    expect(within(screen.getByTestId('saved-teams')).getAllByTestId('saved-team')).toHaveLength(1);
+    fireEvent.click(screen.getByTestId('save-team'));
+    expect(screen.getByRole('alert')).toHaveTextContent('đã được lưu rồi');
+    unmount();
+    // Next time: the saved line-up fills the team in one tap
+    render(<TeamBattle allowScanned collection={COLLECTION} onClose={vi.fn()} random={seeded(12)} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Dùng Đội Squirtle +2' }));
+    const slots = within(screen.getByTestId('team-slots')).getAllByRole('img').map((img) => img.getAttribute('alt'));
+    expect(slots).toEqual(['Squirtle', 'Pikachu', 'Eevee']);
+    fireEvent.click(screen.getByRole('button', { name: 'Xóa Đội Squirtle +2' }));
+    expect(screen.queryByTestId('saved-teams')).toBeNull();
+  });
+
+  it('TT-12 saving line-ups is not offered when scanning is required', () => {
+    localStorage.setItem('pokescan_saved_teams_v1', JSON.stringify([{ id: 't', name: 'Đội Pikachu', cards: ['pikachu'] }]));
+    render(<TeamBattle collection={COLLECTION} onClose={vi.fn()} random={seeded(13)} />);
+    expect(screen.queryByTestId('saved-teams')).toBeNull();
+    expect(screen.queryByTestId('save-team')).toBeNull();
+    localStorage.removeItem('pokescan_saved_teams_v1');
+  });
 });

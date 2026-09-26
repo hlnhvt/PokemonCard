@@ -175,13 +175,15 @@ export function TeamArena({ arena, state, tempo = 1.5, onFinish }) {
   };
 
   /** Pokeball flies in, bursts open in a flash, and the Pokemon grows out of the light. */
-  const sendOut = async (side, index) => {
+  // hp: the HP it comes out with (the engine may already have applied the next attack)
+  const sendOut = async (side, index, hp = fighterOf(side, index).hp) => {
     const f = fighterOf(side, index);
     shownRef.current = { ...shownRef.current, [side]: index };
     setActive((a) => ({ ...a, [side]: index }));
     setSpriteFx((s) => ({ ...s, [side]: 'opacity-0' }));
-    setHp((h) => ({ ...h, [side]: f.hp }));
-    setGhost((g) => ({ ...g, [side]: f.hp }));
+    setHp((h) => ({ ...h, [side]: hp }));
+    setGhost((g) => ({ ...g, [side]: hp }));
+    setRoster((r) => ({ ...r, [`${side[0]}${index}`]: hp }));
     setMessage(side === 'player' ? `Tiến lên, ${f.name}!` : `Đối thủ tung ra ${f.name}!`);
     setBall({ side, key: ++idRef.current });
     sounds.playWhoosh();
@@ -326,7 +328,7 @@ export function TeamArena({ arena, state, tempo = 1.5, onFinish }) {
           break;
         }
         case 'switch':
-          await sendOut(e.side, e.index);
+          await sendOut(e.side, e.index, e.hp);
           break;
         case 'duel-won':
           setMessage('Giữ nguyên hay đổi Pokémon?');
@@ -423,8 +425,8 @@ export function TeamArena({ arena, state, tempo = 1.5, onFinish }) {
         <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none z-20" />
         {comboMode && <div className="combo-vignette absolute inset-0 z-20 pointer-events-none" />}
 
-        <HpBox fighter={opponent} shown={hp.opponent} ghost={ghost.opponent} align="left-2 top-2" />
-        <HpBox fighter={player} shown={hp.player} ghost={ghost.player} align="right-2 bottom-2" />
+        <HpBox key={`o-${active.opponent}`} fighter={opponent} shown={hp.opponent} ghost={ghost.opponent} align="left-2 top-2" />
+        <HpBox key={`p-${active.player}`} fighter={player} shown={hp.player} ghost={ghost.player} align="right-2 bottom-2" />
 
         {floaters.map((f) => (
           <span key={f.id} className={`damage-float absolute z-30 font-black whitespace-nowrap drop-shadow-[0_2px_2px_rgba(0,0,0,0.9)] ${f.style}`} style={{ left: f.left, top: f.top }}>
@@ -567,7 +569,7 @@ export function TeamArena({ arena, state, tempo = 1.5, onFinish }) {
             aria-label="Đổi Pokémon"
             className="shrink-0 px-3 py-2 rounded-xl text-sm font-black flex items-center gap-1 bg-sky-600 text-white disabled:opacity-40 active:scale-95"
           >
-            🔄 Đổi
+            <PokeballIcon className="w-5 h-5" /> Đổi
           </button>
           <button onClick={combo2} disabled={!comboReady || phase !== 'choose'} className={`shrink-0 px-3 py-2 rounded-xl text-sm font-black flex items-center gap-1 ${comboReady && phase === 'choose' ? 'rainbow-bg text-white energy-full' : comboReady ? 'rainbow-bg text-white opacity-50' : 'bg-slate-800 text-slate-500'}`}>
             <Zap className="w-4 h-4" /> Tuyệt Kỹ Liên Hoàn

@@ -1050,3 +1050,28 @@ Cả 3 trò nằm trong nhóm "🏆 Thi đấu thể thao" (tab Trò chơi và t
 | SP-01..02 | P1 | AUTO | Khung cảnh đủ đồ vật, không chồng nhau; mỗi điểm khác thật sự khác; chạm đúng, chạm sai, gợi ý; qua 5 màn | Đạt |
 | NG2-00..02 | P1 | AUTO | Hai game có trong danh sách; chơi hết và nhận vàng đúng 1 lần | Đạt |
 | UI-23 | P1 | MANUAL (Chrome) | Màn chọn độ khó, bảng Đổi Pokémon, bảng Giữ nguyên / đổi, Khác loại (màn 1 và 4), Tìm điểm khác nhau có gợi ý | Hiển thị đúng, không lỗi JS |
+
+---
+
+## 34. Sửa thanh HP khi đổi Pokémon, nút Đổi có icon Pokéball, lưu đội hình (2026-09-26)
+
+- **Lỗi thanh HP khi đổi Pokémon giữa trận:**
+  - Nguyên nhân: đổi Pokémon thì mất lượt, và engine tính luôn đòn đánh của đối thủ trước khi chạy hiệu ứng. Vì vậy Pokémon mới bước ra đã hiện mức máu *sau khi* bị đánh, không bao giờ thấy thanh đầy.
+  - Cách sửa: sự kiện `switch` mang theo HP lúc ra sân (`hp`). Thanh máu hiện đầy khi Pokémon bước ra, rồi mới tụt khi đòn của đối thủ diễn ra.
+  - Mỗi Pokémon mới có ô HP riêng (không còn cảnh thanh trượt từ mức máu của Pokémon trước sang).
+- **Nút Đổi** dùng biểu tượng Pokéball thay cho 🔄.
+- **Lưu đội hình** (`utils/savedTeams.js`, chỉ hiện khi phụ huynh bật "cho phép chọn Pokémon đã quét"):
+  - Nút "💾 Lưu đội hình này" lưu các Pokémon của bé trong đội, theo đúng thứ tự. Pokémon mượn không được lưu.
+  - Mục "📋 Đội hình đã lưu": ảnh các thành viên, tên (ví dụ "Đội Lapras +4"), nút **Dùng** để lấp đội ngay, nút ✕ để xóa.
+  - Tối đa 6 đội, mới nhất ở trên. Không lưu trùng một đội hình.
+  - Pokémon nào không còn trong bộ sưu tập thì được bỏ qua khi dùng lại.
+  - Dùng được ở mọi chế độ có lập đội: Đấu đội 5 vs 5, Liên minh, Đấu trường, Săn Boss. Lưu trong `pokescan_saved_teams_v1`.
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| TM-07 | P1 | AUTO | Sự kiện đổi Pokémon mang HP đầy của Pokémon mới, đòn của đối thủ đến sau | Đạt |
+| TT-10 | P1 | AUTO | Đổi sang Charmander: khi ra sân thanh "Máu Charmander" đầy (aria-valuenow = max) | Đạt |
+| ST-01, ST-02 | P1 | AUTO | Chỉ lưu thẻ của bé, đúng thứ tự, không trùng; tối đa 6; xóa; bỏ thẻ không còn | Đạt |
+| TT-11 | P1 | AUTO | Lưu đội 3 Pokémon, mở lại, bấm Dùng thì đội được lấp đúng thứ tự, xóa được | Đạt |
+| TT-12 | P1 | AUTO | Khi bắt buộc quét thẻ: không có mục lưu / dùng đội hình | Đạt |
+| UI-24 | P1 | MANUAL (Chrome) | Lưu 2 đội; đổi sang Charizard giữa trận thì thanh máu đầy lúc ra sân; nút Đổi có Pokéball | Đúng, không lỗi JS |

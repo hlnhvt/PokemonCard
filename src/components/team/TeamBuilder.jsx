@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import confetti from 'canvas-confetti';
 import { X, Camera, Dice5, ArrowRight } from 'lucide-react';
 import { TEAM_SIZE, borrowPokemon } from '../../utils/team/teamBattle';
+import { getSavedTeams, saveTeam, deleteSavedTeam, teamFromSaved, savableCards } from '../../utils/savedTeams';
 import { OPPONENT_POOL } from '../../utils/battle/opponentPool';
 import { artworkUrl } from '../../services/pokemonOnlineService';
 import { SOURCE_BADGE, memberFromCard, memberFromPool } from '../../utils/team/members';
@@ -101,6 +102,8 @@ export function TeamBuilder({ collection = [], allowScanned = false, team, setTe
   const [success, setSuccess] = useState(null);
   const [rolling, setRolling] = useState([]); // lent Pokemon still spinning
   const [message, setMessage] = useState(null);
+  const [lineUps, setLineUps] = useState(getSavedTeams);
+  const [justSaved, setJustSaved] = useState(null);
   const landedCount = useRef(0);
   const has = (m) => team.some((t) => t.species === m.species);
   const busy = rolling.length > 0 || !!success;
@@ -169,6 +172,40 @@ export function TeamBuilder({ collection = [], allowScanned = false, team, setTe
 
   const choices = allowScanned ? collection.map((c) => memberFromCard(c, 'owned')) : [];
 
+  // Saved line-ups (only when the parent allows Pokemon already scanned)
+  const canSave = allowScanned && savableCards(team).length > 0 && !busy;
+  const saveLineUp = () => {
+    const out = saveTeam(team);
+    setLineUps(out.list);
+    if (out.reason === 'same') say('Đội hình này đã được lưu rồi!');
+    else if (out.saved) {
+      setJustSaved(out.saved.id);
+      sounds.playCoin();
+      say(`Đã lưu "${out.saved.name}"! Lần sau chọn lại ngay nhé 💾`);
+    }
+  };
+  const pickLineUp = (t) => {
+    if (busy) return;
+    const members = teamFromSaved(t, collection, size);
+    if (!members.length) {
+      say('Các Pokémon của đội này không còn trong bộ sưu tập.');
+      return;
+    }
+    setTeam(members);
+    sounds.playEnergySurge();
+    say(members.length < t.cards.length ? `Đã chọn ${t.name} (thiếu ${t.cards.length - members.length} Pokémon)` : `Đã chọn ${t.name}!`);
+    try {
+      confetti({ particleCount: 40, spread: 60, origin: { y: 0.3 }, zIndex: 9999 });
+    } catch {
+      // decoration
+    }
+  };
+  const removeLineUp = (id) => setLineUps(deleteSavedTeam(id));
+  const cardImage = (id) => {
+    const card = collection.find((c) => String(c.id) === String(id));
+    return card ? memberFromCard(card, 'owned') : null;
+  };
+
   return (
     <div className="px-4 pt-3 pb-5 space-y-4" data-testid="team-builder">
       <div className="text-center">
@@ -213,6 +250,35 @@ export function TeamBuilder({ collection = [], allowScanned = false, team, setTe
         <p key={message.id} role="alert" className="bubble-pop text-center text-sm font-black text-amber-200">
           {message.text}
         </p>
+      )}
+
+      {allowScanned && lineUps.length > 0 && (
+        <div className="rounded-2xl bg-gradient-to-br from-indigo-500/30 to-fuchsia-500/20 border border-white/15 p-3 space-y-2" data-testid="saved-teams">
+          <p className="text-sm font-black text-white">📋 Đội hình đã lưu</p>
+          {lineUps.map((t) => (
+            <div key={t.id} className={`flex items-center gap-2 p-2 rounded-2xl bg-black/25 ${justSaved === t.id ? 'pop-in ring-2 ring-amber-300' : ''}`} data-testid="saved-team">
+              <div className="flex -space-x-2 shrink-0">
+                {t.cards.slice(0, 5).map((id) => {
+                  const m = cardImage(id);
+                  return m ? <img key={id} src={m.image} alt={m.name} className="w-9 h-9 rounded-full bg-white/90 border-2 border-indigo-300 object-contain" /> : <span key={id} className="w-9 h-9 rounded-full bg-white/10 border-2 border-white/20" />;
+                })}
+              </div>
+              <span className="flex-1 min-w-0 text-xs font-black text-white truncate">{t.name}</span>
+              <button onClick={() => pickLineUp(t)} disabled={busy} aria-label={`Dùng ${t.name}`} className="shrink-0 px-3 py-1.5 rounded-xl bg-amber-400 text-slate-900 text-xs font-black shadow active:scale-95 disabled:opacity-50">
+                Dùng
+              </button>
+              <button onClick={() => removeLineUp(t.id)} aria-label={`Xóa ${t.name}`} className="shrink-0 w-7 h-7 rounded-full bg-white/15 text-white flex items-center justify-center">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {canSave && (
+        <button onClick={saveLineUp} className="w-full py-2.5 rounded-2xl bg-white/15 border-2 border-dashed border-white/40 text-white text-sm font-black flex items-center justify-center gap-2 active:scale-95" data-testid="save-team">
+          💾 Lưu đội hình này
+        </button>
       )}
 
       <button

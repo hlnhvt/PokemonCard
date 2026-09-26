@@ -146,7 +146,9 @@ export function switchPlayer(state, index) {
   const combo = state.combo;
   nextPair(state);
   state.battle.combo = combo;
-  return settle(state, [{ kind: 'switch', side: 'player', index }, ...playOpponentOnly(state.battle)]);
+  // hp: what the Pokemon has when it comes out, before the opponent's free attack lands
+  const hp = state.players[index].hp;
+  return settle(state, [{ kind: 'switch', side: 'player', index, hp }, ...playOpponentOnly(state.battle)]);
 }
 
 /** The child sends in Pokemon `index` (must still be standing). */

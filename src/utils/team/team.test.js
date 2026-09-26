@@ -201,7 +201,8 @@ describe('team battle', () => {
     expect(switchPlayer(state, 0)).toEqual([]); // already on the field
     const before = state.players[2].hp;
     const events = switchPlayer(state, 2);
-    expect(events[0]).toEqual({ kind: 'switch', side: 'player', index: 2 });
+    // It comes out with full HP; the opponent's free attack is animated afterwards
+    expect(events[0]).toEqual({ kind: 'switch', side: 'player', index: 2, hp: state.players[2].maxHp });
     expect(events.filter((e) => e.kind === 'attack').every((e) => e.side === 'opponent')).toBe(true);
     expect(state.pi).toBe(2);
     expect(state.battle.player).toBe(state.players[2]);
