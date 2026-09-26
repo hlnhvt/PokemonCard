@@ -9,6 +9,7 @@ import { SPORTS, findSport } from './sports';
 import { LOGIC_GAMES, findLogicGame } from './logic';
 import { PokeballIcon } from './PokeballIcon';
 import { TeamBattle } from './team/TeamBattle';
+import { rankOf, rankFor, GAME_RANK } from '../utils/pokemonRank';
 import { artworkUrl, getCardMedia } from '../services/pokemonOnlineService';
 import { BERRY_TYPES, BERRIES } from '../utils/friendship';
 import { BerryIcon } from './BerryIcon';
@@ -29,18 +30,19 @@ const SECTIONS = [
   { id: 'logic', title: '🧠 Trò chơi trí tuệ', games: LOGIC_GAMES },
 ];
 
-function GameTile({ game, onPlay, locked }) {
+function GameTile({ game, onPlay, locked, needRank }) {
   return (
     <button
       onClick={onPlay}
       disabled={locked}
-      aria-label={locked ? `${game.title} (cần quét thẻ)` : game.title}
+      aria-label={locked ? `${game.title} (${needRank ? `cần hạng ${needRank.name}` : 'cần quét thẻ'})` : game.title}
       className={`relative rounded-2xl p-3 flex flex-col items-center gap-0.5 text-center text-white bg-gradient-to-br ${game.gradient} shadow-lg active:scale-95 transition-transform ${locked ? 'grayscale opacity-50' : ''}`}
     >
       <span className="text-4xl" aria-hidden="true">{game.icon}</span>
       <span className="text-sm font-black leading-tight">{game.title}</span>
       <span className="text-[11px] font-semibold text-white/85 leading-tight">{game.description}</span>
       {locked && <Lock className="absolute top-2 right-2 w-4 h-4" aria-hidden="true" />}
+      {locked && needRank && <span className="absolute bottom-1 inset-x-0 text-[10px] font-black">{needRank.icon} {needRank.name}</span>}
     </button>
   );
 }
@@ -57,6 +59,8 @@ export function GamesHub({ collection = [], berries, onBerries, onBattleResult, 
   const player = selected ? { name: selected.name, image: playerImage(selected) } : null;
   const card = selected ? { ...selected, fallbackImage: playerImage(selected) } : null;
   const close = () => setPlaying(null);
+  const rank = selected ? rankOf(selected) : null;
+  const needFor = (id) => (rank && (GAME_RANK[id] || 1) > rank.level ? rankFor(GAME_RANK[id]) : null);
   const is = (id) => playing?.id === id;
 
   return (
@@ -79,6 +83,11 @@ export function GamesHub({ collection = [], berries, onBerries, onBattleResult, 
         <div className="glass-panel rounded-3xl p-4 space-y-3">
           <div className="flex items-center justify-between gap-2">
             <h3 className="text-base font-black text-slate-50">Chơi cùng Pokémon nào?</h3>
+            {rank && (
+              <span className="text-xs font-bold text-slate-300" data-testid="hub-rank">
+                {rank.icon} {rank.name}
+              </span>
+            )}
             <button onClick={onOpenShop} className="px-3 py-1.5 rounded-full bg-amber-400/20 border border-amber-400/50 text-amber-200 text-sm font-black active:scale-95">
               🎁 Tiệm quà
             </button>
@@ -95,6 +104,9 @@ export function GamesHub({ collection = [], berries, onBerries, onBattleResult, 
                   className={`shrink-0 w-20 p-1.5 rounded-2xl border-2 flex flex-col items-center transition-transform active:scale-95 ${active ? 'border-emerald-400 bg-emerald-400/15' : 'border-slate-700 bg-slate-900/60'}`}
                 >
                   <img src={playerImage(c)} alt="" className="w-14 h-14 object-contain" loading="lazy" />
+                  <span className="text-[10px] font-black text-amber-300">
+                    {rankOf(c).icon} {rankOf(c).name}
+                  </span>
                   <span className="text-[11px] font-bold text-slate-100 truncate w-full text-center">{c.name}</span>
                 </button>
               );
@@ -141,7 +153,7 @@ export function GamesHub({ collection = [], berries, onBerries, onBattleResult, 
           </h3>
           <div className={`grid gap-3 ${section.games.length % 3 === 0 || section.games.length > 4 ? 'grid-cols-3' : 'grid-cols-2'}`}>
             {section.games.map((g) => (
-              <GameTile key={g.id} game={g} locked={locked} onPlay={() => setPlaying({ section: section.id, id: g.id })} />
+              <GameTile key={g.id} game={g} locked={locked || !!needFor(g.id)} needRank={locked ? null : needFor(g.id)} onPlay={() => setPlaying({ section: section.id, id: g.id })} />
             ))}
           </div>
         </section>

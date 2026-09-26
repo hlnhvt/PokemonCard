@@ -172,10 +172,10 @@ export function TeamBattle({ collection = [], allowScanned = false, onScanned, o
     <div data-theme="dark" className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-0 sm:p-4 select-none" role="dialog" aria-label="Đấu đội 5 vs 5" data-phase={phase} style={{ '--battle-tempo': TEMPO[speed] }}>
       <div className="relative flex flex-col w-full h-full sm:h-auto sm:max-h-full max-w-md overflow-y-auto overflow-x-hidden sm:rounded-3xl sm:border-4 border-white/70 shadow-2xl bg-gradient-to-b from-indigo-900 via-purple-900 to-slate-950">
         <div className="sticky top-0 z-50 flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-red-600 via-rose-600 to-purple-600 shadow-lg">
-          <span className="text-white font-black">⚔️ Đấu đội 5 vs 5</span>
-          <span className="px-2 py-0.5 rounded-full bg-white/20 text-white text-xs font-black truncate">{title}</span>
+          <span className="shrink-0 whitespace-nowrap text-white font-black">⚔️ 5 vs 5</span>
+          <span className="min-w-0 px-2 py-0.5 rounded-full bg-white/20 text-white text-xs font-black truncate">{title}</span>
           {(phase === 'battle' || phase === 'intro') && (
-            <button onClick={toggleSpeed} className="ml-auto px-2.5 py-1 rounded-full bg-white/20 text-white text-xs font-black" aria-label="Đổi tốc độ trận đấu">
+            <button onClick={toggleSpeed} className="ml-auto shrink-0 whitespace-nowrap px-2.5 py-1 rounded-full bg-white/20 text-white text-xs font-black" aria-label="Đổi tốc độ trận đấu">
               {speed === 'slow' ? '🐢 Chậm' : '🐇 Nhanh'}
             </button>
           )}

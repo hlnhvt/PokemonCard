@@ -113,11 +113,12 @@ describe('TeamBattle', () => {
     expect(within(screen.getByTestId('team-slots')).getByText('📷 Vừa quét')).toBeInTheDocument();
   });
 
-  it('TT-03 six battle grounds; choosing one shows which Pokemon it suits', async () => {
+  it('TT-03 seven battle grounds (Pokemon stadium chosen by default); choosing one shows which Pokemon it suits', async () => {
     render(<TeamBattle allowScanned collection={COLLECTION} onClose={vi.fn()} random={seeded(3)} />);
     await buildFullTeam();
     const grounds = screen.getByRole('radiogroup', { name: 'Sàn đấu' });
-    expect(within(grounds).getAllByRole('radio')).toHaveLength(6);
+    expect(within(grounds).getAllByRole('radio')).toHaveLength(7);
+    expect(within(grounds).getByRole('radio', { name: 'Sân vận động Pokémon' })).toHaveAttribute('aria-checked', 'true');
     fireEvent.click(within(grounds).getByRole('radio', { name: 'Núi lửa rực cháy' }));
     expect(within(grounds).getByRole('radio', { name: 'Núi lửa rực cháy' })).toHaveAttribute('aria-checked', 'true');
     expect(within(grounds).getByRole('radio', { name: 'Núi lửa rực cháy' })).toHaveTextContent('Hợp với 1 Pokémon');

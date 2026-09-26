@@ -678,3 +678,41 @@ Nguyên nhân (đã kiểm chứng với PokeAPI thật):
 | BW-08 | P1 | AUTO | Chạm bừa thắng 30–36%, canh mũi tên thắng ≥65% | Đúng |
 | RC-03 | P1 | AUTO | Bé biết né về nhất 33–45%, luôn nhiều hơn khi không điều khiển; không điều khiển vẫn vào top 3 trên 30% | Đúng |
 | GH-01 | P2 | AUTO | Sửa test chạy lúc đạt lúc không: game đoán bóng trên cùng trang có thể hiện chữ "Pikachu", nên test giờ chỉ kiểm tra rằng không có Pokémon chạy nhảy mặc định | Đúng (chạy 3 lần liên tiếp) |
+
+---
+
+## 24. Sân vận động Pokémon (5 vs 5) và hạng Pokémon mở khóa trò chơi (2026-09-26)
+
+**Sàn mới: 🏟️ Sân vận động Pokémon** (đứng đầu danh sách và được chọn sẵn)
+- Tăng sức mạnh chiêu hệ Giác đấu và Thường.
+- Cảnh sân vận động: khán đài kín khán giả nhún nhảy cổ vũ, hai tháp đèn pha, màn hình lớn "POKÉMON LEAGUE", vạch sân và Pokéball giữa sân, đèn flash máy ảnh lóe trên khán đài và pháo giấy.
+- Đã sửa thanh tiêu đề đấu đội bị xuống dòng khi tên sàn dài.
+
+**Hạng Pokémon** (`utils/pokemonRank.js`)
+- Sức mạnh = máu + tấn công + phòng thủ + tốc độ gốc, là các chỉ số đã lưu trên thẻ.
+- Số liệu đo trên PokeAPI thật: Pichu 135, Pikachu 220, Charmeleon 260, Gengar 295, Charizard 340, Snorlax 365, Dragonite 400, Mewtwo 436, Arceus 480.
+
+| Hạng | Sức mạnh | Ví dụ | Số trò (trên 14) |
+|---|---|---|---|
+| 🥉 Đồng | < 250 | Pichu, Pikachu, Eevee, các starter | 5: Ném bóng, Chạy nhảy, Mê cung, Toán, Tiếng Anh |
+| 🥈 Bạc | 250–329 | Charmeleon, Gengar, Raichu, Venusaur | 9: thêm Bếp, Cửa hàng, Nhớ thứ tự, Chơi nhạc |
+| 🥇 Vàng | 330–399 | Charizard, Lucario, Snorlax, Gyarados | 12: thêm Đấu Pokémon, Bowling, Penalty |
+| 💎 Huyền thoại | ≥ 400 | Dragonite, Mew, Mewtwo | 14: thêm Bóng rổ, Đua xe |
+
+- **Lên hạng thêm:** thẻ Shiny được +1 hạng; thân thiết đạt "Tri kỷ" (≥ 80) được +1 hạng. Vì vậy bé chăm Pokémon yếu mình thích (ví dụ Pikachu) vẫn mở được nhiều trò hơn.
+- Thẻ cũ chưa lưu chỉ số được tính là hạng Bạc.
+- Các trò học tập (Mê cung, Toán, Tiếng Anh) mở cho mọi Pokémon.
+- Đấu đội 5 vs 5 và game đoán bóng không giới hạn theo hạng.
+- Giao diện:
+  - Huy hiệu hạng trên khung "Pokémon của bé".
+  - Nút "Chơi cùng X · 5/14 trò".
+  - Bảng chọn game ghi hạng và số trò đã mở. Trò bị khóa hiện xám kèm ổ khóa và hạng cần có; bấm vào thì hiện cách lên hạng.
+  - Tab Trò Chơi: hạng hiện dưới từng Pokémon, ô trò bị khóa ghi hạng cần có.
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| RK-01..04 | P1 | AUTO | Pokémon thật vào đúng hạng; Shiny và Tri kỷ cộng hạng, tối đa Huyền thoại; thẻ cũ là Bạc; hạng càng cao càng nhiều trò, trò học tập luôn mở | Đúng |
+| RK-05 | P1 | AUTO | Huy hiệu hạng; "1/2 trò"; bấm trò bị khóa không chạy game mà hiện hướng dẫn "Tri kỷ"; trò được mở thì chạy | Đúng |
+| GH-05, SPT-09 | P1 | AUTO | Tab Trò Chơi: Pichu (Đồng) chỉ mở trò hạng Đồng, các ô khác ghi hạng cần có; đổi sang Mewtwo thì mở đua xe; Charizard (Vàng) chơi Bowling và Penalty, còn Bóng rổ và Đua xe bị khóa | Đúng |
+| AR-01, TT-03 | P1 | AUTO | 7 sàn, Sân vận động đứng đầu và được chọn sẵn | Đúng |
+| UI-14 | P1 | MANUAL (Chrome, PokeAPI thật) | Bảng chọn game của Pikachu (5/14, có thông báo khóa), trận đấu trên Sân vận động | Không lỗi JS |

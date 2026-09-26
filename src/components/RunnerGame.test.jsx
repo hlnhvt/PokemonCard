@@ -139,6 +139,21 @@ describe('GamesHub', () => {
     expect(onOpenCollection).toHaveBeenCalled();
   });
 
+  it('GH-05 a weak Pokemon plays fewer games; the tiles say which rank is needed', () => {
+    const pichu = makeCard({ id: 'pichu', name: 'Pichu', baseHp: 20, attack: 40, defense: 15, speed: 60, friendship: 0, shinyUnlocked: false });
+    const mewtwo = makeCard({ id: 'mewtwo', name: 'Mewtwo', baseHp: 106, attack: 110, defense: 90, speed: 130 });
+    render(<GamesHub collection={[pichu, mewtwo]} />);
+    expect(screen.getByTestId('hub-rank')).toHaveTextContent('Đồng');
+    expect(screen.getByLabelText('Thoát mê cung')).toBeEnabled();
+    expect(screen.getByLabelText('Học tiếng Anh')).toBeEnabled();
+    expect(screen.getByLabelText('Bếp Pokémon (cần hạng Bạc)')).toBeDisabled();
+    expect(screen.getByLabelText('Sút penalty (cần hạng Vàng)')).toBeDisabled();
+    expect(screen.getByLabelText('Đua xe máy (cần hạng Huyền thoại)')).toBeDisabled();
+    fireEvent.click(screen.getByRole('radio', { name: /Mewtwo/ }));
+    expect(screen.getByTestId('hub-rank')).toHaveTextContent('Huyền thoại');
+    expect(screen.getByLabelText('Đua xe máy')).toBeEnabled();
+  });
+
   it('GH-04 three sections: play, sports and thinking games; the gift shop button', () => {
     const onOpenShop = vi.fn();
     render(<GamesHub collection={[makeCard()]} onOpenShop={onOpenShop} />);

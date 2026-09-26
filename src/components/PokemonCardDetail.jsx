@@ -25,6 +25,7 @@ import { CookingGame } from './kidgames/CookingGame';
 import { ShopGame } from './kidgames/ShopGame';
 import { SPORTS, findSport } from './sports';
 import { LOGIC_GAMES, findLogicGame } from './logic';
+import { rankOf, GAME_RANK } from '../utils/pokemonRank';
 import { getCardMedia } from '../services/pokemonOnlineService';
 import { fedToday } from '../utils/friendship';
 
@@ -120,6 +121,12 @@ export function PokemonCardDetail({
     ...SPORTS.map((s) => ({ id: s.id, title: s.title, description: s.description, icon: s.icon, gradient: s.gradient, group: 'sport', onPlay: () => setExtra({ kind: 'sport', id: s.id }) })),
     ...LOGIC_GAMES.map((g) => ({ id: g.id, title: g.title, description: g.description, icon: g.icon, gradient: g.gradient, group: 'logic', onPlay: () => setExtra({ kind: 'logic', id: g.id }) })),
   ];
+  // Stronger Pokemon play more games (utils/pokemonRank.js)
+  games.forEach((g) => {
+    g.needRank = GAME_RANK[g.id] || 1;
+  });
+  const rank = rankOf({ ...rawPokemon, ...(savedItem || {}) });
+
   // Older or partially saved cards may miss fields; fill them so rendering never crashes
   const pokemon = {
     ...rawPokemon,
@@ -445,6 +452,7 @@ export function PokemonCardDetail({
               onFeed={onFeed}
               onPet={onPet}
               gifts={{ enabled: !isPreview && !!savedItem, bag, card: savedItem, onGive, onOpenShop }}
+              rank={rank}
             />
           </div>
         </div>

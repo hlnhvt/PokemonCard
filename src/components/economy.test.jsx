@@ -6,6 +6,7 @@ import { PokemonBuddy } from './PokemonBuddy';
 import { GoldReward } from './kidgames/Common';
 import { sounds } from '../utils/soundEffects';
 import { makeCard } from '../test/fixtures';
+import { rankOf } from '../utils/pokemonRank';
 
 beforeEach(() => {
   for (const s of ['playPop', 'playCoin', 'playOops', 'playMunch', 'playJump', 'playSuccessFanfare', 'playPokemonCry']) vi.spyOn(sounds, s).mockImplementation(() => {});
@@ -42,6 +43,27 @@ describe('GiftShop', () => {
   it('GS-03 gold reward badge', () => {
     render(<GoldReward amount={15} />);
     expect(screen.getByTestId('gold-reward')).toHaveTextContent('+15 vàng');
+  });
+});
+
+describe('Pokemon rank on the detail page', () => {
+  it('RK-05 the badge shows the rank; locked games explain how to unlock them', () => {
+    const play = vi.fn();
+    const games = [
+      { id: 'maze', title: 'Thoát mê cung', description: '', icon: '🌿', gradient: '', group: 'logic', needRank: 1, onPlay: play },
+      { id: 'racing', title: 'Đua xe máy', description: '', icon: '🏍️', gradient: '', group: 'sport', needRank: 4, onPlay: play },
+    ];
+    const pikachu = makeCard({ id: 'pikachu', name: 'Pikachu' });
+    render(<PokemonBuddy pokemon={pikachu} games={games} rank={rankOf({ baseHp: 35, attack: 55, defense: 40, speed: 90 })} />);
+    expect(screen.getByTestId('rank-badge')).toHaveTextContent('Hạng Đồng');
+    expect(screen.getByText(/Chơi cùng Pikachu/).textContent).toContain('1/2 trò');
+    fireEvent.click(screen.getByText(/Chơi cùng Pikachu/));
+    expect(screen.getByTestId('picker-rank')).toHaveTextContent('mở 1/2 trò');
+    fireEvent.click(screen.getByLabelText('Đua xe máy (cần hạng Huyền thoại)'));
+    expect(play).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert')).toHaveTextContent('Tri kỷ');
+    fireEvent.click(screen.getByLabelText('Thoát mê cung'));
+    expect(play).toHaveBeenCalledTimes(1);
   });
 });
 

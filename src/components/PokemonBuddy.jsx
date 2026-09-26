@@ -52,6 +52,7 @@ export function PokemonBuddy({
   onFeed,
   onPet,
   gifts = { enabled: false },
+  rank,
 }) {
   const [hearts, setHearts] = useState([]);
   const [hopKey, setHopKey] = useState(0);
@@ -167,6 +168,11 @@ export function PokemonBuddy({
     <div className="glass-panel p-4 rounded-2xl flex flex-col items-center gap-3">
       <div className="w-full flex items-center justify-between">
         <h3 className="text-sm font-black uppercase tracking-wider text-slate-300">Pokémon của bé</h3>
+        {rank && (
+          <span className={`px-2 py-0.5 rounded-full bg-gradient-to-r ${rank.color} text-slate-950 text-xs font-black shadow`} data-testid="rank-badge" title={`Sức mạnh ${rank.power}`}>
+            {rank.icon} Hạng {rank.name}
+          </span>
+        )}
         {catchCount > 0 && (
           <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30">
             Đã bắt {catchCount} lần
@@ -345,13 +351,15 @@ export function PokemonBuddy({
             className="col-span-2 py-4 rounded-2xl bg-gradient-to-r from-red-500 via-rose-500 to-orange-500 text-white text-lg font-black flex items-center justify-center gap-2 shadow-lg shadow-red-600/30 active:scale-95 transition-transform"
           >
             <Gamepad2 className="w-6 h-6" /> Chơi cùng {pokemon.name}
-            <span className="px-2 py-0.5 rounded-full bg-white/25 text-xs">{games.length} trò</span>
+            <span className="px-2 py-0.5 rounded-full bg-white/25 text-xs">
+              {rank ? `${games.filter((g) => !(g.needRank > rank.level)).length}/${games.length}` : games.length} trò
+            </span>
           </button>
         )}
       </div>
 
       {showGames && (
-        <GamePicker pokemonName={pokemon.name} image={image} games={games} onClose={() => setShowGames(false)} />
+        <GamePicker pokemonName={pokemon.name} image={image} games={games} rank={rank} onClose={() => setShowGames(false)} />
       )}
     </div>
   );

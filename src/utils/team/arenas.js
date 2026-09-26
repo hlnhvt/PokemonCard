@@ -5,6 +5,16 @@ export const ARENA_BOOST = 1.2;
 
 export const ARENAS = [
   {
+    id: 'stadium',
+    name: 'Sân vận động Pokémon',
+    emoji: '🏟️',
+    boost: ['fighting', 'normal'],
+    ambient: 'flashes',
+    sky: 'from-indigo-950 via-blue-900 to-sky-800',
+    ground: 'from-emerald-500 to-green-700',
+    platform: '#f8fafc',
+  },
+  {
     id: 'meadow',
     name: 'Đồng cỏ xanh',
     emoji: '🌿',

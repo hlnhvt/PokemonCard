@@ -56,9 +56,10 @@ describe('team building', () => {
 });
 
 describe('arenas', () => {
-  it('AR-01 six grounds with unique ids; matching moves get stronger and are marked', () => {
-    expect(ARENAS).toHaveLength(6);
-    expect(new Set(ARENAS.map((a) => a.id)).size).toBe(6);
+  it('AR-01 seven grounds (the Pokemon stadium first) with unique ids; matching moves get stronger and are marked', () => {
+    expect(ARENAS).toHaveLength(7);
+    expect(ARENAS[0]).toMatchObject({ id: 'stadium', name: 'Sân vận động Pokémon' });
+    expect(new Set(ARENAS.map((a) => a.id)).size).toBe(7);
     const volcano = arenaById('volcano');
     const moves = applyArena(dataOf(byName('Charmander')), volcano).moves;
     const fire = moves.find((m) => m.type === 'fire');
@@ -66,7 +67,7 @@ describe('arenas', () => {
     expect(fire.boosted).toBe(true);
     expect(fire.power).toBe(Math.round(fallbackMoves(['fire']).find((m) => m.name === fire.name).power * ARENA_BOOST));
     expect(normal.boosted).toBeUndefined();
-    expect(arenaById('nope').id).toBe('meadow');
+    expect(arenaById('nope').id).toBe('stadium');
   });
 });
 
@@ -130,7 +131,7 @@ describe('team battle', () => {
     teams.forEach((names, t) => {
       for (let s = 0; s < N; s++) {
         const r1 = seeded(1000 * t + s);
-        if (play(buildBattle(names, r1, ARENAS[s % 6]), (st) => Math.floor(r1() * st.battle.player.moves.length)).status === 'won') randomWins++;
+        if (play(buildBattle(names, r1, ARENAS[s % ARENAS.length]), (st) => Math.floor(r1() * st.battle.player.moves.length)).status === 'won') randomWins++;
         const r2 = seeded(1000 * t + s);
         const smart = (state) => {
           const { player, opponent } = state.battle;
@@ -141,7 +142,7 @@ describe('team battle', () => {
           });
           return best;
         };
-        if (play(buildBattle(names, r2, ARENAS[s % 6]), smart).status === 'won') smartWins++;
+        if (play(buildBattle(names, r2, ARENAS[s % ARENAS.length]), smart).status === 'won') smartWins++;
         total++;
       }
     });

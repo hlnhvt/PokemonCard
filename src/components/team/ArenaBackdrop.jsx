@@ -7,6 +7,8 @@ const AMBIENT = {
   bubbles: { move: 'amb-rise', count: 14, render: (i) => <span className="block rounded-full border-2 border-white/80 bg-white/15" style={{ width: 8 + (i % 4) * 5, height: 8 + (i % 4) * 5 }} /> },
   snow: { move: 'amb-fall', count: 22, render: (i) => <span className="block rounded-full bg-white" style={{ width: 3 + (i % 3) * 2, height: 3 + (i % 3) * 2, boxShadow: '0 0 4px white' }} /> },
   neon: { move: 'amb-rise', count: 14, render: (i) => <span className="block rounded-full" style={{ width: 3, height: 14 + (i % 3) * 8, background: ['#f0abfc', '#67e8f9', '#fde047'][i % 3], boxShadow: `0 0 10px 2px ${['#e879f9', '#22d3ee', '#facc15'][i % 3]}` }} /> },
+  // Camera flashes popping in the stands, and confetti floating down
+  flashes: { move: 'amb-twinkle', count: 22, render: (i) => (i % 3 ? <span className="block rounded-full bg-white" style={{ width: 4, height: 4, boxShadow: '0 0 10px 4px rgba(255,255,255,0.9)' }} /> : <span className="block w-2 h-3 rounded-sm" style={{ background: ['#f43f5e', '#facc15', '#38bdf8'][i % 3] }} />) },
   stars: { move: 'amb-twinkle', count: 26, render: (i) => <span className="block rounded-full bg-white" style={{ width: 2 + (i % 3), height: 2 + (i % 3), boxShadow: '0 0 6px white' }} /> },
 };
 
@@ -44,6 +46,41 @@ function Ambient({ kind }) {
 /** Scenery drawn behind the fighters for each ground. */
 function Scenery({ arena }) {
   switch (arena.id) {
+    case 'stadium':
+      return (
+        <>
+          {/* Floodlight towers */}
+          {['left-[6%]', 'right-[6%]'].map((pos) => (
+            <span key={pos} className={`absolute ${pos} top-[4%] w-12 h-8 rounded-md bg-slate-200 grid grid-cols-3 gap-0.5 p-0.5 shadow-[0_0_40px_14px_rgba(255,255,255,0.55)]`}>
+              {Array.from({ length: 6 }).map((_, i) => <span key={i} className="rounded-sm bg-yellow-50" />)}
+            </span>
+          ))}
+          {/* Giant screen */}
+          <span className="absolute left-1/2 -translate-x-1/2 top-[5%] px-3 py-1 rounded-lg bg-slate-950 border-2 border-sky-400 text-[10px] font-black text-sky-300 shadow-[0_0_16px_rgba(56,189,248,0.7)] whitespace-nowrap">
+            🏆 POKÉMON LEAGUE 🏆
+          </span>
+          {/* Stands full of fans, bouncing */}
+          <div className="absolute inset-x-0 top-[18%] h-[30%] bg-gradient-to-b from-slate-800 to-slate-900">
+            {Array.from({ length: 4 }).map((_, row) => (
+              <div key={row} className="flex justify-around" style={{ marginTop: row ? 2 : 6 }}>
+                {Array.from({ length: 16 }).map((_, i) => (
+                  <span
+                    key={i}
+                    className="sport-bob block w-2.5 h-3 rounded-t-full"
+                    style={{ background: ['#f43f5e', '#facc15', '#38bdf8', '#34d399', '#f8fafc', '#a78bfa'][(i * 5 + row * 3) % 6], animationDelay: `${-((i * 0.37 + row * 0.5) % 1.6)}s` }}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+          <span className="absolute inset-x-0 top-[47%] h-2 bg-gradient-to-r from-red-500 via-white to-red-500" />
+          {/* Pitch lines and the Pokeball in the middle */}
+          <span className="absolute left-1/2 -translate-x-1/2 bottom-[6%] w-[46%] aspect-[3/1] rounded-[50%] border-4 border-white/70" />
+          <span className="absolute left-1/2 -translate-x-1/2 bottom-[13%] w-10 h-4 rounded-[50%] bg-white/80 border-2 border-slate-800 overflow-hidden">
+            <span className="block h-1/2 bg-red-500" />
+          </span>
+        </>
+      );
     case 'meadow':
       return (
         <>

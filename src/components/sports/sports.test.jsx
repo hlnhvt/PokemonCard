@@ -204,8 +204,11 @@ describe('RacingGame', () => {
 
 describe('sports in the app', () => {
   it('SPT-09 the Games tab lists the 4 sports and opens one; close works', async () => {
-    render(<GamesHub collection={[{ id: 'charizard', name: 'Charizard', pokedexNumber: '006', fallbackImage: 'c.png' }]} onBerries={vi.fn()} />);
-    for (const t of ['Bowling', 'Sút penalty', 'Bóng rổ', 'Đua xe máy']) expect(screen.getByLabelText(t)).toBeInTheDocument();
+    // Charizard's real stats: rank Vàng, enough for penalty (racing needs Huyền thoại)
+    const charizard = { id: 'charizard', name: 'Charizard', pokedexNumber: '006', fallbackImage: 'c.png', baseHp: 78, attack: 84, defense: 78, speed: 100 };
+    render(<GamesHub collection={[charizard]} onBerries={vi.fn()} />);
+    for (const t of ['Bowling', 'Sút penalty']) expect(screen.getByLabelText(t)).toBeEnabled();
+    for (const t of ['Bóng rổ', 'Đua xe máy']) expect(screen.getByLabelText(`${t} (cần hạng Huyền thoại)`)).toBeDisabled();
     fireEvent.click(screen.getByLabelText('Sút penalty'));
     expect(screen.getByRole('dialog', { name: 'Sút penalty Pokémon' })).toBeInTheDocument();
     fireEvent.click(screen.getByLabelText('Đóng trò chơi'));
