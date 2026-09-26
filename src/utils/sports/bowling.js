@@ -17,7 +17,7 @@ const CHAIN_MIN_SPEED = 1.4;
 const CHAIN_TRANSFER = 0.5;
 const PIN_FRICTION = 0.08;
 // The computer's aim spread: about as good as a child tapping at a random moment
-export const AI_AIM_SPREAD = 1.1;
+export const AI_AIM_SPREAD = 1.0;
 export const AIM_TO_LANE = 0.72;
 
 /** 10 pins in the classic triangle, head pin nearest the bowler. */
@@ -139,7 +139,7 @@ export const standingIds = (state) => state.pins.filter((p) => !p.down).map((p) 
 /** Opponent's aim and power: usually near the middle, sometimes off. */
 export function aiThrow(random) {
   // Uniform like a child tapping at a random moment, so a child who times the arrow wins more
-  return { aim: (random() * 2 - 1) * AI_AIM_SPREAD, power: 0.2 + random() * 0.6 };
+  return { aim: (random() * 2 - 1) * AI_AIM_SPREAD, power: 0.28 + random() * 0.6 };
 }
 
 /**

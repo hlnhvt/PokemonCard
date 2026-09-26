@@ -215,8 +215,7 @@ export function BattleArena({ card, onClose, onResult, random = Math.random, tem
     const card = cardRef.current;
     const random = randomRef.current;
     try {
-      const own = card.speciesName || card.id || Number(card.pokedexNumber);
-      const playerData = await fetchBattlePokemon(own);
+      const playerData = await fetchBattlePokemon(card);
       // A fair match: similar strength and no type advantage over the child's Pokemon
       const foe = pickOpponent(playerData, OPPONENT_POOL, random);
       const opponentData = await fetchBattlePokemon(foe.name);

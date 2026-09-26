@@ -1,6 +1,7 @@
 // Team members for the 5 vs 5 battle: the same shape whether the Pokemon comes from a
 // card scanned just now, one scanned before, or one lent by the game.
 import { artworkUrl } from '../../services/pokemonOnlineService';
+import { battleQueriesFor } from '../../services/battleData';
 
 const norm = (s) => String(s || '').toLowerCase();
 
@@ -17,7 +18,8 @@ export function memberFromCard(card, source = 'owned') {
     name: card.name,
     species: norm(card.speciesName || card.id || card.name),
     image: card.fallbackImage || card.image || (num ? artworkUrl(num) : ''),
-    query: card.speciesName || card.id || num,
+    // Pokedex number first: species names fail for Pokemon with forms (giratina, mimikyu...)
+    query: battleQueriesFor(card),
     friendship: card.friendship || 0,
     types: (card.types || []).map(norm),
     source,

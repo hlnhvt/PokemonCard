@@ -120,7 +120,15 @@ export function TeamBattle({ collection = [], allowScanned = false, onScanned, o
     setError(null);
     const tick = () => alive.current && setProgress((p) => p + 1);
     try {
-      const playerData = await Promise.all(team.map((m) => fetchBattlePokemon(m.query).then((d) => (tick(), d))));
+      const playerData = await Promise.all(
+        team.map((m) =>
+          fetchBattlePokemon(m.query)
+            .then((d) => (tick(), d))
+            .catch((err) => {
+              throw new Error(`${m.name}: ${err.message}`);
+            })
+        )
+      );
       const picks = pickOpponentTeam(playerData, OPPONENT_POOL, random);
       // An opponent that cannot be downloaded is replaced by another one
       const used = new Set([...playerData.map((d) => d.name.toLowerCase()), ...picks.map((p) => p.name.toLowerCase())]);

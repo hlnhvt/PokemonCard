@@ -24,7 +24,8 @@ const TANK = (name, id) => data(name, id, ['normal'], { hp: 255, attack: 20, def
 ]);
 
 function setupFetch(player, opponent) {
-  mocks.fetchBattlePokemon.mockImplementation(async (q) => (String(q).toLowerCase() === player.key || q === player.id ? player : opponent));
+  // The child's Pokemon is looked up with its card, the opponent with a name
+  mocks.fetchBattlePokemon.mockImplementation(async (q) => (typeof q === 'object' || String(q).toLowerCase() === player.key || q === player.id ? player : opponent));
 }
 
 async function advance(ms) {

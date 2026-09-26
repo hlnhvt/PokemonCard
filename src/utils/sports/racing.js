@@ -5,7 +5,7 @@ import { clamp } from './common';
 export const LANES = 3;
 export const TRACK = 4200;
 export const PLAYER_SPEED = 155;
-export const OPPONENT_SPEEDS = [140, 146, 151];
+export const OPPONENT_SPEEDS = [142, 148, 153];
 export const COUNTDOWN = 3;
 export const LANE_CHANGE_SPEED = 5; // lanes per second
 export const EFFECTS = {
@@ -14,7 +14,7 @@ export const EFFECTS = {
   boost: { factor: 1.55, time: 1.4 },
 };
 // Opponents dodge this share of obstacles and grab this share of boosts
-export const AI_AVOID = 0.72;
+export const AI_AVOID = 0.78;
 export const AI_SEEK_BOOST = 0.4;
 const HIT_RANGE = 22;
 const LOOK_AHEAD = 130;

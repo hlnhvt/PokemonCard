@@ -86,7 +86,7 @@ function swipe(stage, from, to) {
 }
 
 describe('PenaltyGame', () => {
-  it('SPT-03 the child shoots with a swipe up, then dives with a sideways swipe (no buttons)', async () => {
+  it('SPT-03 the child shoots with a swipe up, then guesses and dives with a sideways swipe (no buttons, no hints)', async () => {
     render(<PenaltyGame player={PLAYER} onClose={vi.fn()} random={seeded(3)} />);
     await advance(2400);
     expect(dialog().dataset.phase).toBe('aim');
@@ -103,7 +103,10 @@ describe('PenaltyGame', () => {
     expect(dialog().dataset.phase).toBe('read');
     expect(screen.queryByTestId('dive-buttons')).toBeNull();
     expect(screen.getByTestId('dive-hint')).toBeInTheDocument();
-    expect(screen.getByTestId('kicker-look').textContent).toMatch(/👀/);
+    // No hint of where the kicker will shoot: no look bubble, no direction arrows
+    expect(screen.queryByTestId('kicker-look')).toBeNull();
+    expect(screen.getByTestId('dive-hint').textContent).not.toMatch(/⬅️|➡️|⬆️/);
+    expect(screen.getByTestId('sport-hint')).toHaveTextContent('Đoán xem');
     swipe(stage, [200, 300], [90, 310]);
     expect(dialog().dataset.phase).toBe('kick');
   });

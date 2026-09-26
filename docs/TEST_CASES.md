@@ -637,3 +637,44 @@ Lỗi phát hiện qua ảnh chụp Chrome và đã sửa:
 | UI-12 | P1 | MANUAL (Chrome) | Nút và bảng Cài đặt; penalty vuốt có đường ngắm; bắt bóng có mũi tên hướng dẫn; đua xe vuốt đổi làn; bản đồ mê cung, lâu đài có chìa khóa và gợi ý; bản đồ bài nhạc có khóa và sao | Không lỗi JS |
 
 Thay đổi kỹ thuật: `useCanvas` giờ đặt kích thước canvas khi vẽ (trước đây chỉ đặt một lần khi mở game). Nhờ vậy canvas mê cung xuất hiện sau bản đồ màn vẫn sắc nét.
+
+---
+
+## 22. Sửa lỗi: đấu đội báo "Không tải được dữ liệu trận đấu" khi mạng vẫn tốt (2026-09-26)
+
+Nguyên nhân (đã kiểm chứng với PokeAPI thật):
+1. **Tra sai tên với Pokémon có nhiều dạng.** Thẻ đã quét được tra bằng tên loài (`speciesName`). Với Pokémon có nhiều dạng, tên loài không phải tên Pokémon trong PokeAPI: `/pokemon/giratina`, `mimikyu`, `lycanroc`, `aegislash`, `deoxys`, `toxtricity` đều trả về 404 (tên đúng là `giratina-altered`...). Lỗi 404 lại hiện thành "kiểm tra mạng". Trận 1v1 cũng dính lỗi này.
+2. **Quá nhiều yêu cầu cùng lúc.** Một trận 5 vs 5 cần khoảng 145 yêu cầu (10 Pokémon và chiêu thức của chúng), tất cả được gửi cùng lúc. Bộ đếm giờ 8 giây tính từ lúc gửi, kể cả khi yêu cầu còn đang xếp hàng trong trình duyệt. Vì vậy thi thoảng yêu cầu chính của một Pokémon bị hủy, và cả trận báo lỗi.
+
+Đã sửa:
+- Thẻ được tra theo thứ tự: **số Pokédex** (luôn đúng), rồi tên Pokémon, rồi tên loài. Gặp 404 thì thử cách tiếp theo.
+- Hàng đợi yêu cầu: tối đa 6 yêu cầu chạy cùng lúc, dữ liệu Pokémon được ưu tiên trước chiêu thức. Thời gian chờ (10 giây) chỉ tính khi yêu cầu thực sự chạy. Lỗi mạng tự thử lại 2 lần.
+- Thông báo lỗi tách riêng "Không tìm thấy dữ liệu…" và "Kiểm tra mạng", có kèm tên Pokémon bị lỗi.
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| BD-04 | P1 | AUTO | 404 báo "Không tìm thấy", không báo lỗi mạng | Đúng |
+| BD-05, BD-06 | P1 | AUTO | Thẻ Giratina tra bằng số 487, không gọi `/pokemon/giratina`; thẻ cũ không có số thì thử tên tiếp theo sau 404 | Đúng |
+| BD-07, BD-08 | P1 | AUTO | Mạng chập chờn 2 lần vẫn tải được; mất mạng thật thì báo kiểm tra mạng | Đúng |
+| BD-09 | P1 | AUTO | Tải 10 Pokémon: không bao giờ quá 6 yêu cầu cùng lúc | Đúng |
+| UI-13 | P1 | MANUAL (Chrome, PokeAPI thật, xóa bộ nhớ đệm) | Đội Giratina, Mimikyu, Lycanroc, Aegislash, Pikachu: bắt đầu trận 3 lần liên tiếp | 3/3 vào trận (khoảng 145 yêu cầu mỗi lần), không lỗi |
+
+---
+
+## 23. Penalty không gợi ý hướng sút; tăng nhẹ độ khó bowling và đua xe (2026-09-26)
+
+**Penalty, lượt bé bắt bóng:** đã bỏ bong bóng "👀 + mũi tên", ba mũi tên ← ↑ →, và dáng nghiêng người để lộ hướng sút của đối thủ. Bé phải tự đoán. Chỉ còn bàn tay động minh họa thao tác vuốt, và dòng chữ "Đoán xem X sút về đâu…".
+
+**Độ khó** (đo bằng mô phỏng với random cố định, giống các mục trước):
+
+| Game | Thay đổi | Trước | Sau |
+|---|---|---|---|
+| Bowling | Máy ngắm chuẩn hơn (độ lệch 1.1 → 1.0), ném mạnh hơn (lực tối thiểu 0.2 → 0.28) | Bé chạm bừa thắng 39%, canh mũi tên thắng 74%; máy trung bình 7.0 ki mỗi lượt đầu | 31% / 67%; máy 7.4 ki |
+| Đua xe | Đối thủ nhanh hơn (142/148/153 thay vì 140/146/151), né chướng ngại giỏi hơn (72% → 78%) | Bé biết né về nhất 48%, top 3 91%; không điều khiển về nhất 25% | 39% / 84%; 15% |
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| SPT-03 | P1 | AUTO | Lượt bắt bóng không có bong bóng hướng nhìn, không có mũi tên hướng, dòng chữ là "Đoán xem" | Đúng |
+| BW-08 | P1 | AUTO | Chạm bừa thắng 30–36%, canh mũi tên thắng ≥65% | Đúng |
+| RC-03 | P1 | AUTO | Bé biết né về nhất 33–45%, luôn nhiều hơn khi không điều khiển; không điều khiển vẫn vào top 3 trên 30% | Đúng |
+| GH-01 | P2 | AUTO | Sửa test chạy lúc đạt lúc không: game đoán bóng trên cùng trang có thể hiện chữ "Pikachu", nên test giờ chỉ kiểm tra rằng không có Pokémon chạy nhảy mặc định | Đúng (chạy 3 lần liên tiếp) |

@@ -60,6 +60,7 @@ describe('bowling', () => {
     console.info(`[bowling] match win rate: random taps ${Math.round(random * 100)}%, timed ${Math.round(timed * 100)}%`);
     expect(random).toBeGreaterThanOrEqual(0.3);
     expect(timed).toBeGreaterThanOrEqual(0.65);
+    expect(random).toBeLessThanOrEqual(0.36); // the computer is a real opponent
   });
 
   it('BW-03 the edge of the aim swing knocks only a few pins (no gutter balls for children)', () => {

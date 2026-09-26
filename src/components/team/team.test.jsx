@@ -4,7 +4,7 @@ import { render, screen, fireEvent, act, within } from '@testing-library/react';
 import { fallbackMoves } from '../../utils/battle/moves';
 
 const mocks = vi.hoisted(() => ({ fetchBattlePokemon: vi.fn(), strong: new Set() }));
-vi.mock('../../services/battleData', () => ({ fetchBattlePokemon: mocks.fetchBattlePokemon }));
+vi.mock('../../services/battleData', async (importOriginal) => ({ ...(await importOriginal()), fetchBattlePokemon: mocks.fetchBattlePokemon }));
 // The real scanner needs a camera; this stand-in "scans" a Mew card when tapped
 vi.mock('../ScannerModal', () => ({
   ScannerModal: ({ onCardDetected, onOpenCard, recentCards }) => (
@@ -32,7 +32,9 @@ const COLLECTION = [
 
 /** Battle data: Pokemon in `strong` are powerful, the others very weak. */
 function battleData(query) {
-  const name = String(query).toLowerCase();
+  // Cards are looked up with a list of ways (number, id, species): use the name-like one
+  const q = Array.isArray(query) ? query.find((x) => typeof x === 'string') : query;
+  const name = String(q).toLowerCase();
   const s = mocks.strong.has(name) ? 160 : 12;
   const types = { pikachu: ['electric'], charmander: ['fire'], squirtle: ['water'], bulbasaur: ['grass'], mew: ['psychic'] }[name] || ['normal'];
   return Promise.resolve({ key: name, name: name.charAt(0).toUpperCase() + name.slice(1), id: 1, types, stats: { hp: s, attack: s, defense: s, spAttack: s, spDefense: s, speed: s }, moves: fallbackMoves(types), image: `${name}.png` });

@@ -159,7 +159,8 @@ describe('racing', () => {
     const podium = (arr) => arr.filter((p) => p <= 3).length / arr.length;
     const first = (arr) => arr.filter((p) => p === 1).length / arr.length;
     console.info(`[racing] dodger: 1st ${Math.round(first(good) * 100)}%, podium ${Math.round(podium(good) * 100)}% | idle: 1st ${Math.round(first(idle) * 100)}%, podium ${Math.round(podium(idle) * 100)}%`);
-    expect(first(good)).toBeGreaterThan(0.45);
+    expect(first(good)).toBeGreaterThan(0.33);
+    expect(first(good)).toBeLessThan(0.45); // a real race, not an easy win
     expect(first(good)).toBeGreaterThan(first(idle));
     expect(podium(idle)).toBeGreaterThan(0.3);
   });

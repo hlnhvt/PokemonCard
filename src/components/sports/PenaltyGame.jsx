@@ -169,7 +169,7 @@ const freshGame = () => ({
   time: 0,
 });
 
-const snapshot = (s) => ({ phase: s.phase, round: s.round, kicker: s.kicker, scores: [...s.scores], marks: { player: [...s.marks.player], opponent: [...s.marks.opponent] }, lean: s.plan ? s.plan.lean : null });
+const snapshot = (s) => ({ phase: s.phase, round: s.round, kicker: s.kicker, scores: [...s.scores], marks: { player: [...s.marks.player], opponent: [...s.marks.opponent] } });
 
 /**
  * Penalty shoot-out: the child shoots (tap where the ball should go) and saves
@@ -427,7 +427,6 @@ export function PenaltyGame({ player, onClose, onBerries, onGold, random = Math.
     let px = SPOT.x - 62;
     let py = SPOT.y + 30;
     let lean = 0;
-    if (s.phase === 'read' && s.plan && !a) lean = { left: -0.28, center: 0, right: 0.28 }[s.plan.lean];
     if (a) {
       const k = Math.min(1, a.t / RUN);
       px += 40 * ease(k);
@@ -506,12 +505,11 @@ export function PenaltyGame({ player, onClose, onBerries, onGold, random = Math.
     rerender();
   };
 
-  const lookArrow = g.lean ? { left: '⬅️', center: '⬆️', right: '➡️' }[g.lean] : '';
   const hint =
     g.phase === 'aim'
       ? 'Vuốt lên về phía khung thành để sút! Vuốt xiên để sút góc, vuốt dài để sút cao ⭐'
       : g.phase === 'read'
-        ? `Xem ${opponent.name} nhìn hướng nào rồi vuốt ← ↑ → để bay người!`
+        ? `Đoán xem ${opponent.name} sút về đâu, vuốt sang trái, phải hoặc lên trên để bay người bắt bóng!`
         : '';
 
   return (
@@ -556,23 +554,16 @@ export function PenaltyGame({ player, onClose, onBerries, onGold, random = Math.
         data-testid="penalty-stage"
       >
         <canvas ref={canvasRef} data-testid="penalty-canvas" className="max-w-full max-h-full" style={{ aspectRatio: `${W} / ${H}`, width: '100%', height: 'auto' }} />
-        {g.phase === 'read' && (
-          <div className="bubble-pop absolute left-[18%] bottom-[30%] px-3 py-1.5 rounded-2xl bg-white text-2xl shadow-lg pointer-events-none" data-testid="kicker-look">
-            👀{lookArrow}
-          </div>
-        )}
         {g.phase === 'aim' && (
           <span className="swipe-up-hint absolute left-1/2 bottom-[12%] text-4xl pointer-events-none drop-shadow-lg" aria-hidden="true" data-testid="swipe-hint">
             👆
           </span>
         )}
         {g.phase === 'read' && (
-          <div className="absolute inset-x-0 top-[36%] flex items-center justify-center gap-10 pointer-events-none" aria-hidden="true" data-testid="dive-hint">
-            <span className="nudge-l text-4xl drop-shadow-lg">⬅️</span>
-            <span className="nudge-u text-4xl drop-shadow-lg">⬆️</span>
-            <span className="nudge-r text-4xl drop-shadow-lg">➡️</span>
-            <span className="swipe-side-hint absolute left-1/2 top-12 text-4xl">👆</span>
-          </div>
+          // Only shows the gesture, never where the kicker will shoot
+          <span className="swipe-side-hint absolute left-1/2 top-[44%] text-4xl pointer-events-none drop-shadow-lg" aria-hidden="true" data-testid="dive-hint">
+            👆
+          </span>
         )}
         {hint && (
           <p className="hint-pulse absolute top-2 left-1/2 -translate-x-1/2 w-[92%] px-3 py-1.5 rounded-2xl bg-black/55 text-center text-white text-sm font-black pointer-events-none" data-testid="sport-hint">

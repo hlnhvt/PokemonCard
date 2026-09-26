@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fetchBattlePokemon, resetBattleCache } from './battleData';
+import { fetchBattlePokemon, resetBattleCache, battleQueriesFor } from './battleData';
 
 const API = 'https://pokeapi.co/api/v2';
+const moveOf = (url) => MOVES[url.match(/move[/]([a-z-]+)[/]$/)?.[1]];
 const json = (body, status = 200) => ({ ok: status < 400, status, json: async () => body });
 
 const moveEntry = (name, level) => ({
@@ -75,9 +76,62 @@ describe('fetchBattlePokemon', () => {
     expect(p.moves.map((m) => m.name)).toEqual(expect.arrayContaining(['Thunder Shock', 'Thunderbolt']));
   });
 
-  it('BD-04 unknown Pokemon without cache is a friendly error', async () => {
+  it('BD-04 an unknown Pokemon says it was not found (not a network problem)', async () => {
     mockApi({ pokemonOk: false });
-    await expect(fetchBattlePokemon('pikachu')).rejects.toThrow('Không tải được dữ liệu trận đấu');
+    await expect(fetchBattlePokemon('pikachu')).rejects.toThrow('Không tìm thấy dữ liệu trận đấu');
     await expect(fetchBattlePokemon('')).rejects.toThrow('Không có Pokémon để đấu');
+  });
+
+  it('BD-05 saved cards are looked up by Pokedex number first (species names fail for forms)', async () => {
+    // Species "giratina" is the Pokemon "giratina-altered": /pokemon/giratina is a 404
+    const card = { id: 'giratina-altered', speciesName: 'giratina', name: 'Giratina', pokedexNumber: '487' };
+    expect(battleQueriesFor(card)).toEqual([487, 'giratina-altered', 'giratina']);
+    const fn = vi.fn(async (url) => {
+      if (url.endsWith('/pokemon/487')) return json({ ...PIKACHU, id: 487, name: 'giratina-altered', moves: [] });
+      return json({}, 404);
+    });
+    vi.stubGlobal('fetch', fn);
+    const p = await fetchBattlePokemon(card);
+    expect(p.id).toBe(487);
+    expect(fn.mock.calls.some(([u]) => u.endsWith('/pokemon/giratina'))).toBe(false);
+  });
+
+  it('BD-06 old cards without a number still work: the next way is tried after a 404', async () => {
+    const fn = vi.fn(async (url) => (url.endsWith('/pokemon/giratina-altered') ? json({ ...PIKACHU, id: 487, name: 'giratina-altered', moves: [] }) : json({}, 404)));
+    vi.stubGlobal('fetch', fn);
+    const p = await fetchBattlePokemon({ speciesName: 'giratina', id: 'giratina-altered' });
+    expect(p.name).toBe('Giratina-altered');
+  });
+
+  it('BD-07 a flaky network is retried instead of failing the battle', async () => {
+    let failures = 2;
+    const fn = vi.fn(async (url) => {
+      if (url.endsWith('/pokemon/pikachu') && failures-- > 0) throw new TypeError('network glitch');
+      return url.endsWith('/pokemon/pikachu') ? json(PIKACHU) : json(moveOf(url) || {}, moveOf(url) ? 200 : 404);
+    });
+    vi.stubGlobal('fetch', fn);
+    expect((await fetchBattlePokemon('pikachu')).id).toBe(25);
+  });
+
+  it('BD-08 real network failure (after retries) says to check the network', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('offline'); }));
+    await expect(fetchBattlePokemon('pikachu')).rejects.toThrow('Kiểm tra mạng');
+  });
+
+  it('BD-09 at most 6 requests run at once, even for 10 Pokemon (5 vs 5)', async () => {
+    let active = 0;
+    let peak = 0;
+    vi.stubGlobal('fetch', vi.fn(async (url) => {
+      active += 1;
+      peak = Math.max(peak, active);
+      await new Promise((r) => setTimeout(r, 5));
+      active -= 1;
+      if (url.includes('/pokemon/')) return json({ ...PIKACHU, name: url.split('/').pop() });
+      return json(moveOf(url) || {});
+    }));
+    const names = ['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8', 'a9', 'a10'];
+    const all = await Promise.all(names.map((n) => fetchBattlePokemon(n)));
+    expect(all).toHaveLength(10);
+    expect(peak).toBeLessThanOrEqual(6);
   });
 });

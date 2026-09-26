@@ -114,7 +114,9 @@ describe('GamesHub', () => {
     for (const name of ['Chạy nhảy (cần quét thẻ)', 'Bowling (cần quét thẻ)', 'Thoát mê cung (cần quét thẻ)']) expect(screen.getByLabelText(name)).toBeDisabled();
     fireEvent.click(screen.getByText('Quét thẻ ngay'));
     expect(onScan).toHaveBeenCalled();
-    expect(screen.queryByText(/Pikachu/)).toBeNull();
+    // No stand-in Pokemon to play with (the quiz on the same page may show any name)
+    expect(screen.queryByText(/Chạy cùng/)).toBeNull();
+    expect(screen.queryByRole('radiogroup', { name: 'Chọn Pokémon để chơi' })).toBeNull();
   });
 
   it('GH-02 the child picks one of their Pokemon and starts the runner', () => {
