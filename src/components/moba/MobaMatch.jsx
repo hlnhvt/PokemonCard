@@ -7,6 +7,7 @@ import { TYPE_VI } from '../../utils/battle/typeChart';
 import { sounds } from '../../utils/soundEffects';
 import { useLoop, loadImage } from '../sports/sportsKit';
 import { renderMap, createFx, burstFx, typeColor, drawWorld, drawMinimap, TEAM_COLORS } from './mobaDraw';
+import { castFx, impactFx, novaFx, styleBurst } from './skillFx';
 
 const SIM_DT = 1 / 60;
 const VIEW_H = 450; // world units visible vertically
@@ -144,7 +145,8 @@ export function MobaMatch({ blue, red, minutes, control = 0, random = Math.rando
       switch (e.kind) {
         case 'hit': {
           const c = typeColor(e.type);
-          burstFx(fx, e.x, e.y + 10, c, { count: e.crit ? 18 : 9, speed: e.crit ? 240 : 160, size: e.crit ? 5 : 3.5 });
+          burstFx(fx, e.x, e.y + 10, c, { count: e.crit ? 10 : 4, speed: e.crit ? 240 : 160, size: e.crit ? 5 : 3.5 });
+          styleBurst(fx, e.type, e.x, e.y + 10, { count: e.crit ? 10 : 5, speed: 200, size: e.crit ? 4.5 : 3.5, life: 0.5 });
           fx.numbers.push({ x: e.x + (Math.random() - 0.5) * 16, y: e.y, text: `${e.crit ? '💥' : ''}-${e.amount}`, color: e.crit ? '#fde047' : e.eff >= 2 ? '#fb923c' : '#ffffff', size: e.crit ? 26 : e.eff >= 2 ? 22 : 17, life: 0.9, max: 0.9 });
           fx.hitFlash[e.target] = 1;
           if (clock.current.time - clock.current.lastPop > 0.08) {
@@ -154,12 +156,13 @@ export function MobaMatch({ blue, red, minutes, control = 0, random = Math.rando
           break;
         }
         case 'nova':
-          fx.rings.push({ x: e.x, y: e.y, from: 10, to: e.r, life: 0.45, max: 0.45, color: typeColor(e.type), width: 10, fill: true });
-          burstFx(fx, e.x, e.y, typeColor(e.type), { count: 26, speed: 300, size: 4 });
+          novaFx(fx, e.type, e.x, e.y, e.r);
+          fx.castPulse[e.who] = 1;
           if (e.who === me) sounds.playWhoosh();
           break;
         case 'cast':
-          fx.rings.push({ x: fighterById(s, e.who).x, y: fighterById(s, e.who).y - 20, from: 8, to: 40, life: 0.3, max: 0.3, color: typeColor(e.type), width: 5 });
+          castFx(fx, e.type, e.x, e.y, { x: e.dx, y: e.dy });
+          fx.castPulse[e.who] = 1;
           if (e.who === me) sounds.playWhoosh();
           break;
         case 'ult':
@@ -201,7 +204,9 @@ export function MobaMatch({ blue, red, minutes, control = 0, random = Math.rando
           fx.beams.push({ x: e.x, y: e.y, life: 0.7, max: 0.7, color: TEAM_COLORS[teamOf(e.who)] });
           break;
         case 'pop':
-          burstFx(fx, e.x, e.y, typeColor(e.type), { count: e.big ? 10 : 4, speed: 120, size: 3, life: 0.35 });
+          if (e.big) impactFx(fx, e.type, e.x, e.y);
+          else burstFx(fx, e.x, e.y, typeColor(e.type), { count: 4, speed: 120, size: 3, life: 0.35 });
+          fx.trails.delete(e.id);
           break;
         default:
           break;
@@ -265,6 +270,7 @@ export function MobaMatch({ blue, red, minutes, control = 0, random = Math.rando
       }
     }
     for (const id of Object.keys(fx.hitFlash)) fx.hitFlash[id] = Math.max(0, fx.hitFlash[id] - rawDt * 5);
+    for (const id of Object.keys(fx.castPulse)) fx.castPulse[id] = Math.max(0, fx.castPulse[id] - rawDt * 4);
 
     // Throttled HUD (10 times a second)
     c.hudT = (c.hudT || 0) + rawDt;

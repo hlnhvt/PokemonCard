@@ -825,3 +825,38 @@ Lỗi phát hiện qua ảnh chụp Chrome và đã sửa:
 | NG-04 | P1 | AUTO | Đội 5 thắng lần lượt 9 đội 5: tải đúng đội của từng nhà, nhận thưởng 9 lần, đủ 9/9 huy hiệu, có lễ Nhà Vô địch | Đúng |
 | NG-05 | P1 | AUTO | Tắt cài đặt thì bắt buộc quét thẻ; thua thì không có thưởng và bấm "Thử lại" được | Đúng |
 | UI-17 | P2 | MANUAL (Chrome) | Xem nút nhạc, nút Quét thẻ mới, đường Liên minh, màn VS, trận 5 vs 5, nhãn Tuyệt kỹ nhỏ ở Đấu trường | Hiển thị đúng, không lỗi JS |
+
+---
+
+## 28. Đấu trường: hiệu ứng chiêu 1 và 2 theo từng hệ (2026-09-26)
+
+- Hiệu ứng mới nằm trong `src/components/moba/skillFx.js`. Mỗi hệ có một kiểu riêng: Lửa, Nước, Băng, Điện, Cỏ/Bọ, Huyền bí (Siêu linh/Tiên/Ma/Bóng tối/Độc), Đá (Đá/Đất/Thép/Giác đấu), Gió (Thường/Bay/Rồng).
+- **Chiêu 1 (phóng):**
+  - Lúc tung chiêu: chớp sáng hình nón ở tay, Pokémon phồng nhẹ, dưới chân có quầng màu theo hệ.
+  - Đường bay: vệt sáng như dải lụa, quầng sáng quanh đạn, dọc đường rơi hạt theo hệ.
+  - Hình đạn theo hệ:
+    - Lửa: sao chổi có lưỡi lửa lập lòe.
+    - Nước: bong bóng có giọt nước xoay quanh.
+    - Điện: tia chớp nổ lách tách.
+    - Cỏ/Bọ: phi tiêu 3 lá xoay.
+    - Băng: bông tuyết pha lê.
+    - Huyền bí: quả cầu tối có sao bay quanh.
+    - Đá: tảng đá lăn.
+    - Gió: 2 lưỡi gió hình trăng khuyết.
+  - Khi trúng đích hoặc bay hết tầm: nổ hình ngôi sao 8 cánh kèm vòng sáng.
+- **Chiêu 2 (quanh mình):**
+  - Đĩa sáng trên mặt đất đúng bằng vùng trúng đòn, 2 vòng sóng xung kích.
+  - Phần riêng theo hệ:
+    - Lửa: vòng cột lửa bùng lên.
+    - Băng và Đá: gai nhọn trồi lên từ mép rồi thụt xuống.
+    - Điện: 7 tia sét lóe từ Pokémon ra mép.
+    - Huyền bí: vòng phép có sao 5 cánh và chấm ký tự xoay.
+    - Cỏ và Gió: xoáy lốc.
+    - Nước: bắn tung giọt nước.
+- Hạt có nhiều hình (lửa, giọt, tia, lá, mảnh băng, sao, đá, khói) và có trọng lực riêng: tàn lửa bay lên, giọt nước và đá rơi xuống. Giới hạn 700 hạt để máy yếu vẫn mượt.
+- Không có hiệu ứng nào làm rung, phóng to hay chớp toàn màn hình.
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| MB-01..06, MG-01..02 | P1 | AUTO | Test Đấu trường hiện có vẫn đạt (sự kiện 'cast' có thêm vị trí và hướng, 'pop' có thêm id đạn) | Đạt |
+| UI-18 | P1 | MANUAL (Chrome) | Lần lượt điều khiển Charizard, Pikachu, Lapras, Gengar, Lucario và bấm chiêu 1, chiêu 2 | Mỗi hệ một kiểu hiệu ứng riêng, không lỗi JS |

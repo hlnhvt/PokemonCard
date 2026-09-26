@@ -3,6 +3,7 @@
 import { WORLD, CENTER, LANES_Y, BASES, OBSTACLES, BUSHES } from '../../utils/moba/map';
 import { TYPE_COLORS } from '../../utils/battle/typeChart';
 import { drawSprite, imageReady } from '../sports/sportsKit';
+import { drawParticles, drawSkillShot, drawNovasGround, drawNovasTop, drawFlashes } from './skillFx';
 
 export const TEAM_COLORS = { blue: '#38bdf8', red: '#f43f5e' };
 const MAP_SCALE = 1.5; // offscreen resolution (sharper when the camera zooms)
@@ -249,7 +250,7 @@ export function renderMap() {
 
 /** Frame effects kept by the component: particles, rings, floating numbers, trails. */
 export function createFx() {
-  return { particles: [], rings: [], numbers: [], trails: new Map(), beams: [], afterimages: [], streaks: [] };
+  return { particles: [], rings: [], numbers: [], trails: new Map(), beams: [], afterimages: [], streaks: [], novas: [], flashes: [], impacts: [], castPulse: {} };
 }
 
 export function burstFx(fx, x, y, color, { count = 14, speed = 180, size = 4, life = 0.6 } = {}) {
@@ -327,6 +328,9 @@ export function drawWorld(ctx, state, fx, images, time, dt, controlId) {
     ctx.lineCap = 'butt';
   }
 
+  // Skill 2 on the ground, under the Pokemon
+  drawNovasGround(ctx, fx, dt);
+
   // Fighters and shots in depth order
   const items = [];
   for (const f of state.fighters) if (!f.dead) items.push({ y: f.y, f });
@@ -334,7 +338,8 @@ export function drawWorld(ctx, state, fx, images, time, dt, controlId) {
   items.sort((a, b) => a.y - b.y);
   for (const it of items) {
     if (it.p) {
-      drawShot(ctx, it.p, fx, time);
+      if (it.p.skill === 's1') drawSkillShot(ctx, it.p, fx, time, dt);
+      else drawShot(ctx, it.p, fx, time);
       continue;
     }
     const f = it.f;
@@ -366,7 +371,17 @@ export function drawWorld(ctx, state, fx, images, time, dt, controlId) {
       }
       ctx.globalAlpha = 1;
     }
-    const size = 62 * (1 + hitFlash * 0.12);
+    // Casting a skill: a quick swell and a glow in the type's colour at the feet
+    const cast = fx.castPulse?.[f.id] || 0;
+    if (cast > 0) {
+      ctx.globalAlpha = cast * 0.55;
+      ctx.fillStyle = typeColor(f.types[0]);
+      ctx.beginPath();
+      ctx.ellipse(f.x, f.y + 14, 30 + (1 - cast) * 14, 12 + (1 - cast) * 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    const size = 62 * (1 + hitFlash * 0.12 + cast * 0.1);
     drawSprite(ctx, images[f.id], f.x, f.y - 20 - bob, size, { flip: f.facing < 0, color: c });
     if (hitFlash > 0) {
       ctx.globalAlpha = hitFlash * 0.6;
@@ -404,6 +419,10 @@ export function drawWorld(ctx, state, fx, images, time, dt, controlId) {
       ctx.fill();
     }
   }
+
+  // Skill 2 standing parts (fire pillars, spikes, lightning) and skill 1 flashes
+  drawNovasTop(ctx, fx, dt);
+  drawFlashes(ctx, fx, dt);
 
   // Rings (novas, respawns, combo impacts)
   for (let i = fx.rings.length - 1; i >= 0; i--) {
@@ -447,25 +466,8 @@ export function drawWorld(ctx, state, fx, images, time, dt, controlId) {
     ctx.fillRect(b.x - 18 * a, b.y - 260, 36 * a, 260);
     ctx.globalAlpha = 1;
   }
-  // Particles
-  for (let i = fx.particles.length - 1; i >= 0; i--) {
-    const p = fx.particles[i];
-    p.life -= dt;
-    if (p.life <= 0) {
-      fx.particles.splice(i, 1);
-      continue;
-    }
-    p.x += p.vx * dt;
-    p.y += p.vy * dt;
-    p.vx *= 0.92;
-    p.vy *= 0.92;
-    ctx.globalAlpha = p.life / p.max;
-    ctx.fillStyle = p.color;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.globalAlpha = 1;
+  // Particles (dots and type shapes)
+  drawParticles(ctx, fx, dt);
   // Floating damage numbers
   for (let i = fx.numbers.length - 1; i >= 0; i--) {
     const n = fx.numbers[i];

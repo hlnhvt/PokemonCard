@@ -276,7 +276,7 @@ export function act(state, f, input) {
     f.aim = dir;
     if (Math.abs(dir.x) > 0.1) f.facing = dir.x > 0 ? 1 : -1;
     shoot(state, f, 's1', dir);
-    state.events.push({ kind: 'cast', who: f.id, skill: 's1', type: f.types[0], name: f.kit[1] });
+    state.events.push({ kind: 'cast', who: f.id, skill: 's1', type: f.types[0], name: f.kit[1], x: f.x, y: f.y, dx: dir.x, dy: dir.y });
     return true;
   }
   if (input.basic && f.cd.basic <= 0) {
@@ -410,7 +410,7 @@ export function step(state, dt, inputs = {}) {
       }
     }
     if (gone) {
-      state.events.push({ kind: 'pop', x: p.x, y: p.y, type: p.type, big: p.skill !== 'basic' });
+      state.events.push({ kind: 'pop', id: p.id, x: p.x, y: p.y, type: p.type, big: p.skill !== 'basic' });
       state.projectiles.splice(i, 1);
     }
   }
