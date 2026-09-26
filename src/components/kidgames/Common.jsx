@@ -112,17 +112,38 @@ export function StarRow({ stars, size = 'w-8 h-8', animate = false }) {
   );
 }
 
+/** "+15 vàng" with coins raining behind it (end of a game). */
+export function GoldReward({ amount, dark = false }) {
+  return (
+    <div className="relative" data-testid="gold-reward">
+      <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 -top-24 h-40 overflow-visible">
+        {Array.from({ length: 10 }).map((_, i) => (
+          <span key={i} className="coin-rain absolute text-2xl" style={{ left: `${(i * 37) % 100}%`, animationDelay: `${i * 110}ms` }}>
+            🪙
+          </span>
+        ))}
+      </span>
+      <p className={`relative flex items-center gap-2 px-4 py-1.5 rounded-2xl text-lg font-black shadow ${dark ? 'bg-amber-400/20 text-amber-200' : 'bg-amber-100 text-amber-700'}`}>
+        <span className="coin-spin text-2xl">🪙</span> +{amount} vàng
+      </p>
+    </div>
+  );
+}
+
 /** End-of-session summary with stars and the berry reward. */
-export function SessionSummary({ title, stars, maxStars, berries, detail, onReplay, onClose }) {
+export function SessionSummary({ title, stars, maxStars, berries, gold, detail, onReplay, onClose }) {
   const average = maxStars ? Math.round((stars / maxStars) * 3) : 0;
   return (
     <div className="flex flex-col items-center gap-3 px-6 py-8 text-center">
       <p className="text-3xl font-black text-slate-800">{title}</p>
       <StarRow stars={Math.max(1, average)} size="w-12 h-12" animate />
       <p className="text-lg font-bold text-slate-700">{detail}</p>
-      <p className="flex items-center gap-2 text-lg font-black text-emerald-700">
-        <BerryIcon type="razz" className="w-6 h-6" /> Phần thưởng: {berries} quả mọng
-      </p>
+      {berries != null && (
+        <p className="flex items-center gap-2 text-lg font-black text-emerald-700">
+          <BerryIcon type="razz" className="w-6 h-6" /> Phần thưởng: {berries} quả mọng
+        </p>
+      )}
+      {gold > 0 && <GoldReward amount={gold} />}
       <div className="flex gap-3 mt-2">
         <button onClick={onReplay} className="px-6 py-3 rounded-2xl bg-red-500 hover:bg-red-400 text-white text-lg font-black flex items-center gap-2 shadow-lg active:scale-95">
           <RotateCcw className="w-5 h-5" /> Chơi lại

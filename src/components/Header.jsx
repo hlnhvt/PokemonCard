@@ -18,7 +18,7 @@ const TABS = [
   { id: 'games', label: 'Trò Chơi', Icon: Gamepad2, active: 'bg-gradient-to-r from-emerald-600 to-teal-600 shadow-emerald-600/30 border-emerald-400/40' },
 ];
 
-export function Header({ currentTab, setCurrentTab, collectionCount, isMuted, onToggleMute, theme = 'dark', onSelectTheme }) {
+export function Header({ currentTab, setCurrentTab, collectionCount, isMuted, onToggleMute, theme = 'dark', onSelectTheme, gold, onOpenShop }) {
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const currentTheme = THEMES.find((t) => t.id === theme) || THEMES[0];
   const ThemeIcon = THEME_ICONS[currentTheme.id] || Moon;
@@ -79,6 +79,19 @@ export function Header({ currentTab, setCurrentTab, collectionCount, isMuted, on
               )}
             </button>
           ))}
+
+          {/* Gold wallet: opens the gift shop */}
+          {gold != null && (
+            <button
+              key={gold}
+              onClick={onOpenShop}
+              aria-label={'Tiệm quà, đang có ' + gold + ' vàng'}
+              className="score-bump flex items-center gap-1 px-2 sm:px-2.5 py-1.5 rounded-xl bg-amber-400/15 border border-amber-400/50 text-amber-300 text-xs sm:text-sm font-black"
+            >
+              <span className="text-base leading-none">🪙</span>
+              <span data-testid="header-gold">{gold}</span>
+            </button>
+          )}
 
           {/* Theme menu: each option shows a small preview swatch */}
           <div className="relative">

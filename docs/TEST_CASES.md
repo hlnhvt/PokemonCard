@@ -399,3 +399,119 @@ Lỗi phát hiện và đã sửa:
 | SC-25 | P1 | AUTO | Quét lại: đóng bảng xác nhận, mở trình chọn camera | Đúng |
 | SC-26 | P1 | AUTO | Gợi ý từ OCR là thẻ có ảnh, chọn được | Đúng |
 | UI-08 | P1 | MANUAL (Chrome) | Pokédex ở màn quét, chi tiết, bộ sưu tập; menu giao diện; gợi ý tìm kiếm; bảng chọn game | Không lỗi JS |
+---
+
+## 18. Thi đấu thể thao với Pokémon khác (2026-09-26)
+
+4 game thi đấu mới, mở từ bảng chọn game của mỗi Pokémon (nhãn "Thi đấu") và từ tab Trò Chơi (mục "Thi đấu thể thao cùng X"). Đối thủ là Pokémon nổi tiếng ngẫu nhiên, không trùng Pokémon của bé. Trận nào cũng mở đầu bằng màn **VS** (chạm để bỏ qua), có bảng điểm hai bên và kết thúc bằng màn kết quả. Bé luôn được quà: thắng 1 Oran + 1 Razz, hòa hoặc thua 1 Oran; quà chỉ trao 1 lần mỗi trận.
+
+- **Bowling** (5 frame mỗi bên): chạm lần 1 để dừng mũi tên đang lắc chậm (ngắm), chạm lần 2 để dừng thanh lực. Bóng là Pokéball lăn trên đường băng gỗ phối cảnh 3D. Camera phóng to và quay chậm khi bóng chạm ki, ki văng và đổ dây chuyền. STRIKE +5 điểm, SPARE +3. Không có bóng rơi rãnh (đầu mũi tên vẫn trúng vài ki).
+- **Sút penalty** (5 lượt sút, 5 lượt bắt): chạm vào khung thành để sút; các ô mục tiêu nhấp nháy; góc cao khó bắt hơn. Khi bắt bóng, đối thủ "nhìn" về một hướng (👀, đúng khoảng 70%), bé chọn Trái/Giữa/Phải. Thủ môn bay người, lưới rung, khán giả nhảy, pháo giấy.
+- **Bóng rổ** (5 quả mỗi bên): kéo ngược như ná cao su rồi thả; chấm trắng chỉ đoạn đầu đường bay. Bóng nảy vành/bảng; ném sạch lưới thì hiện "SWISH!". Mỗi quả vào 2 điểm.
+- **Đua xe máy** (4 tay đua, 3 làn, khoảng 27 giây): đếm 3-2-1 rồi XUẤT PHÁT. Chạm nửa trái/phải màn hình, bấm nút hoặc phím ←/→ để đổi làn. Vũng dầu làm chậm, cọc làm khựng và rung màn hình, mũi tên vàng tăng tốc (có lửa và vệt gió). Bên phải có thanh tiến độ, góc trên hiện hạng hiện tại. Về nhất tính là thắng, nhì/ba là hòa, thứ 4 là thua.
+
+Cân bằng độ khó được đo bằng mô phỏng (xem log khi chạy test):
+
+| Game | Đo được |
+|---|---|
+| Bowling | Bé chạm ngẫu nhiên thắng ~39%; bé canh mũi tên thắng ~74%; máy trung bình 7 ki/lượt đầu |
+| Penalty | Bé sút bất kỳ trong khung vào ~76% (góc cao 86%, giữa thấp 78%); theo hướng nhìn thì bắt được 60%, đoán bừa 28%; đoán bừa vẫn thắng ~56% số trận |
+| Bóng rổ | Máy ném vào ~37%; cú ném chuẩn ở góc 55–65° luôn vào; ném quá thẳng (<50°) chạm vành |
+| Đua xe | Bé biết né: nhất ~48%, vào top 3 ~91%; bé không điều khiển: nhất ~25%, top 3 ~71% |
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| SP-01 | P1 | AUTO | Kết quả thắng/hòa/thua, quà, dao động lắc/nhấp nháy trong giới hạn | Đúng |
+| BW-01..08 | P1 | AUTO | Bố trí 10 ki; ném vào "túi" hay strike; đầu mũi tên đổ ít ki; lần 2 chỉ còn ki đứng; lượt ném luôn kết thúc; tính điểm strike/spare; máy vừa sức; tỉ lệ thắng theo mô phỏng | Đúng |
+| PK-01..04 | P1 | AUTO | Cột khung thành; tỉ lệ vào của bé; theo hướng nhìn thì bắt tốt hơn đoán; bé đoán bừa vẫn thắng >30% | Đúng |
+| BB-01..06 | P1 | AUTO | Cú ném chuẩn vào ở nhiều góc; ném yếu/lệch thì trượt; có vùng sai số cho phép; máy vào 35–70%; kéo ngược thì bay tới, lực có giới hạn; quả nào cũng kết thúc | Đúng |
+| RC-01..04 | P1 | AUTO | Đếm ngược rồi về đích; không ra khỏi đường; bé né tốt thì về nhất nhiều hơn; dầu làm chậm, mũi tên tăng tốc | Đúng |
+| SPT-01, SPT-02 | P1 | AUTO | Bowling: VS → ngắm → lực → lăn → thông báo; trọn 5 frame thì hiện kết quả và trao quà 1 lần | Đúng |
+| SPT-03, SPT-04 | P1 | AUTO | Penalty: chạm khung thành để sút, đổi lượt thì có nút bay người và hướng nhìn; 10 lượt thì kết thúc, trao quà 1 lần | Đúng |
+| SPT-05, SPT-06 | P1 | AUTO | Bóng rổ: kéo quá ngắn thì không ném; kéo chuẩn thì +2; máy tự ném; hết 5 quả thì kết quả | Đúng |
+| SPT-07, SPT-08 | P1 | AUTO | Đua xe: đếm 3-2-1, chưa xuất phát thì không đổi làn; phím và nút đổi làn; về đích thì hiện hạng, bảng xếp hạng, quà 1 lần | Đúng |
+| SPT-09, SPT-10 | P1 | AUTO | Tab Trò Chơi có 4 môn và mở được; nút X và Esc đóng trận | Đúng |
+| UI-09 | P1 | MANUAL (Chrome) | Cả 4 môn trên màn dọc 412px: VS, thao tác chạm/kéo, camera phóng to bowling, thủ môn bay, lưới rung, SWISH, đua xe tăng tốc, màn kết quả; bảng chọn game có 4 môn | Không lỗi JS |
+
+Lỗi phát hiện và đã sửa:
+- Bowling ban đầu lần nào cũng strike (va chạm dây chuyền quá mạnh): giảm lực văng, ngưỡng dây chuyền và ma sát.
+- Máy chơi bowling quá mạnh so với bé chạm ngẫu nhiên (bé chỉ thắng 15%): máy ngắm đều như bé, mũi tên phủ rộng hơn, lực ít ảnh hưởng hơn.
+- Vành rổ quá hẹp nên ném theo đường thấp luôn chạm vành: nới vành và nâng điểm ném; cú ném hụt "dài" của máy từng dội bảng vào rổ nên máy vào tới 70%: cú hụt dài giờ bay qua bảng.
+- Máy đua xe luôn về trước (tốc độ và "dây thun" quá mạnh): bé chạy nhanh hơn một chút, đối thủ chỉ được đẩy tối đa 5% khi bị bỏ xa.
+- Trong Chrome: dòng gợi ý bị lệch vì hoạt ảnh nhấp nháy ghi đè `translate`, emoji trong chữ gradient thành vết mờ, chữ "Hạng 1/4" chồng lên nhau, màn kết quả còn thấy hình phía sau. Đã sửa cả 4.
+
+---
+
+## 19. Game trí tuệ, khóa Pokémon chưa quét, vàng và Tiệm quà (2026-09-26)
+
+**Khóa Pokémon chưa quét thẻ**
+- Chỉ Pokémon đã quét thẻ mới được xem chi tiết và chơi game cùng.
+- Ô tìm kiếm ở màn quét:
+  - Chỉ mở được Pokémon bé đã có.
+  - Pokémon khác hiện hình bóng đen kèm 🔒 và lời nhắc "Hãy chụp thẻ bằng camera để mở khóa".
+- Lưới "Pokémon nổi tiếng" thành mục tiêu sưu tầm (Đã có x/8).
+- Pokémon mới chỉ được thêm bằng ảnh thẻ. Nếu không đọc được tên, bảng xác nhận sau khi chụp vẫn cho nhập tên.
+- Cây tiến hóa: dạng chưa có hiện bóng đen 🔒. Chạm vào chỉ hiện thông báo, không tải dữ liệu và không mở trang chi tiết. Tiến hóa sau khi quét đủ số lần hoặc đủ thân thiết vẫn mở khóa dạng mới như trước.
+- Tab Trò Chơi khi chưa có thẻ nào: mọi game bị khóa, có nút "Quét thẻ ngay". Game đoán bóng Pokémon vẫn mở.
+
+**Vàng 🪙** (bắt đầu với 20 vàng, số vàng hiện trên thanh đầu trang, chạm vào để mở Tiệm quà):
+
+| Game | Vàng |
+|---|---|
+| Thi đấu thể thao, Đấu Pokémon | Thắng 15 · hòa 10 · thua 5 |
+| Game trí tuệ | 5 vàng mỗi sao (1–3 sao) |
+| Bếp, Cửa hàng | 1 vàng mỗi sao của cả lượt |
+| Chạy nhảy | 5 vàng mỗi sao; điểm dưới 100 không được vàng (mở rồi đóng ngay không được thưởng) |
+| Ném bóng bắt Pokémon | 5 mỗi lần bắt được |
+| Đoán bóng Pokémon | 2 mỗi câu đúng |
+
+Mỗi lần nhận vàng hiện thông báo "+N vàng" có đồng xu xoay. Màn tổng kết có mưa đồng xu.
+
+**Tiệm quà Pokémon** (Meowth bán hàng), 3 nhóm với 18 món:
+- **Đồ ăn:** ăn là hết, tăng thân thiết, tối đa 5 món mỗi ngày.
+- **Đồ chơi:** mua 1 lần là giữ mãi. Mỗi món chơi 1 lần mỗi ngày với mỗi Pokémon.
+- **Vật dụng:** tặng hẳn cho 1 Pokémon và được thưởng thân thiết lần đầu. Mũ, nơ, vương miện hiện trên đầu Pokémon. Giường, chậu cây, nhà hiện quanh Pokémon.
+- Mua hàng: món đồ bay vào túi. Thiếu vàng thì Meowth nói "cần thêm N vàng".
+- Tặng quà ở mục 🎁 Tặng quà trên trang Pokémon:
+  - Quà bay vào Pokémon.
+  - Đồ ăn: nhai. Đồ chơi: tung quanh Pokémon. Vật dụng: vòng lấp lánh.
+  - Hiện "+N ❤️"; lên cấp thân thiết thì có pháo giấy.
+
+**5 game trí tuệ** (bảng chọn game của Pokémon được chia thành Vui chơi / Thi đấu / Trí tuệ):
+- **Thoát mê cung:**
+  - 3 mê cung, mỗi cái lớn hơn cái trước: 5×5, 6×7, 7×9.
+  - Điều khiển bằng vuốt, bàn phím mũi tên hoặc nút mũi tên. Pokémon tự đi theo lối rẽ và dừng ở ngã rẽ.
+  - Quả mọng ở ngõ cụt là phần thưởng thêm. Nút Gợi ý hiện đường vàng.
+  - Sao tính theo số bước so với đường ngắn nhất.
+- **Làm toán:**
+  - 9 câu: đếm, cộng, trừ trong phạm vi 10.
+  - Đáp án là bóng bay. Câu trừ thì Pokémon "ăn mất" vài hình.
+  - Sai thì Pokémon đếm to từng hình (số hiện trên hình) để gợi ý.
+- **Học tiếng Anh:**
+  - 36 từ có hình, nghĩa tiếng Việt và từ cùng nghĩa (kitty, bunny, ocean, glad/joyful…).
+  - 8 câu xen kẽ: "nghe chọn hình" và "nhìn hình chọn từ".
+  - Đúng thì thẻ lật ra, đọc to từ và từ cùng nghĩa (giọng tiếng Anh), sau đó đọc nghĩa (giọng tiếng Việt).
+  - Giọng đọc dùng Web Speech API có sẵn trên máy, miễn phí. Giọng có sẵn tùy thiết bị.
+- **Nhớ thứ tự:**
+  - Pokémon lần lượt xuất hiện dưới đèn sân khấu, mỗi con kèm một nốt nhạc.
+  - Bé chạm lại theo đúng thứ tự vào khay. Độ dài tăng từ 2 đến 6. Có 3 tim.
+- **Chơi nhạc:**
+  - Đàn gỗ 8 phím (Đô → Đố).
+  - 4 bài: Ngôi sao lấp lánh, Chú cừu nhỏ, Chuông ngân vang, Khúc hoan ca.
+  - Phím cần gõ phát sáng và có Pokéball nảy phía trên. Hàng nốt sắp tới hiện trước.
+  - Chơi xong thì phát lại cả bài, Pokémon nhảy múa.
+  - Có chế độ chơi tự do (không có vàng).
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| GD-01..03, SI-01..05, BG-01..03 | P1 | AUTO | Ví vàng (khởi đầu, cộng, trừ, không âm, dữ liệu hỏng); danh mục; đồ ăn tối đa 5 mỗi ngày; đồ chơi 1 lần mỗi ngày và không mất; vật dụng giữ mãi, đổi món đang đội; mua thiếu tiền; tặng quà trừ túi và lưu thẻ | Đúng |
+| MZ-01..04, MT-01..02, EN-01..03, MM-01..02, MU-01..02 | P1 | AUTO | Mê cung hoàn hảo, bot đi đường ngắn nhất được 3 sao ở cả 3 mê cung, trượt theo hành lang, quả mọng; câu toán trong phạm vi 10, đáp án luôn có trong 3 lựa chọn; ngân hàng từ, bài học không trùng từ; trí nhớ chơi đúng thì thắng, sai mất tim; giai điệu Twinkle đúng nốt, đếm lỗi, thời gian phát lại | Đúng |
+| LG-01..08 | P1 | AUTO | Chơi trọn từng game qua giao diện: gợi ý đếm khi sai, thẻ lật có nghĩa và từ cùng nghĩa, xem đèn sân khấu rồi chạm đúng thứ tự, sai thì mất tim, gõ đàn theo phím sáng rồi phát lại, chơi tự do không có vàng, 3 mê cung bằng bàn phím, đâm vào tường không đi được; vàng trao đúng 1 lần | Đúng |
+| GS-01..03, PB-01..03 | P1 | AUTO | Tiệm quà: 3 nhóm, mua, thiếu vàng, đồ chơi "Đã có", đóng bằng Esc; tặng quà bay vào và hiện +❤️; lý do không nhận quà; món đang đội và đồ trang trí hiển thị; túi trống thì dẫn tới Tiệm quà | Đúng |
+| AP-10, AP-15, AP-16 | P1 | AUTO | Dạng tiến hóa chưa quét bị khóa (không tải dữ liệu, không lưu); mua quà từ đầu trang rồi tặng thì tăng thân thiết; chơi xong game thì có thông báo +15 và số vàng trên đầu trang tăng | Đúng |
+| SC-15, SC-22, SC-27, GH-01, GH-04 | P1 | AUTO | Ô tìm kiếm, gợi ý và lưới nổi tiếng chỉ mở Pokémon đã có; tab Trò Chơi khóa khi chưa có thẻ; có 3 nhóm game | Đúng |
+| UI-10 | P1 | MANUAL (Chrome) | Màn quét khi đang khóa, tab Trò Chơi, 5 game trí tuệ, Tiệm quà, tặng quà, vương miện trên đầu, cây tiến hóa có ổ khóa | Không lỗi JS |
+
+Lỗi phát hiện và đã sửa (qua ảnh chụp Chrome):
+- Nhiều hình Pokémon lặp lại (ở Làm toán lúc sang câu trừ và ở Tiệm quà khi Meowth nói), bong bóng câu hỏi biến mất. Nguyên nhân: hai phần tử cạnh nhau dùng key dạng số trùng nhau, React giữ lại phần tử cũ. Đã thêm tiền tố cho key, gồm cả Chơi nhạc và khung Pokémon (lỗi tiềm ẩn từ trước).
+- Cờ 🇻🇳 hiện thành chữ "VN" trên Windows: thay bằng nhãn "Nghĩa:".

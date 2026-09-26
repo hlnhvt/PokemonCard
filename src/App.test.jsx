@@ -5,7 +5,8 @@ import { makeCard } from './test/fixtures';
 
 const mocks = vi.hoisted(() => ({ fetchPokemonOnline: vi.fn(), fetchEvolutionChain: vi.fn() }));
 
-vi.mock('./utils/cardRecognizer', () => ({ recognizeCardWithOCR: vi.fn() }));
+const ocr = vi.hoisted(() => ({ recognizeCardWithOCR: vi.fn() }));
+vi.mock('./utils/cardRecognizer', () => ocr);
 vi.mock('./services/pokemonOnlineService', async (importOriginal) => ({
   ...(await importOriginal()),
   fetchPokemonOnline: mocks.fetchPokemonOnline,
@@ -16,7 +17,23 @@ import App from './App';
 import { sounds } from './utils/soundEffects';
 import { getSavedCollection, saveCardToPokedex } from './utils/storage';
 
+// jsdom never decodes images: pretend every photo loads
+class FakeImage {
+  constructor() {
+    this.naturalWidth = 630;
+    this.naturalHeight = 880;
+  }
+  set src(value) {
+    this._src = value;
+    setTimeout(() => this.onload?.(), 0);
+  }
+  get src() {
+    return this._src;
+  }
+}
+
 beforeEach(() => {
+  vi.stubGlobal('Image', FakeImage);
   // No shiny unless a test asks for one; evolution data is mocked per test
   vi.spyOn(Math, 'random').mockReturnValue(0.5);
   mocks.fetchEvolutionChain.mockReset();
@@ -32,10 +49,13 @@ beforeEach(() => {
   vi.spyOn(console, 'warn').mockImplementation(() => {});
 });
 
+// New Pokemon come only from a card photo (the search box opens scanned ones only)
 async function scan(name) {
   fireEvent.click(screen.getByText('Quét Thẻ'));
-  fireEvent.change(screen.getByLabelText('Tìm Pokémon theo tên'), { target: { value: name } });
-  fireEvent.click(screen.getByText('Tải'));
+  ocr.recognizeCardWithOCR.mockResolvedValue({ success: true, rawText: name, bestMatch: name, confidence: 100, candidates: [{ name, displayName: name, score: 100 }] });
+  const input = document.querySelectorAll('input[type="file"]')[1];
+  fireEvent.change(input, { target: { files: [new File(['x'], 'photo.png', { type: 'image/png' })] } });
+  fireEvent.click(await screen.findByText('Đúng rồi! Tải Pokémon'));
   fireEvent.click(await screen.findByText('Bỏ qua'));
   await screen.findByText('Tiếp Tục Quét Thẻ Khác');
 }
@@ -136,7 +156,7 @@ describe('App flows', () => {
     expect(getSavedCollection().map((c) => c.id)).toEqual(['charmeleon', 'charmander']);
   });
 
-  it('AP-10 tapping an uncollected form opens a preview that is not saved', async () => {
+  it('AP-10 an unscanned form is locked: a message, no details, nothing downloaded or saved', async () => {
     mocks.fetchEvolutionChain.mockResolvedValue([
       { name: 'charmander', id: 4, image: 'a.png', stage: 0, from: null, how: null },
       { name: 'charmeleon', id: 5, image: 'b.png', stage: 1, from: 'charmander', how: 'Đạt cấp 16' },
@@ -146,9 +166,10 @@ describe('App flows', () => {
     render(<App />);
     fireEvent.click(collectionTab());
     fireEvent.click(screen.getByRole('heading', { name: 'Charmander' }));
-    fireEvent.click(await screen.findByText('Charmeleon'));
-    expect(await screen.findByText('BÉ CHƯA CÓ POKÉMON NÀY')).toBeInTheDocument();
-    expect(screen.queryByText('Xem lại Video')).toBeNull();
+    fireEvent.click(await screen.findByLabelText('Charmeleon (chưa mở khóa)'));
+    expect(screen.getByRole('status')).toHaveTextContent('Bé chưa có thẻ Charmeleon');
+    expect(mocks.fetchPokemonOnline).not.toHaveBeenCalled();
+    expect(screen.getByRole('heading', { name: 'Charmander' })).toBeInTheDocument();
     expect(getSavedCollection()).toHaveLength(1);
   });
 
@@ -220,6 +241,51 @@ describe('App flows', () => {
     expect(screen.getByLabelText('Thân thiết 20/100')).toBeInTheDocument();
     fireEvent.click(collectionTab());
     expect(screen.getByText('❤ Bạn bè')).toBeInTheDocument();
+  });
+
+  it('AP-15 gold in the header opens the gift shop; a bought treat is given from the Pokemon page', async () => {
+    for (const s of ['playCoin', 'playMunch', 'playPop']) vi.spyOn(sounds, s).mockImplementation(() => {});
+    saveCardToPokedex(makeCard({ id: 'pikachu', name: 'Pikachu', friendship: 10 }));
+    render(<App />);
+    expect(screen.getByTestId('header-gold')).toHaveTextContent('20');
+    fireEvent.click(screen.getByLabelText('Tiệm quà, đang có 20 vàng'));
+    const shop = screen.getByRole('dialog', { name: 'Tiệm quà Pokémon' });
+    fireEvent.click(within(shop).getByLabelText('Mua Bánh quy Poké giá 10 vàng'));
+    expect(screen.getByTestId('header-gold')).toHaveTextContent('10');
+    fireEvent.click(within(shop).getByLabelText('Mua Bánh quy Poké giá 10 vàng'));
+    fireEvent.click(within(shop).getByLabelText('Mua Bánh kem giá 25 vàng'));
+    expect(within(shop).getByRole('status')).toHaveTextContent('cần thêm 25 vàng');
+    fireEvent.click(within(shop).getByLabelText('Đóng tiệm quà'));
+
+    fireEvent.click(collectionTab());
+    fireEvent.click(screen.getByRole('heading', { name: 'Pikachu' }));
+    fireEvent.click(screen.getByLabelText('Tặng Bánh quy Poké'));
+    expect(getSavedCollection()[0].friendship).toBe(14);
+    expect(screen.getByLabelText('Tặng Bánh quy Poké')).toHaveTextContent('1');
+  });
+
+  it('AP-16 finishing a game pays gold: a toast and the header go up', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(sounds, 'playNote').mockImplementation(() => {});
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+    saveCardToPokedex(makeCard({ id: 'pikachu', name: 'Pikachu' }));
+    render(<App />);
+    fireEvent.click(screen.getByText('Trò Chơi').closest('button'));
+    fireEvent.click(screen.getByLabelText('Chơi nhạc'));
+    fireEvent.click(screen.getByText('Ngôi sao lấp lánh'));
+    const { SONGS, NOTES } = await import('./utils/logic/music');
+    for (const n of SONGS[0].melody) fireEvent.pointerDown(screen.getByLabelText('Phím ' + NOTES[n.note].label));
+    try {
+      for (let t = 0; t < 16000 && screen.getByTestId('header-gold').textContent !== '35'; t += 250) {
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(250);
+        });
+      }
+      expect(screen.getByTestId('header-gold')).toHaveTextContent('35');
+      expect(screen.getByTestId('gold-toast')).toHaveTextContent('+15 vàng');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('AP-01b warns in details when LocalStorage refuses the save', async () => {

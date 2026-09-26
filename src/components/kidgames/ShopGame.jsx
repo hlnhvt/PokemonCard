@@ -17,6 +17,7 @@ import {
 import { POPULAR_POKEMON } from '../../utils/guessGame';
 import { pickCustomers } from '../../utils/kidGamesCommon';
 import { sounds } from '../../utils/soundEffects';
+import { goldForSession } from '../../utils/gold';
 import { playCry } from '../../utils/cries';
 import { KidGameShell, Customer, HelperPokemon, FlyingItem, StarRow, SessionSummary } from './Common';
 
@@ -37,7 +38,7 @@ function Coins({ n, size = 'w-4 h-4' }) {
  * "Cửa hàng Pokémon": customers ask for items; the child fills the basket, then picks the
  * total price (coins drawn next to every item help counting). Difficulty grows per customer.
  */
-export function ShopGame({ shopkeeper, onClose, onBerries, random = Math.random }) {
+export function ShopGame({ shopkeeper, onClose, onBerries, onGold, random = Math.random }) {
   const [customers, setCustomers] = useState(() => pickCustomers(POPULAR_POKEMON, CUSTOMERS_PER_SESSION, shopkeeper.name, random));
   const [index, setIndex] = useState(0);
   const [order, setOrder] = useState(() => makeOrder(0, random));
@@ -160,6 +161,7 @@ export function ShopGame({ shopkeeper, onClose, onBerries, random = Math.random 
             rewarded.current = true;
             const b = sessionBerries(nextResults);
             onBerries?.({ oran: Math.floor(b / 2), razz: Math.ceil(b / 2) });
+            onGold?.(goldForSession(nextResults));
           }
           return;
         }
@@ -213,6 +215,7 @@ export function ShopGame({ shopkeeper, onClose, onBerries, random = Math.random 
           stars={totalStars}
           maxStars={results.length * 3}
           berries={sessionBerries(results)}
+          gold={goldForSession(results)}
           detail={`${shopkeeper.name} đã bán hàng cho ${earned} vị khách!`}
           onReplay={replay}
           onClose={onClose}

@@ -15,7 +15,11 @@ function findCurrent(nodes, pokemon) {
   return nodes.find((n) => n.name === species) || nodes.find((n) => n.id === num) || null;
 }
 
-export function EvolutionTree({ pokemon, scanCount = 0, friendship = 0, canEvolve = true, onEvolve, onExplore }) {
+/**
+ * ownedSpecies: Set of species the child has scanned. When given, the other forms show as
+ * locked silhouettes (they open only once their card is scanned).
+ */
+export function EvolutionTree({ pokemon, scanCount = 0, friendship = 0, canEvolve = true, onEvolve, onExplore, ownedSpecies }) {
   const lookup = pokemon.speciesName || (Number(pokemon.pokedexNumber) <= 1025 ? Number(pokemon.pokedexNumber) : null);
   // Result tagged with the lookup it belongs to, so a stale result reads as "loading"
   const [loaded, setLoaded] = useState({ lookup: null, nodes: [] });
@@ -71,17 +75,22 @@ export function EvolutionTree({ pokemon, scanCount = 0, friendship = 0, canEvolv
                   .filter((n) => n.stage === stage)
                   .map((node) => {
                     const isCurrent = current?.name === node.name;
+                    const locked = !isCurrent && !!ownedSpecies && !ownedSpecies.has(node.name);
                     return (
                       <button
                         key={node.name}
                         type="button"
                         onClick={() => !isCurrent && onExplore?.(node.name)}
                         aria-current={isCurrent ? 'true' : undefined}
+                        aria-label={locked ? `${capitalize(node.name)} (chưa mở khóa)` : undefined}
                         className={`w-24 p-2 rounded-2xl border-2 flex flex-col items-center text-center transition-transform active:scale-95 ${
-                          isCurrent ? 'border-amber-400 bg-amber-400/15' : 'border-slate-700 bg-slate-900/60 hover:border-cyan-400'
+                          isCurrent ? 'border-amber-400 bg-amber-400/15' : locked ? 'border-dashed border-slate-600 bg-slate-900/40' : 'border-slate-700 bg-slate-900/60 hover:border-cyan-400'
                         }`}
                       >
-                        {node.image && <img src={node.image} alt={capitalize(node.name)} loading="lazy" className="w-16 h-16 object-contain" />}
+                        <span className="relative">
+                          {node.image && <img src={node.image} alt={capitalize(node.name)} loading="lazy" className={`w-16 h-16 object-contain ${locked ? 'silhouette opacity-70' : ''}`} />}
+                          {locked && <span className="absolute -right-1 -bottom-1 text-lg" aria-hidden="true">🔒</span>}
+                        </span>
                         <span className="text-xs font-black text-slate-100">{capitalize(node.name)}</span>
                         {node.how && <span className="text-[10px] leading-tight text-slate-400 mt-0.5">{node.how}</span>}
                       </button>

@@ -332,6 +332,52 @@ class SoundManager {
       osc.stop(noteTime + duration);
     });
   }
+
+  // Xylophone bar: a bright sine with a quick metallic overtone and a soft decay.
+  // `delay` (seconds) schedules it ahead, used to play a whole song back.
+  playNote(freq, { duration = 0.9, delay = 0, volume = 0.28 } = {}) {
+    if (this.muted) return;
+    this.init();
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime + delay;
+    const out = this.ctx.createGain();
+    out.gain.setValueAtTime(0.0001, t);
+    out.gain.exponentialRampToValueAtTime(volume, t + 0.008);
+    out.gain.exponentialRampToValueAtTime(0.001, t + duration);
+    out.connect(this.ctx.destination);
+    [[1, 'sine', 1], [4, 'sine', 0.18], [2, 'triangle', 0.12]].forEach(([mult, type, level]) => {
+      const osc = this.ctx.createOscillator();
+      const g = this.ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq * mult, t);
+      g.gain.setValueAtTime(level, t);
+      // Overtones fade faster, like a real wooden bar
+      if (mult > 1) g.gain.exponentialRampToValueAtTime(0.001, t + duration * 0.35);
+      osc.connect(g);
+      g.connect(out);
+      osc.start(t);
+      osc.stop(t + duration + 0.05);
+    });
+  }
+
+  // Short friendly "oops" for a wrong answer (never harsh for children)
+  playOops() {
+    if (this.muted) return;
+    this.init();
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(420, t);
+    osc.frequency.exponentialRampToValueAtTime(260, t + 0.25);
+    gain.gain.setValueAtTime(0.18, t);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.3);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.3);
+  }
 }
 
 export const sounds = new SoundManager();

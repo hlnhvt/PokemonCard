@@ -24,6 +24,9 @@ import { sounds } from '../utils/soundEffects';
 import { playCry } from '../utils/cries';
 import { BERRY_TYPES } from '../utils/friendship';
 import { BerryIcon } from './BerryIcon';
+import { goldForStars } from '../utils/gold';
+
+const MIN_GOLD_SCORE = 100;
 
 const BEST_KEY = 'pokescan_runner_best';
 // World units visible across a portrait phone (zoomed in from 600 so sprites are large)
@@ -56,7 +59,7 @@ function loadImage(src) {
  * "Pokemon runner": Chrome's offline dino game with the child's Pokemon as the runner.
  * Tap / Space / Up to jump (hold for a higher jump), Down or the CÚI button to duck.
  */
-export function RunnerGame({ pokemon, image, onClose, onBerries, random = Math.random }) {
+export function RunnerGame({ pokemon, image, onClose, onBerries, onGold, random = Math.random }) {
   const canvasRef = useRef(null);
   const wrapRef = useRef(null);
   // Portrait phones zoom in, so they also run on the slower speed profile
@@ -130,14 +133,19 @@ export function RunnerGame({ pokemon, image, onClose, onBerries, random = Math.r
 
   // Put the berries picked up in this run into the child's bag (once per run)
   const onBerriesRef = useRef(onBerries);
+  const onGoldRef = useRef(onGold);
   useEffect(() => {
     onBerriesRef.current = onBerries;
-  }, [onBerries]);
+    onGoldRef.current = onGold;
+  }, [onBerries, onGold]);
   const awardBerries = useCallback((game) => {
     if (game.awarded) return;
     game.awarded = true;
     const total = BERRY_TYPES.reduce((sum, t) => sum + (game.collected[t] || 0), 0);
     if (total > 0) onBerriesRef.current?.({ ...game.collected });
+    // Gold for a real run only (opening and closing the game pays nothing)
+    const points = score(game);
+    if (points >= MIN_GOLD_SCORE) onGoldRef.current?.(goldForStars(starsForScore(points)));
   }, []);
   // Closing mid-run must not lose berries
   useEffect(() => () => awardBerries(gameRef.current), [awardBerries]);

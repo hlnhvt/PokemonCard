@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, within } from '@testing-library/react';
 import { RunnerGame } from './RunnerGame';
 import { GamesHub } from './GamesHub';
 import { sounds } from '../utils/soundEffects';
@@ -107,26 +107,43 @@ describe('RunnerGame', () => {
 });
 
 describe('GamesHub', () => {
-  it('GH-01 without cards the runner is Pikachu', () => {
-    render(<GamesHub collection={[]} onOpenCollection={vi.fn()} />);
-    expect(screen.getByText('Chạy cùng Pikachu!')).toBeInTheDocument();
-    expect(screen.getByText(/Quét thẻ để chạy bằng Pokémon của chính bé/)).toBeInTheDocument();
+  it('GH-01 before the first scan every game is locked, with a way to scan', () => {
+    const onScan = vi.fn();
+    render(<GamesHub collection={[]} onOpenCollection={vi.fn()} onScan={onScan} />);
+    expect(screen.getByTestId('games-locked')).toHaveTextContent('Quét thẻ Pokémon đầu tiên');
+    for (const name of ['Chạy nhảy (cần quét thẻ)', 'Bowling (cần quét thẻ)', 'Thoát mê cung (cần quét thẻ)']) expect(screen.getByLabelText(name)).toBeDisabled();
+    fireEvent.click(screen.getByText('Quét thẻ ngay'));
+    expect(onScan).toHaveBeenCalled();
+    expect(screen.queryByText(/Pikachu/)).toBeNull();
   });
 
   it('GH-02 the child picks one of their Pokemon and starts the runner', () => {
     render(<GamesHub collection={[makeCard(), makeCard({ id: 'mew', name: 'Mew', pokedexNumber: '151' })]} onOpenCollection={vi.fn()} />);
     fireEvent.click(screen.getByRole('radio', { name: /Mew/ }));
     expect(screen.getByRole('radio', { name: /Mew/ })).toHaveAttribute('aria-checked', 'true');
-    fireEvent.click(screen.getByText('Chạy cùng Mew!'));
+    fireEvent.click(screen.getByLabelText('Chạy nhảy'));
     expect(screen.getByRole('dialog', { name: 'Trò chơi Pokémon chạy nhảy' })).toBeInTheDocument();
     expect(screen.getByText('Chạy cùng Mew!', { selector: 'p' })).toBeInTheDocument();
   });
 
-  it('GH-03 still offers the quiz and the way to the catch game', () => {
+  it('GH-03 the quiz stays open to everyone; the catch game link needs a card', () => {
     const onOpenCollection = vi.fn();
-    render(<GamesHub collection={[]} onOpenCollection={onOpenCollection} />);
+    const { unmount } = render(<GamesHub collection={[]} onOpenCollection={onOpenCollection} />);
     expect(screen.getByText('Ai là Pokémon này?')).toBeInTheDocument();
+    expect(screen.queryByText('Mở bộ sưu tập')).toBeNull();
+    unmount();
+    render(<GamesHub collection={[makeCard()]} onOpenCollection={onOpenCollection} />);
     fireEvent.click(screen.getByText('Mở bộ sưu tập'));
     expect(onOpenCollection).toHaveBeenCalled();
+  });
+
+  it('GH-04 three sections: play, sports and thinking games; the gift shop button', () => {
+    const onOpenShop = vi.fn();
+    render(<GamesHub collection={[makeCard()]} onOpenShop={onOpenShop} />);
+    const logic = screen.getByRole('region', { name: '🧠 Trò chơi trí tuệ' });
+    for (const t of ['Thoát mê cung', 'Làm toán', 'Học tiếng Anh', 'Nhớ thứ tự', 'Chơi nhạc']) expect(within(logic).getByLabelText(t)).toBeEnabled();
+    expect(within(screen.getByRole('region', { name: '🏆 Thi đấu thể thao' })).getAllByRole('button')).toHaveLength(4);
+    fireEvent.click(screen.getByText('🎁 Tiệm quà'));
+    expect(onOpenShop).toHaveBeenCalled();
   });
 });

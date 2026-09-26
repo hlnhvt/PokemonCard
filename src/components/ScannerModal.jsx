@@ -316,6 +316,29 @@ export function ScannerModal({ onCardDetected, recentCards = [], onOpenCard }) {
     if (!cameraActive) nativeCameraInputRef.current?.click();
   };
 
+  // Only scanned Pokemon open from the search box and the famous grid; any other one stays
+  // locked until its card is photographed (the confirmation panel after a photo still
+  // accepts a typed name, for cards the OCR cannot read)
+  const normalise = (name) => String(name || '').trim().toLowerCase().replace(/s+/g, '-');
+  const ownedCard = (name) => {
+    const key = normalise(name);
+    return recentCards.find((c) => c.id === key || (c.speciesName || '').toLowerCase() === key || normalise(c.name) === key) || null;
+  };
+  const [lockedName, setLockedName] = useState(null);
+  const openOrLock = (name) => {
+    if (!normalise(name)) return;
+    const card = ownedCard(name);
+    setShowSuggestions(false);
+    if (card) {
+      setLockedName(null);
+      onOpenCard?.(card);
+      return;
+    }
+    setOnlineError(null);
+    setLockedName(labelOf(normalise(name)));
+    sounds.playScanBeep();
+  };
+
   // Suggestions while typing: names starting with the text first, then containing it
   const query = manualInputName.trim().toLowerCase().replace(/\s+/g, '-');
   const suggestions =
@@ -325,7 +348,7 @@ export function ScannerModal({ onCardDetected, recentCards = [], onOpenCard }) {
           ...allNames.filter((n) => !n.startsWith(query) && n.includes(query)),
         ]
           .slice(0, MAX_SUGGESTIONS)
-          .map((n) => ({ name: n, label: labelOf(n), id: idOf(n), thumb: thumbFor(n) }))
+          .map((n) => ({ name: n, label: labelOf(n), id: idOf(n), thumb: thumbFor(n), owned: !!ownedCard(n) }))
       : [];
 
   // Recently scanned cards, newest first
@@ -663,6 +686,13 @@ export function ScannerModal({ onCardDetected, recentCards = [], onOpenCard }) {
         <p role="alert" className="w-full max-w-sm mt-8 text-sm font-bold text-rose-400 text-center">{onlineError}</p>
       )}
 
+      {lockedName && !isConfirmOpen && (
+        <div role="alert" className="bubble-pop w-full max-w-sm mt-8 p-3 rounded-2xl bg-slate-900/90 border-2 border-amber-400/60 flex items-center gap-3">
+          <span className="text-3xl" aria-hidden="true">🔒</span>
+          <p className="text-sm font-bold text-amber-200">Bé chưa có thẻ <strong className="text-white">{lockedName}</strong>. Hãy chụp thẻ bằng camera để mở khóa nhé!</p>
+        </div>
+      )}
+
       {/* Search with live suggestions */}
       <div className="relative w-full max-w-sm mt-9">
         <div className="flex gap-2 p-1.5 rounded-2xl bg-slate-900/80 border-2 border-slate-700 focus-within:border-cyan-400 transition-colors">
@@ -672,18 +702,18 @@ export function ScannerModal({ onCardDetected, recentCards = [], onOpenCard }) {
           <input
             type="text"
             aria-label="Tìm Pokémon theo tên"
-            placeholder="Tìm Pokémon: Pikachu, Eevee..."
+            placeholder="Tìm Pokémon của bé: Pikachu..."
             value={manualInputName}
             onChange={(e) => {
               setManualInputName(e.target.value);
               setShowSuggestions(true);
+              setLockedName(null);
             }}
             onFocus={() => setShowSuggestions(true)}
             onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
-                setShowSuggestions(false);
-                handleFetchOnline(manualInputName);
+                openOrLock(manualInputName);
               }
             }}
             className="flex-1 min-w-0 py-2 bg-transparent text-base text-slate-50 placeholder-slate-500 focus:outline-none"
@@ -694,12 +724,12 @@ export function ScannerModal({ onCardDetected, recentCards = [], onOpenCard }) {
             </button>
           )}
           <button
-            onClick={() => handleFetchOnline(manualInputName)}
+            onClick={() => openOrLock(manualInputName)}
             disabled={isLoadingOnline || !manualInputName.trim()}
             className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-red-500 to-rose-500 text-white font-black text-sm shadow-md disabled:opacity-40 flex items-center gap-1.5 active:scale-95"
           >
             <PokeballIcon className="w-5 h-5" />
-            <span>Tải</span>
+            <span>Mở</span>
           </button>
         </div>
 
@@ -712,14 +742,14 @@ export function ScannerModal({ onCardDetected, recentCards = [], onOpenCard }) {
                   aria-selected="false"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => {
-                    setShowSuggestions(false);
                     setManualInputName(s.label);
-                    handleFetchOnline(s.name);
+                    openOrLock(s.name);
                   }}
                   className="w-full flex items-center gap-3 px-3 py-2 hover:bg-slate-800 text-left"
                 >
-                  {s.thumb ? <img src={s.thumb} alt="" loading="lazy" className="w-10 h-10 object-contain" /> : <PokeballIcon className="w-8 h-8" />}
+                  {s.thumb ? <img src={s.thumb} alt="" loading="lazy" className={`w-10 h-10 object-contain ${s.owned ? '' : 'silhouette opacity-60'}`} /> : <PokeballIcon className="w-8 h-8" />}
                   <span className="text-sm font-black text-slate-100">{s.label}</span>
+                  {s.owned ? <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-black">Đã có</span> : <span aria-label="Chưa mở khóa">🔒</span>}
                   <span className="ml-auto text-xs font-bold text-slate-500">#{String(s.id || '').padStart(3, '0')}</span>
                 </button>
               </li>
@@ -754,19 +784,27 @@ export function ScannerModal({ onCardDetected, recentCards = [], onOpenCard }) {
       <section className="w-full max-w-sm mt-4 p-3 rounded-3xl bg-slate-900/60 border border-slate-800" aria-label="Pokémon nổi tiếng">
         <h3 className="mb-2 flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-slate-300">
           <Sparkles className="w-4 h-4 text-amber-400" /> Pokémon nổi tiếng
+          <span className="ml-auto normal-case tracking-normal text-[11px] text-slate-400">Đã có {QUICK_PICKS.filter((p) => ownedCard(p.name)).length}/{QUICK_PICKS.length}</span>
         </h3>
         <div className="grid grid-cols-4 gap-2">
-          {QUICK_PICKS.map((p) => (
+          {QUICK_PICKS.map((p) => {
+            const owned = !!ownedCard(p.name);
+            return (
             <button
               key={p.name}
-              onClick={() => handleFetchOnline(p.name)}
+              onClick={() => openOrLock(p.name)}
               disabled={isLoadingOnline}
+              aria-label={owned ? `Mở ${p.label}` : `${p.label} (chưa mở khóa)`}
               className="flex flex-col items-center p-1.5 rounded-2xl bg-slate-950/80 border border-slate-800 hover:border-cyan-500/60 disabled:opacity-50 active:scale-95 transition-transform"
             >
-              <img src={artworkUrl(p.id)} alt="" loading="lazy" className="w-12 h-12 object-contain" />
-              <span className="text-[11px] font-bold text-slate-200">{p.label}</span>
+              <span className="relative">
+                <img src={artworkUrl(p.id)} alt="" loading="lazy" className={`w-12 h-12 object-contain ${owned ? '' : 'silhouette opacity-60'}`} />
+                {!owned && <span className="absolute -right-1 -bottom-1 text-sm" aria-hidden="true">🔒</span>}
+              </span>
+              <span className={`text-[11px] font-bold ${owned ? 'text-slate-200' : 'text-slate-500'}`}>{p.label}</span>
             </button>
-          ))}
+            );
+          })}
         </div>
       </section>
     </div>

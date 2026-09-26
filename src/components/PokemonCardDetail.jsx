@@ -23,6 +23,8 @@ import { RunnerGame } from './RunnerGame';
 import { BattleArena } from './BattleArena';
 import { CookingGame } from './kidgames/CookingGame';
 import { ShopGame } from './kidgames/ShopGame';
+import { SPORTS, findSport } from './sports';
+import { LOGIC_GAMES, findLogicGame } from './logic';
 import { getCardMedia } from '../services/pokemonOnlineService';
 import { fedToday } from '../utils/friendship';
 
@@ -47,6 +49,11 @@ export function PokemonCardDetail({
   onPet,
   onBerries,
   onBattleResult,
+  onGold,
+  bag = {},
+  onGive,
+  onOpenShop,
+  ownedSpecies,
 }) {
   const isPreview = mode === 'preview';
   const [showShiny, setShowShiny] = useState(!!rawPokemon.isShiny);
@@ -55,6 +62,7 @@ export function PokemonCardDetail({
   const [isBattling, setIsBattling] = useState(false);
   const [isCooking, setIsCooking] = useState(false);
   const [isShopping, setIsShopping] = useState(false);
+  const [extra, setExtra] = useState(null); // sports or logic game: { kind, id }
 
   const buddyImage = (showShiny && getCardMedia(rawPokemon).shinyImage) || rawPokemon.fallbackImage || rawPokemon.image;
   // All games for this Pokemon, shown in one picker instead of a long list of buttons
@@ -62,6 +70,7 @@ export function PokemonCardDetail({
   const games = [
     {
       id: 'catch',
+      group: 'play',
       title: 'Ném bóng bắt Pokémon',
       description: 'Vuốt Pokéball để bắt bạn ấy!',
       icon: '🎯',
@@ -71,6 +80,7 @@ export function PokemonCardDetail({
     },
     {
       id: 'runner',
+      group: 'play',
       title: 'Chạy nhảy',
       description: 'Nhảy qua chướng ngại, nhặt quả mọng',
       icon: '🏃',
@@ -80,6 +90,7 @@ export function PokemonCardDetail({
     ...(canBattle
       ? [{
           id: 'battle',
+          group: 'play',
           title: 'Đấu Pokémon',
           description: 'Tung chiêu thức và Tuyệt Kỹ Liên Hoàn',
           icon: '⚔️',
@@ -90,6 +101,7 @@ export function PokemonCardDetail({
       : []),
     {
       id: 'cooking',
+      group: 'play',
       title: 'Bếp Pokémon',
       description: 'Nấu món ngon cho khách Pokémon',
       icon: '🍳',
@@ -98,12 +110,15 @@ export function PokemonCardDetail({
     },
     {
       id: 'shop',
+      group: 'play',
       title: 'Cửa hàng Pokémon',
       description: 'Bán hàng và tập đếm tiền xu',
       icon: '🏪',
       gradient: 'from-sky-500 to-indigo-500',
       onPlay: () => setIsShopping(true),
     },
+    ...SPORTS.map((s) => ({ id: s.id, title: s.title, description: s.description, icon: s.icon, gradient: s.gradient, group: 'sport', onPlay: () => setExtra({ kind: 'sport', id: s.id }) })),
+    ...LOGIC_GAMES.map((g) => ({ id: g.id, title: g.title, description: g.description, icon: g.icon, gradient: g.gradient, group: 'logic', onPlay: () => setExtra({ kind: 'logic', id: g.id }) })),
   ];
   // Older or partially saved cards may miss fields; fill them so rendering never crashes
   const pokemon = {
@@ -429,6 +444,7 @@ export function PokemonCardDetail({
               }}
               onFeed={onFeed}
               onPet={onPet}
+              gifts={{ enabled: !isPreview && !!savedItem, bag, card: savedItem, onGive, onOpenShop }}
             />
           </div>
         </div>
@@ -437,6 +453,7 @@ export function PokemonCardDetail({
         <div className="md:col-span-7 flex flex-col space-y-4">
 
           <EvolutionTree
+            ownedSpecies={ownedSpecies}
             pokemon={pokemon}
             scanCount={savedItem?.scanCount || 0}
             friendship={savedItem?.friendship || 0}
@@ -638,8 +655,13 @@ export function PokemonCardDetail({
         </div>
       </div>
 
-      {isCooking && <CookingGame chef={{ ...pokemon, fallbackImage: buddyImage }} onBerries={onBerries} onClose={() => setIsCooking(false)} />}
-      {isShopping && <ShopGame shopkeeper={{ ...pokemon, fallbackImage: buddyImage }} onBerries={onBerries} onClose={() => setIsShopping(false)} />}
+      {isCooking && <CookingGame chef={{ ...pokemon, fallbackImage: buddyImage }} onBerries={onBerries} onGold={onGold} onClose={() => setIsCooking(false)} />}
+      {isShopping && <ShopGame shopkeeper={{ ...pokemon, fallbackImage: buddyImage }} onBerries={onBerries} onGold={onGold} onClose={() => setIsShopping(false)} />}
+
+      {extra && (() => {
+        const Game = (extra.kind === 'sport' ? findSport(extra.id) : findLogicGame(extra.id)).Component;
+        return <Game player={{ name: pokemon.name, image: buddyImage }} onBerries={onBerries} onGold={onGold} onClose={() => setExtra(null)} />;
+      })()}
 
       {isBattling && savedItem && (
         <BattleArena
@@ -655,6 +677,7 @@ export function PokemonCardDetail({
           image={(showShiny && getCardMedia(pokemon).shinyImage) || pokemon.fallbackImage || pokemon.image}
           onClose={() => setIsRunning(false)}
           onBerries={onBerries}
+          onGold={onGold}
         />
       )}
 

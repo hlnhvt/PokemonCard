@@ -19,6 +19,7 @@ import {
 import { POPULAR_POKEMON } from '../../utils/guessGame';
 import { pickCustomers } from '../../utils/kidGamesCommon';
 import { sounds } from '../../utils/soundEffects';
+import { goldForSession } from '../../utils/gold';
 import { playCry } from '../../utils/cries';
 import { KidGameShell, Customer, HelperPokemon, FlyingItem, Splash, StarRow, SessionSummary } from './Common';
 
@@ -28,7 +29,7 @@ const T = { enter: 900, fly: 600, cook: 1600, dish: 700, eat: 1500, leave: 700 }
  * "Bếp Pokémon": a customer orders a dish, the child adds the ingredients following the
  * recipe card, stirs by drawing circles on the pot (or tapping), and serves it.
  */
-export function CookingGame({ chef, onClose, onBerries, random = Math.random }) {
+export function CookingGame({ chef, onClose, onBerries, onGold, random = Math.random }) {
   const [kitchen, setKitchen] = useState(() => createKitchen({ random }));
   const [customers, setCustomers] = useState(() => pickCustomers(POPULAR_POKEMON, kitchen.plan.length, chef.name, random));
   const [, force] = useState(0);
@@ -146,6 +147,7 @@ export function CookingGame({ chef, onClose, onBerries, random = Math.random }) 
                 rewarded.current = true;
                 const b = sessionBerries(kitchen.results);
                 onBerries?.({ oran: Math.ceil(b / 2), razz: Math.floor(b / 2) });
+                onGold?.(goldForSession(kitchen.results));
               }
             } else {
               setSpoonAngle(0);
@@ -224,6 +226,7 @@ export function CookingGame({ chef, onClose, onBerries, random = Math.random }) 
           stars={stars}
           maxStars={kitchen.results.length * 3}
           berries={sessionBerries(kitchen.results)}
+          gold={goldForSession(kitchen.results)}
           detail={`${chef.name} đã nấu ${kitchen.results.length} món thật ngon!`}
           onReplay={replay}
           onClose={onClose}

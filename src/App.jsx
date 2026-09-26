@@ -8,6 +8,9 @@ import { GamesHub } from './components/GamesHub';
 import { EvolutionScene } from './components/EvolutionScene';
 import { getSavedCollection, saveCardToPokedex, recordCatch, feedCard, petCard, recordBattle } from './utils/storage';
 import { getBerries, addBerries } from './utils/berries';
+import { getGold, addGold, GOLD_REWARDS, goldForMatch } from './utils/gold';
+import { getBag, buyItem, giveItem } from './utils/inventory';
+import { GiftShop } from './components/GiftShop';
 import { fetchPokemonOnline } from './services/pokemonOnlineService';
 import { sounds } from './utils/soundEffects';
 import { rollShiny } from './utils/shiny';
@@ -30,16 +33,31 @@ export function App() {
   const [notice, setNotice] = useState(null);
   // The child's berry bag (filled by the runner game, spent on feeding)
   const [berries, setBerries] = useState(getBerries);
+  // Gold from every game, spent in the gift shop; the bag holds what was bought
+  const [gold, setGold] = useState(getGold);
+  const [bag, setBag] = useState(getBag);
+  const [showShop, setShowShop] = useState(false);
+  const [goldToast, setGoldToast] = useState(null);
 
   useEffect(() => {
     applyTheme(theme);
   }, [theme]);
 
   useEffect(() => {
+    if (!goldToast) return undefined;
+    const timer = setTimeout(() => setGoldToast(null), 2300);
+    return () => clearTimeout(timer);
+  }, [goldToast]);
+
+  useEffect(() => {
     if (!notice) return undefined;
     const timer = setTimeout(() => setNotice(null), 3500);
     return () => clearTimeout(timer);
   }, [notice]);
+
+  // Species the child has scanned (unlocked); every other Pokemon stays locked
+  const ownedSpecies = new Set(collection.flatMap((c) => [c.id, (c.speciesName || '').toLowerCase()]).filter(Boolean));
+  const capitalize = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
   const findInCollection = (name) =>
     getSavedCollection().find((c) => c.id === name || (c.speciesName || '').toLowerCase() === name);
@@ -85,21 +103,14 @@ export function App() {
   // Open detail view for a card from collection
   const handleSelectFromCollection = (card) => openDetail(card, card);
 
-  // Tap on another Pokemon in the evolution tree
-  const handleExplore = async (name) => {
+  // Tap on another Pokemon in the evolution tree: only scanned ones open
+  const handleExplore = (name) => {
     const owned = findInCollection(name);
     if (owned) {
       openDetail(owned, owned);
       return;
     }
-    setNotice({ text: 'Đang tải thông tin Pokémon...', tone: 'info' });
-    try {
-      const pokemon = await fetchPokemonOnline(name);
-      setNotice(null);
-      openDetail(pokemon, null, 'preview');
-    } catch (err) {
-      setNotice({ text: err.message || 'Không tải được Pokémon này.', tone: 'error' });
-    }
+    setNotice({ text: '🔒 Bé chưa có thẻ ' + capitalize(name) + '. Hãy quét thẻ để mở khóa nhé!', tone: 'info' });
   };
 
   // Evolve the current card (after enough scans) into one of its next forms
@@ -124,8 +135,31 @@ export function App() {
     openDetail(evolved, saved);
   };
 
+  const handleGold = (amount) => {
+    const n = Math.floor(Number(amount) || 0);
+    if (n <= 0) return;
+    setGold(addGold(n));
+    setGoldToast({ amount: n, id: Date.now() + Math.random() });
+  };
+
+  const handleBuy = (itemId) => {
+    const outcome = buyItem(itemId);
+    setGold(outcome.gold);
+    setBag(outcome.bag);
+    return outcome;
+  };
+
+  const handleGive = (itemId) => {
+    if (!activePokemon) return null;
+    const outcome = giveItem(activePokemon.id, itemId);
+    if (outcome.result === 'ok') refreshCard(outcome.card);
+    if (outcome.bag) setBag(outcome.bag);
+    return outcome;
+  };
+
   const handleCaught = () => {
     if (!activePokemon) return;
+    handleGold(GOLD_REWARDS.catch);
     const updated = recordCatch(activePokemon.id);
     if (updated) {
       setSavedItem(updated);
@@ -161,6 +195,7 @@ export function App() {
   // Battles reward berries (win 2, consolation 1) and are counted on the card
   const handleBattleResult = (cardId, { won }) => {
     setBerries(addBerries(won ? { oran: 1, razz: 1 } : { oran: 1 }));
+    handleGold(goldForMatch(won ? 'win' : 'lose'));
     const updated = recordBattle(cardId, won);
     if (updated) {
       setCollection(getSavedCollection());
@@ -189,7 +224,15 @@ export function App() {
         onToggleMute={handleToggleMute}
         theme={theme}
         onSelectTheme={setTheme}
+        gold={gold}
+        onOpenShop={() => setShowShop(true)}
       />
+
+      {goldToast && (
+        <div key={goldToast.id} role="status" className="gold-pop fixed top-20 left-1/2 z-[70] px-4 py-2 rounded-full bg-gradient-to-r from-amber-300 to-yellow-400 text-slate-900 text-lg font-black shadow-2xl shadow-amber-500/40 border-2 border-white pointer-events-none" data-testid="gold-toast">
+          <span className="coin-spin">🪙</span> +{goldToast.amount} vàng
+        </div>
+      )}
 
       {notice && (
         <div role="status" className={`fixed top-20 left-1/2 -translate-x-1/2 z-40 px-4 py-2 rounded-2xl shadow-xl text-sm font-bold ${
@@ -225,6 +268,11 @@ export function App() {
             onPet={handlePet}
             onBerries={handleBerriesCollected}
             onBattleResult={handleBattleResult}
+            onGold={handleGold}
+            bag={bag}
+            onGive={handleGive}
+            onOpenShop={() => setShowShop(true)}
+            ownedSpecies={ownedSpecies}
           />
         )}
 
@@ -249,6 +297,9 @@ export function App() {
             onBerries={handleBerriesCollected}
             onBattleResult={handleBattleResult}
             onOpenCollection={() => setCurrentTab('collection')}
+            onGold={handleGold}
+            onOpenShop={() => setShowShop(true)}
+            onScan={() => setCurrentTab('scan')}
           />
         )}
       </main>
@@ -261,6 +312,8 @@ export function App() {
           isMuted={isMuted}
         />
       )}
+
+      {showShop && <GiftShop gold={gold} bag={bag} onBuy={handleBuy} onClose={() => setShowShop(false)} />}
 
       {evolution && (
         <EvolutionScene from={evolution.from} to={evolution.to} error={evolution.error} onDone={handleEvolutionDone} />

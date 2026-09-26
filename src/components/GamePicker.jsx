@@ -2,9 +2,28 @@ import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, ChevronRight } from 'lucide-react';
 
+const GROUP_TITLES = { play: '🎮 Vui chơi', sport: '🏆 Thi đấu thể thao', logic: '🧠 Trò chơi trí tuệ' };
+
+/** Games in groups, in the order the groups first appear (games without a group form one list). */
+function groupsOf(games) {
+  const groups = [];
+  games.forEach((game) => {
+    const key = game.group || null;
+    let g = groups.find((x) => x.group === key);
+    if (!g) groups.push((g = { group: key, list: [] }));
+    g.list.push(game);
+  });
+  let offset = 0;
+  return groups.map((g) => {
+    const result = { ...g, offset };
+    offset += g.list.length;
+    return result;
+  });
+}
+
 /**
  * Bottom sheet listing the games a child can play with one Pokemon.
- * games = [{ id, title, description, icon, gradient, badge?, onPlay }]
+ * games = [{ id, title, description, icon, gradient, badge?, group?, onPlay }]
  */
 export function GamePicker({ pokemonName, image, games, onClose }) {
   useEffect(() => {
@@ -31,31 +50,36 @@ export function GamePicker({ pokemonName, image, games, onClose }) {
           </div>
         </div>
 
-        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 pt-1">
-          {games.map((game, i) => (
-            <li key={game.id} className="sheet-item" style={{ animationDelay: `${60 + i * 50}ms` }}>
-              <button
-                onClick={() => {
-                  onClose?.();
-                  game.onPlay();
-                }}
-                className={`w-full flex items-center gap-3 p-3 rounded-2xl text-left text-white shadow-lg bg-gradient-to-r ${game.gradient} active:scale-[0.97] transition-transform`}
-              >
-                <span className="flex items-center justify-center w-14 h-14 rounded-2xl bg-white/20 text-3xl shrink-0" aria-hidden="true">
-                  {game.icon}
-                </span>
-                <span className="flex-1 min-w-0">
-                  <span className="flex items-center gap-2">
-                    <span className="text-base font-black">{game.title}</span>
-                    {game.badge && <span className="px-1.5 py-0.5 rounded-full bg-white/25 text-[10px] font-black">{game.badge}</span>}
-                  </span>
-                  <span className="block text-xs text-white/85 leading-snug">{game.description}</span>
-                </span>
-                <ChevronRight className="w-5 h-5 shrink-0 opacity-80" />
-              </button>
-            </li>
-          ))}
-        </ul>
+        {groupsOf(games).map(({ group, list, offset }) => (
+          <section key={group || 'all'} aria-label={GROUP_TITLES[group]}>
+            {group && <h4 className="px-4 pt-2 text-sm font-black uppercase tracking-wider text-slate-300">{GROUP_TITLES[group] || group}</h4>}
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 pt-2">
+              {list.map((game, j) => (
+                <li key={game.id} className="sheet-item" style={{ animationDelay: `${60 + Math.min(offset + j, 8) * 50}ms` }}>
+                  <button
+                    onClick={() => {
+                      onClose?.();
+                      game.onPlay();
+                    }}
+                    className={`w-full flex items-center gap-3 p-3 rounded-2xl text-left text-white shadow-lg bg-gradient-to-r ${game.gradient} active:scale-[0.97] transition-transform`}
+                  >
+                    <span className="flex items-center justify-center w-14 h-14 rounded-2xl bg-white/20 text-3xl shrink-0" aria-hidden="true">
+                      {game.icon}
+                    </span>
+                    <span className="flex-1 min-w-0">
+                      <span className="flex items-center gap-2">
+                        <span className="text-base font-black">{game.title}</span>
+                        {game.badge && <span className="px-1.5 py-0.5 rounded-full bg-white/25 text-[10px] font-black">{game.badge}</span>}
+                      </span>
+                      <span className="block text-xs text-white/85 leading-snug">{game.description}</span>
+                    </span>
+                    <ChevronRight className="w-5 h-5 shrink-0 opacity-80" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
       </div>
     </div>,
     document.body

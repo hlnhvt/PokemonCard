@@ -15,6 +15,7 @@ import {
 } from '../utils/friendship';
 import { BerryIcon } from './BerryIcon';
 import { GamePicker } from './GamePicker';
+import { itemById, wornItem, roomItems } from '../utils/shopItems';
 
 const EAT_DELAY_MS = 450;
 
@@ -24,6 +25,13 @@ const MESSAGES = {
   max: (name) => `${name} đã là bạn thân nhất của bé rồi! ❤️`,
   error: () => 'Chưa cho ăn được, thử lại nhé.',
 };
+
+const GIFT_MESSAGES = {
+  full: (name) => `${name} ăn no quà vặt rồi! Mai cho ăn tiếp nhé 😊`,
+  played: (name, item) => `${name} đã chơi ${item.name} hôm nay rồi. Thử đồ chơi khác nhé!`,
+  owned: (name, item) => `${name} đã có ${item.name} rồi!`,
+};
+const ROOM_SPOTS = ['left-0 bottom-1', 'right-0 bottom-1', '-left-2 top-6', '-right-2 top-6'];
 
 /**
  * "Your Pokemon" panel: big artwork children can tap (it hops, hearts float up and the
@@ -43,6 +51,7 @@ export function PokemonBuddy({
   care = { enabled: false },
   onFeed,
   onPet,
+  gifts = { enabled: false },
 }) {
   const [hearts, setHearts] = useState([]);
   const [hopKey, setHopKey] = useState(0);
@@ -51,6 +60,9 @@ export function PokemonBuddy({
   const [message, setMessage] = useState(null);
   const [levelUp, setLevelUp] = useState(null);
   const [showGames, setShowGames] = useState(false);
+  const [giving, setGiving] = useState(null); // item flying to the Pokemon
+  const [toyPlay, setToyPlay] = useState(null);
+  const [sparkle, setSparkle] = useState(0);
   const heartId = useRef(0);
   const timers = useRef([]);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
@@ -112,6 +124,45 @@ export function PokemonBuddy({
     }, EAT_DELAY_MS);
   };
 
+  const worn = wornItem(gifts.card);
+  const room = roomItems(gifts.card);
+  const bagItems = Object.entries(gifts.bag || {}).map(([id, count]) => ({ item: itemById(id), count })).filter((x) => x.item);
+
+  const give = (itemId) => {
+    if (!gifts.enabled || giving || flyingBerry) return;
+    const item = itemById(itemId);
+    const outcome = gifts.onGive?.(itemId);
+    if (!outcome || !item) return;
+    if (outcome.result !== 'ok') {
+      setMessage(GIFT_MESSAGES[outcome.result]?.(pokemon.name, item) || MESSAGES.error());
+      later(() => setMessage(null), 2500);
+      return;
+    }
+    setMessage(null);
+    setGiving({ emoji: item.emoji, key: ++heartId.current });
+    later(() => {
+      setGiving(null);
+      if (item.category === 'food') {
+        sounds.playMunch();
+        burstHearts(3);
+      } else if (item.category === 'toy') {
+        setToyPlay({ emoji: item.emoji, key: ++heartId.current });
+        sounds.playJump();
+        burstHearts(2);
+        later(() => setToyPlay(null), 1300);
+      } else {
+        setSparkle((n) => n + 1);
+        sounds.playSuccessFanfare();
+        burstHearts(4);
+      }
+      if (outcome.gain > 0) {
+        setFloatText({ text: `+${outcome.gain} ❤️`, key: ++heartId.current });
+        later(() => setFloatText(null), 1200);
+      }
+      if (outcome.levelUp) celebrate(outcome.levelUp);
+    }, EAT_DELAY_MS);
+  };
+
   return (
     <div className="glass-panel p-4 rounded-2xl flex flex-col items-center gap-3">
       <div className="w-full flex items-center justify-between">
@@ -135,19 +186,40 @@ export function PokemonBuddy({
             <Sparkles className="absolute bottom-6 right-4 w-5 h-5 text-yellow-300 shiny-twinkle" style={{ animationDelay: '0.6s' }} />
           </>
         )}
-        <img key={hopKey} src={image} alt={pokemon.name} draggable={false} className={`w-40 h-40 object-contain ${hopKey ? 'poke-hop' : ''}`} />
+        <img key={`hop-${hopKey}`} src={image} alt={pokemon.name} draggable={false} className={`w-40 h-40 object-contain ${hopKey ? 'poke-hop' : ''}`} />
         {hearts.map((h) => (
-          <span key={h.id} aria-hidden="true" className="heart-float absolute top-8 text-2xl" style={{ left: `${h.left}%`, animationDelay: `${h.delay}ms` }}>
+          <span key={`heart-${h.id}`} aria-hidden="true" className="heart-float absolute top-8 text-2xl" style={{ left: `${h.left}%`, animationDelay: `${h.delay}ms` }}>
             ❤️
           </span>
         ))}
+        {worn && (
+          <span key={`w${sparkle}`} aria-label={`Đang đội ${worn.name}`} className={`absolute left-1/2 -translate-x-1/2 top-0 text-4xl drop-shadow-lg pointer-events-none ${sparkle ? 'pop-in' : ''}`}>
+            {worn.emoji}
+          </span>
+        )}
+        {room.slice(0, ROOM_SPOTS.length).map((item, i) => (
+          <span key={item.id} aria-label={item.name} className={`absolute ${ROOM_SPOTS[i]} text-3xl drop-shadow pointer-events-none`}>
+            {item.emoji}
+          </span>
+        ))}
+        {sparkle > 0 && <span key={`s${sparkle}`} className="sparkle-ring absolute inset-4 rounded-full border-4 border-amber-300 pointer-events-none" />}
+        {giving && (
+          <span key={`gift-${giving.key}`} data-testid="flying-gift" className="berry-fly absolute left-1/2 bottom-0 text-3xl">
+            {giving.emoji}
+          </span>
+        )}
+        {toyPlay && (
+          <span key={`toy-${toyPlay.key}`} className="toy-play absolute left-1/2 bottom-6 text-4xl pointer-events-none">
+            {toyPlay.emoji}
+          </span>
+        )}
         {flyingBerry && (
           <span data-testid="flying-berry" className="berry-fly absolute left-1/2 bottom-0">
             <BerryIcon type={flyingBerry.type} className="w-8 h-8" />
           </span>
         )}
         {floatText && (
-          <span key={floatText.key} role="status" className="gain-float absolute top-2 left-1/2 whitespace-nowrap px-2 py-0.5 rounded-full bg-pink-500 text-white text-sm font-black shadow">
+          <span key={`float-${floatText.key}`} role="status" className="gain-float absolute top-2 left-1/2 whitespace-nowrap px-2 py-0.5 rounded-full bg-pink-500 text-white text-sm font-black shadow">
             {floatText.text}
           </span>
         )}
@@ -219,6 +291,34 @@ export function PokemonBuddy({
           </>
         ) : (
           <p className="text-xs text-slate-400">Quét thẻ {pokemon.name} để chăm sóc bạn ấy nhé!</p>
+        )}
+        {gifts.enabled && (
+          <div className="pt-2 border-t border-slate-700/70" aria-label="Tặng quà">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-black text-slate-100">🎁 Tặng quà</span>
+              <button onClick={gifts.onOpenShop} className="px-2.5 py-1 rounded-full bg-amber-400/20 border border-amber-400/50 text-amber-200 text-xs font-black active:scale-95">
+                🪙 Tiệm quà
+              </button>
+            </div>
+            {bagItems.length ? (
+              <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+                {bagItems.map(({ item, count }) => (
+                  <button
+                    key={item.id}
+                    onClick={() => give(item.id)}
+                    aria-label={`Tặng ${item.name}`}
+                    className="relative shrink-0 w-16 py-1.5 rounded-xl border-2 border-amber-400/40 bg-amber-500/10 flex flex-col items-center active:scale-95 transition-transform"
+                  >
+                    <span className="text-3xl">{item.emoji}</span>
+                    <span className="text-[10px] font-bold text-slate-200 truncate w-full text-center">{item.name}</span>
+                    {item.category !== 'toy' && <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1 rounded-full bg-amber-400 text-slate-900 text-[11px] font-black flex items-center justify-center">{count}</span>}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-1 text-xs text-slate-400">Túi quà đang trống. Chơi game để có vàng rồi ghé Tiệm quà nhé!</p>
+            )}
+          </div>
         )}
         {message && (
           <p role="alert" className="text-sm font-bold text-amber-300 text-center">

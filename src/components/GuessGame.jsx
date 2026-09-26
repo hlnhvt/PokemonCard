@@ -2,6 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { HelpCircle, Lightbulb, RotateCcw, Star, Trophy, ArrowRight } from 'lucide-react';
 import { playCry } from '../utils/cries';
 import { sounds } from '../utils/soundEffects';
+import { GOLD_REWARDS } from '../utils/gold';
+import { GoldReward } from './kidgames/Common';
 import { ROUNDS, buildPool, makeQuestion, starsFor } from '../utils/guessGame';
 
 const BEST_KEY = 'pokescan_guess_best';
@@ -21,7 +23,7 @@ function saveBest(score) {
     // ignore
   }
 }
-export function GuessGame({ collection = [], random = Math.random }) {
+export function GuessGame({ collection = [], onGold, random = Math.random }) {
   const pool = useMemo(() => buildPool(collection), [collection]);
   const [round, setRound] = useState(1);
   const [score, setScore] = useState(0);
@@ -52,6 +54,7 @@ export function GuessGame({ collection = [], random = Math.random }) {
     const nextAsked = new Set(asked).add(target.key);
     if (round >= ROUNDS) {
       setFinished(true);
+      if (score > 0) onGold?.(score * GOLD_REWARDS.quizCorrect);
       if (score > best) {
         setBest(score);
         saveBest(score);
@@ -90,6 +93,7 @@ export function GuessGame({ collection = [], random = Math.random }) {
           Bé đoán đúng <strong className="text-amber-400">{score}/{ROUNDS}</strong> Pokémon
         </p>
         <p className="text-sm text-slate-400">Kỷ lục: {Math.max(best, score)}/{ROUNDS}</p>
+        {score > 0 && <GoldReward amount={score * GOLD_REWARDS.quizCorrect} dark />}
         <button onClick={restart} className="mt-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-black text-lg flex items-center gap-2 active:scale-95">
           <RotateCcw className="w-5 h-5" /> Chơi lại
         </button>
