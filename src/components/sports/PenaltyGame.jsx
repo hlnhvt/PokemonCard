@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { ROUNDS, COLUMNS, childKick, planAiKick, childSave, columnOf } from '../../utils/sports/penalty';
-import { matchResult, clamp } from '../../utils/sports/common';
+import { ROUNDS, childKick, planAiKick, childSave, columnOf, shotFromSwipe, diveFromSwipe } from '../../utils/sports/penalty';
+import { matchResult } from '../../utils/sports/common';
 import { sounds } from '../../utils/soundEffects';
 import { SportsShell, VsIntro, Banner, MatchResult } from './SportsCommon';
 import { useLoop, useLater, useCanvas, pickOpponents, loadImage, drawSprite, canvasPoint, burst, updateParticles } from './sportsKit';
@@ -272,12 +272,9 @@ export function PenaltyGame({ player, onClose, onBerries, onGold, random = Math.
     }, 1900);
   };
 
-  const shootAt = (point) => {
+  const shootAt = ({ x, y }) => {
     const s = game.current;
     if (s.phase !== 'aim') return;
-    // Taps are generous: anywhere near the goal aims inside it
-    const x = clamp((point.x - W / 2) / GOAL_HALF, -0.94, 0.94);
-    const y = clamp((GOAL.ground - point.y) / ((GOAL.ground - GOAL.top) * 0.94), 0.06, 0.94);
     const outcome = childKick({ x, y }, random);
     sounds.playPop();
     play('player', { x, y }, outcome, outcome.dive);
@@ -291,13 +288,37 @@ export function PenaltyGame({ player, onClose, onBerries, onGold, random = Math.
     play('opponent', s.plan.target, outcome, column);
   };
 
-  const onStagePointer = (e) => {
+  // Swipes: up towards the goal to shoot, left / up / right to dive
+  const onSwipeStart = (e) => {
     const s = game.current;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const p = canvasPoint(canvas, e, W, H);
-    if (s.phase === 'aim' && p.y < 400) shootAt(p);
-    else if (s.phase === 'read' && p.y > GOAL.top - 30 && p.y < GOAL.ground + 40) diveTo(columnOf((p.x - W / 2) / GOAL_HALF));
+    if (!canvasRef.current || (s.phase !== 'aim' && s.phase !== 'read')) return;
+    const p = canvasPoint(canvasRef.current, e, W, H);
+    s.swipe = { start: p, cur: p };
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  };
+  const onSwipeMove = (e) => {
+    const s = game.current;
+    if (s.swipe && canvasRef.current) s.swipe.cur = canvasPoint(canvasRef.current, e, W, H);
+  };
+  const onSwipeEnd = (e) => {
+    const s = game.current;
+    if (!s.swipe || !canvasRef.current) return;
+    const end = canvasPoint(canvasRef.current, e, W, H);
+    const dx = end.x - s.swipe.start.x;
+    const dy = end.y - s.swipe.start.y;
+    s.swipe = null;
+    if (s.phase === 'aim') {
+      const target = shotFromSwipe(dx, dy);
+      if (target) shootAt(target);
+      else {
+        sounds.playOops();
+        say('Vuốt lên thật mạnh nhé! ⬆️', 'blue');
+      }
+    } else if (s.phase === 'read') {
+      const dive = diveFromSwipe(dx, dy);
+      if (dive) diveTo(dive);
+      else say('Vuốt sang trái, phải hoặc lên trên!', 'blue');
+    }
   };
 
   useLoop((dt) => {
@@ -415,8 +436,48 @@ export function PenaltyGame({ player, onClose, onBerries, onGold, random = Math.
     }
     drawSprite(ctx, kickerImg, px, py - Math.abs(Math.sin(s.time * (a ? 18 : 3))) * (a ? 8 : 3), 120, { rotate: lean, flip: kicker === 'player' });
 
+    // While swiping to shoot: a dotted arrow from the ball and a target ring where it will go
+    if (s.phase === 'aim' && s.swipe) {
+      const dx = s.swipe.cur.x - s.swipe.start.x;
+      const dy = s.swipe.cur.y - s.swipe.start.y;
+      const aim = shotFromSwipe(dx, dy);
+      ctx.save();
+      ctx.lineCap = 'round';
+      if (aim) {
+        const t = goalPoint(aim);
+        ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+        ctx.lineWidth = 5;
+        ctx.setLineDash([2, 12]);
+        ctx.lineDashOffset = -s.time * 40;
+        ctx.beginPath();
+        ctx.moveTo(SPOT.x, SPOT.y);
+        ctx.quadraticCurveTo((SPOT.x + t.x) / 2, (SPOT.y + t.y) / 2 - 40, t.x, t.y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.strokeStyle = '#facc15';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(t.x, t.y, 16 + Math.sin(s.time * 10) * 2, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(t.x - 24, t.y);
+        ctx.lineTo(t.x + 24, t.y);
+        ctx.moveTo(t.x, t.y - 24);
+        ctx.lineTo(t.x, t.y + 24);
+        ctx.stroke();
+      } else {
+        ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(s.swipe.start.x, s.swipe.start.y);
+        ctx.lineTo(s.swipe.cur.x, s.swipe.cur.y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
     // Target zones while aiming
-    if (s.phase === 'aim') {
+    if (s.phase === 'aim' && !s.swipe) {
       for (const x of [-0.66, 0, 0.66]) {
         for (const y of [0.28, 0.72]) {
           const p = goalPoint({ x, y });
@@ -448,9 +509,9 @@ export function PenaltyGame({ player, onClose, onBerries, onGold, random = Math.
   const lookArrow = g.lean ? { left: '⬅️', center: '⬆️', right: '➡️' }[g.lean] : '';
   const hint =
     g.phase === 'aim'
-      ? 'Chạm vào khung thành để sút! Góc cao khó bắt hơn ⭐'
+      ? 'Vuốt lên về phía khung thành để sút! Vuốt xiên để sút góc, vuốt dài để sút cao ⭐'
       : g.phase === 'read'
-        ? `Xem ${opponent.name} nhìn hướng nào rồi chọn hướng bay người!`
+        ? `Xem ${opponent.name} nhìn hướng nào rồi vuốt ← ↑ → để bay người!`
         : '';
 
   return (
@@ -466,19 +527,7 @@ export function PenaltyGame({ player, onClose, onBerries, onGold, random = Math.
       dataAttrs={{ 'data-phase': g.phase, 'data-round': g.round, 'data-kicker': g.kicker }}
       footer={
         <div className="relative z-10 px-3 py-2 bg-black/40">
-          {g.phase === 'read' ? (
-            <div className="grid grid-cols-3 gap-2" data-testid="dive-buttons">
-              {COLUMNS.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => diveTo(c)}
-                  className="py-3 rounded-2xl bg-gradient-to-b from-amber-300 to-orange-500 text-slate-900 text-lg font-black shadow-lg active:scale-95 border-b-4 border-orange-700"
-                >
-                  {{ left: '⬅️ Trái', center: '⬆️ Giữa', right: 'Phải ➡️' }[c]}
-                </button>
-              ))}
-            </div>
-          ) : (
+          {(
             <div className="grid grid-cols-[auto_repeat(5,1fr)] gap-x-1 gap-y-1 items-center text-center text-sm font-black" data-testid="kick-strip">
               {['player', 'opponent'].map((who) => (
                 <React.Fragment key={who}>
@@ -498,11 +547,31 @@ export function PenaltyGame({ player, onClose, onBerries, onGold, random = Math.
         </div>
       }
     >
-      <div className="relative flex-1 min-h-0 flex items-center justify-center overflow-hidden" onPointerDown={onStagePointer} data-testid="penalty-stage">
+      <div
+        className="relative flex-1 min-h-0 flex items-center justify-center overflow-hidden touch-none"
+        onPointerDown={onSwipeStart}
+        onPointerMove={onSwipeMove}
+        onPointerUp={onSwipeEnd}
+        onPointerCancel={() => (game.current.swipe = null)}
+        data-testid="penalty-stage"
+      >
         <canvas ref={canvasRef} data-testid="penalty-canvas" className="max-w-full max-h-full" style={{ aspectRatio: `${W} / ${H}`, width: '100%', height: 'auto' }} />
         {g.phase === 'read' && (
           <div className="bubble-pop absolute left-[18%] bottom-[30%] px-3 py-1.5 rounded-2xl bg-white text-2xl shadow-lg pointer-events-none" data-testid="kicker-look">
             👀{lookArrow}
+          </div>
+        )}
+        {g.phase === 'aim' && (
+          <span className="swipe-up-hint absolute left-1/2 bottom-[12%] text-4xl pointer-events-none drop-shadow-lg" aria-hidden="true" data-testid="swipe-hint">
+            👆
+          </span>
+        )}
+        {g.phase === 'read' && (
+          <div className="absolute inset-x-0 top-[36%] flex items-center justify-center gap-10 pointer-events-none" aria-hidden="true" data-testid="dive-hint">
+            <span className="nudge-l text-4xl drop-shadow-lg">⬅️</span>
+            <span className="nudge-u text-4xl drop-shadow-lg">⬆️</span>
+            <span className="nudge-r text-4xl drop-shadow-lg">➡️</span>
+            <span className="swipe-side-hint absolute left-1/2 top-12 text-4xl">👆</span>
           </div>
         )}
         {hint && (

@@ -272,9 +272,9 @@ describe('App flows', () => {
     render(<App />);
     fireEvent.click(screen.getByText('Trò Chơi').closest('button'));
     fireEvent.click(screen.getByLabelText('Chơi nhạc'));
-    fireEvent.click(screen.getByText('Ngôi sao lấp lánh'));
-    const { SONGS, NOTES } = await import('./utils/logic/music');
-    for (const n of SONGS[0].melody) fireEvent.pointerDown(screen.getByLabelText('Phím ' + NOTES[n.note].label));
+    fireEvent.click(screen.getByLabelText('Bánh nóng giòn'));
+    const { songById, NOTES } = await import('./utils/logic/music');
+    for (const n of songById('hotcross').melody) fireEvent.pointerDown(screen.getByLabelText('Phím ' + NOTES[n.note].label));
     try {
       for (let t = 0; t < 16000 && screen.getByTestId('header-gold').textContent !== '35'; t += 250) {
         await act(async () => {
@@ -286,6 +286,24 @@ describe('App flows', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('AP-17 settings: using scanned Pokemon in the team battle is off by default and can be turned on', () => {
+    saveCardToPokedex(makeCard({ id: 'pikachu', name: 'Pikachu' }));
+    render(<App />);
+    fireEvent.click(screen.getByText('Trò Chơi').closest('button'));
+    fireEvent.click(screen.getByLabelText('Đấu đội 5 vs 5'));
+    expect(screen.queryByLabelText('Thêm Pikachu vào đội')).toBeNull();
+    fireEvent.click(screen.getByLabelText('Đóng đấu đội'));
+    fireEvent.click(screen.getByLabelText('Cài đặt'));
+    const toggle = screen.getByRole('switch', { name: 'Cho phép chọn Pokémon đã quét' });
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+    expect(JSON.parse(localStorage.getItem('pokescan_settings_v1')).teamUseScanned).toBe(true);
+    fireEvent.click(screen.getByLabelText('Đóng'));
+    fireEvent.click(screen.getByLabelText('Đấu đội 5 vs 5'));
+    expect(screen.getByLabelText('Thêm Pikachu vào đội')).toBeInTheDocument();
   });
 
   it('AP-01b warns in details when LocalStorage refuses the save', async () => {

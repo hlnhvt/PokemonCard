@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { generateMaze, shortestPath, canMove, createMazeLevel, slide, mazeStars, swipeDirection, MAZE_LEVELS, DIRS, cellAt } from './maze';
+import { generateMaze, shortestPath, canMove, createMazeLevel, slide, mazeStars, swipeDirection, MAZE_LEVELS, MAZE_WORLDS, DIRS, cellAt } from './maze';
 import { makeQuestion, makeMathLesson, makeChoices, mathStars, MATH_PLAN } from './math';
 import { WORDS, makeEnglishLesson, englishStars, sayWord, ENGLISH_ROUNDS } from './english';
 import { createMemoryGame, tapCard, nextRound, memoryStars, START_LENGTH, MAX_LENGTH, HEARTS } from './memory';
-import { NOTES, SONGS, startSong, pressNote, noteTimes, musicStars, parseMelody } from './music';
+import { NOTES, SONGS, MUSIC_TIERS, songById, startSong, pressNote, noteTimes, musicStars, parseMelody } from './music';
 import { seeded } from '../../test/seeded';
 
 describe('maze', () => {
@@ -37,13 +37,13 @@ describe('maze', () => {
     expect(state.pos).toEqual(path[path.length - 1]);
   });
 
-  it('MZ-03 a bot following the shortest route finishes every level with 3 stars', () => {
+  it('MZ-03 a bot following the shortest route (key first in the castle) finishes every level with 3 stars', () => {
     for (let level = 0; level < MAZE_LEVELS.length; level++) {
       for (let s = 1; s <= 10; s++) {
         let st = createMazeLevel(level, seeded(s * 7 + level));
         st = { ...st, berries: [] }; // berries would stop slides early; tested separately
-        for (let guard = 0; !st.done && guard < 200; guard++) {
-          const route = shortestPath(st.maze, st.pos, st.maze.goal);
+        for (let guard = 0; !st.done && guard < 300; guard++) {
+          const route = shortestPath(st.maze, st.pos, st.hasKey ? st.maze.goal : st.key);
           const next = route[1];
           const dir = Object.keys(DIRS).find((d) => st.pos.x + DIRS[d].dx === next.x && st.pos.y + DIRS[d].dy === next.y);
           st = slide(st, dir).state;
@@ -70,6 +70,39 @@ describe('maze', () => {
     expect(st.berries).toHaveLength(level.berries.length - 1);
     expect([mazeStars(10, 10), mazeStars(20, 10), mazeStars(40, 10)]).toEqual([3, 2, 1]);
     expect([swipeDirection(40, 5), swipeDirection(-40, 5), swipeDirection(3, 50), swipeDirection(3, -50), swipeDirection(5, 5)]).toEqual(['right', 'left', 'down', 'up', null]);
+  });
+});
+
+describe('maze levels', () => {
+  it('MZ-05 nine levels in three worlds, growing; the castle has a key on a far dead end', () => {
+    expect(MAZE_LEVELS).toHaveLength(9);
+    expect(new Set(MAZE_LEVELS.map((l) => l.id)).size).toBe(9);
+    for (const w of MAZE_WORLDS) expect(MAZE_LEVELS.filter((l) => l.world === w.id)).toHaveLength(3);
+    for (let i = 1; i < MAZE_LEVELS.length; i++) expect(MAZE_LEVELS[i].w * MAZE_LEVELS[i].h).toBeGreaterThanOrEqual(MAZE_LEVELS[i - 1].w * MAZE_LEVELS[i - 1].h);
+    const castle = createMazeLevel(6, seeded(3));
+    expect(castle.key).not.toBeNull();
+    expect(castle.hasKey).toBe(false);
+    expect(castle.berries.some((b) => b.x === castle.key.x && b.y === castle.key.y)).toBe(false);
+    expect(createMazeLevel(0, seeded(3)).key).toBeNull();
+  });
+
+  it('MZ-06 reaching the Pokeball without the key keeps it locked; with the key it opens', () => {
+    for (let s = 1; s <= 10; s++) {
+      let st = { ...createMazeLevel(6, seeded(s)), berries: [] };
+      let sawLocked = false;
+      // Go straight to the goal first
+      for (let guard = 0; guard < 100 && !(st.pos.x === st.maze.goal.x && st.pos.y === st.maze.goal.y); guard++) {
+        const next = shortestPath(st.maze, st.pos, st.maze.goal)[1];
+        const dir = Object.keys(DIRS).find((d) => st.pos.x + DIRS[d].dx === next.x && st.pos.y + DIRS[d].dy === next.y);
+        st = slide(st, dir).state;
+        if (st.locked) sawLocked = true;
+        if (st.hasKey) break; // the key happened to be on the way
+      }
+      if (!st.hasKey) {
+        expect(sawLocked).toBe(true);
+        expect(st.done).toBe(false);
+      }
+    }
   });
 });
 
@@ -167,18 +200,23 @@ describe('music', () => {
   it('MU-01 8 notes rising in pitch; songs parse and use only those notes', () => {
     expect(NOTES).toHaveLength(8);
     for (let i = 1; i < NOTES.length; i++) expect(NOTES[i].freq).toBeGreaterThan(NOTES[i - 1].freq);
-    expect(SONGS.length).toBeGreaterThanOrEqual(4);
+    expect(SONGS.length).toBeGreaterThanOrEqual(10);
+    expect(new Set(SONGS.map((s) => s.id)).size).toBe(SONGS.length);
+    for (const t of MUSIC_TIERS) expect(SONGS.filter((s) => s.tier === t.id).length).toBeGreaterThanOrEqual(3);
+    // Easy songs are short, hard ones long
+    const avg = (tier) => SONGS.filter((s) => s.tier === tier).reduce((a, s) => a + s.melody.length, 0) / SONGS.filter((s) => s.tier === tier).length;
+    expect(avg('hard')).toBeGreaterThan(avg('easy'));
     for (const s of SONGS) {
-      expect(s.melody.length).toBeGreaterThanOrEqual(14);
+      expect(s.melody.length).toBeGreaterThanOrEqual(10);
       for (const n of s.melody) expect(n.note).toBeGreaterThanOrEqual(0);
     }
     expect(() => parseMelody('C4 X9')).toThrow();
     // Twinkle starts C C G G A A G
-    expect(SONGS[0].melody.slice(0, 7).map((n) => NOTES[n.note].id)).toEqual(['C4', 'C4', 'G4', 'G4', 'A4', 'A4', 'G4']);
+    expect(songById('twinkle').melody.slice(0, 7).map((n) => NOTES[n.note].id)).toEqual(['C4', 'C4', 'G4', 'G4', 'A4', 'A4', 'G4']);
   });
 
   it('MU-02 right bars advance, wrong bars count as mistakes; playback timing', () => {
-    const song = SONGS[0];
+    const song = songById('twinkle');
     let st = startSong(song);
     let out = pressNote(st, 5);
     expect(out).toMatchObject({ correct: false });

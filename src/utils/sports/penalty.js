@@ -64,3 +64,25 @@ export function childSave(kick, dive, random = Math.random) {
   const saved = dive === columnOf(kick.target.x) && random() < CHILD_SAVE_CHANCE;
   return { goal: !saved, saved, wide: false };
 }
+
+// ---- Swipe controls (screen pixels, y pointing down)
+export const MIN_SWIPE = 40;
+const clampTo = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
+/**
+ * A shot from a swipe going up towards the goal: the slant picks the side (a 45° swipe
+ * reaches the corner), the length picks the height (longer = higher). Null when the
+ * swipe is too short or does not go up.
+ */
+export function shotFromSwipe(dx, dy) {
+  const len = Math.hypot(dx, dy);
+  if (len < MIN_SWIPE || dy > -25) return null;
+  return { x: clampTo((dx / -dy) * 1.5, -0.94, 0.94), y: clampTo((len - 60) / 220, 0.06, 0.94) };
+}
+
+/** Keeper dive from a swipe: sideways = left / right, upwards = middle. Null when unclear. */
+export function diveFromSwipe(dx, dy) {
+  if (Math.hypot(dx, dy) < 30) return null;
+  if (Math.abs(dx) >= Math.abs(dy) * 0.8) return dx < 0 ? 'left' : 'right';
+  return dy < 0 ? 'center' : null;
+}

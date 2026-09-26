@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, act, within } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { BowlingGame } from './BowlingGame';
 import { PenaltyGame } from './PenaltyGame';
 import { BasketballGame } from './BasketballGame';
@@ -78,28 +78,44 @@ describe('BowlingGame', () => {
   }, 60000);
 });
 
+/** A swipe on a stage (screen = canvas coordinates in these tests). */
+function swipe(stage, from, to) {
+  fireEvent.pointerDown(stage, { clientX: from[0], clientY: from[1], pointerId: 1 });
+  fireEvent.pointerMove(stage, { clientX: (from[0] + to[0]) / 2, clientY: (from[1] + to[1]) / 2, pointerId: 1 });
+  fireEvent.pointerUp(stage, { clientX: to[0], clientY: to[1], pointerId: 1 });
+}
+
 describe('PenaltyGame', () => {
-  it('SPT-03 the child shoots by tapping the goal, then dives using the buttons', async () => {
+  it('SPT-03 the child shoots with a swipe up, then dives with a sideways swipe (no buttons)', async () => {
     render(<PenaltyGame player={PLAYER} onClose={vi.fn()} random={seeded(3)} />);
     await advance(2400);
     expect(dialog().dataset.phase).toBe('aim');
-    fireEvent.pointerDown(screen.getByTestId('penalty-stage'), { clientX: 70, clientY: 170 });
+    expect(screen.getByTestId('swipe-hint')).toBeInTheDocument();
+    const stage = screen.getByTestId('penalty-stage');
+    // A tap or a downward swipe does not shoot
+    swipe(stage, [180, 470], [182, 472]);
+    swipe(stage, [180, 400], [180, 500]);
+    expect(dialog().dataset.phase).toBe('aim');
+    swipe(stage, [180, 470], [60, 290]);
     expect(dialog().dataset.phase).toBe('kick');
     await advance(3500);
     expect(dialog().dataset.kicker).toBe('opponent');
     expect(dialog().dataset.phase).toBe('read');
+    expect(screen.queryByTestId('dive-buttons')).toBeNull();
+    expect(screen.getByTestId('dive-hint')).toBeInTheDocument();
     expect(screen.getByTestId('kicker-look').textContent).toMatch(/👀/);
-    fireEvent.click(within(screen.getByTestId('dive-buttons')).getByText(/Trái/));
+    swipe(stage, [200, 300], [90, 310]);
     expect(dialog().dataset.phase).toBe('kick');
   });
 
   it('SPT-04 after 5 kicks and 5 saves the match ends and rewards once', async () => {
     const onBerries = vi.fn();
     render(<PenaltyGame player={PLAYER} onClose={vi.fn()} onBerries={onBerries} random={seeded(4)} />);
+    const stage = () => screen.getByTestId('penalty-stage');
     const act1 = () => {
       const d = dialog().dataset;
-      if (d.phase === 'aim') fireEvent.pointerDown(screen.getByTestId('penalty-stage'), { clientX: 290, clientY: 175 });
-      else if (d.phase === 'read') fireEvent.click(within(screen.getByTestId('dive-buttons')).getByText(/Giữa/));
+      if (d.phase === 'aim') swipe(stage(), [180, 470], [300, 250]);
+      else if (d.phase === 'read') swipe(stage(), [180, 400], [182, 300]);
     };
     expect(await until(() => screen.queryByTestId('match-result'), { each: act1, max: 80000 })).toBeTruthy();
     const marks = screen.getByTestId('kick-strip').querySelectorAll('.star-pop');
@@ -147,19 +163,28 @@ describe('BasketballGame', () => {
 });
 
 describe('RacingGame', () => {
-  it('SPT-07 counts down 3-2-1, then the arrows and keys change lane', async () => {
+  it('SPT-07 counts down 3-2-1, then swipes (and keys) change lane; no buttons', async () => {
     render(<RacingGame player={PLAYER} onClose={vi.fn()} random={seeded(7)} />);
     expect(screen.getByTestId('countdown')).toHaveTextContent('3');
+    expect(screen.queryByText('Phải ➡️')).toBeNull();
+    const stage = screen.getByTestId('racing-stage');
     // No steering before the start
     fireEvent.keyDown(window, { key: 'ArrowLeft' });
     expect(dialog().dataset.lane).toBe('1');
     await advance(3200);
     expect(screen.queryByTestId('countdown')).toBeNull();
-    fireEvent.keyDown(window, { key: 'ArrowLeft' });
+    swipe(stage, [200, 300], [140, 305]);
     expect(dialog().dataset.lane).toBe('0');
-    fireEvent.pointerDown(screen.getByText('Phải ➡️'));
+    // A tap does nothing; a vertical swipe does nothing
+    swipe(stage, [300, 300], [302, 301]);
+    swipe(stage, [200, 200], [205, 400]);
+    expect(dialog().dataset.lane).toBe('0');
+    // One long swipe crosses two lanes
+    swipe(stage, [60, 300], [150, 300]);
+    expect(dialog().dataset.lane).toBe('2');
+    fireEvent.keyDown(window, { key: 'ArrowLeft' });
     expect(dialog().dataset.lane).toBe('1');
-    expect(sounds.playWhoosh).toHaveBeenCalledTimes(2);
+    expect(sounds.playWhoosh).toHaveBeenCalledTimes(4);
   });
 
   it('SPT-08 the race reaches the finish, shows the place and rewards once', async () => {

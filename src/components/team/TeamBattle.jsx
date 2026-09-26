@@ -81,7 +81,7 @@ function TeamVsIntro({ arena, players, opponents, onDone }) {
  * choose a battle ground, then fight 5 opponents one after another. A win ends with the
  * trophy ceremony; gold is paid for every battle, more for a win.
  */
-export function TeamBattle({ collection = [], onScanned, onGold, onClose, random = Math.random }) {
+export function TeamBattle({ collection = [], allowScanned = false, onScanned, onGold, onClose, random = Math.random }) {
   const [phase, setPhase] = useState('build'); // build | arena | loading | intro | battle | result | error
   const [team, setTeam] = useState([]);
   const [arenaId, setArenaId] = useState(ARENAS[0].id);
@@ -176,7 +176,7 @@ export function TeamBattle({ collection = [], onScanned, onGold, onClose, random
           </button>
         </div>
 
-        {phase === 'build' && <TeamBuilder collection={collection} team={team} setTeam={setTeam} onScanned={onScanned} onNext={() => setPhase('arena')} random={random} />}
+        {phase === 'build' && <TeamBuilder collection={collection} allowScanned={allowScanned} team={team} setTeam={setTeam} onScanned={onScanned} onNext={() => setPhase('arena')} random={random} />}
         {phase === 'arena' && (
           <ArenaPicker selected={arenaId} onSelect={setArenaId} onStart={load} onBack={() => setPhase('build')} teamTypes={team.map((m) => m.types || [])} />
         )}

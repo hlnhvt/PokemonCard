@@ -2,10 +2,24 @@
 // randomized depth-first search. The Pokemon slides along corridors and stops at
 // junctions, so children need few swipes.
 
+// Three worlds of three mazes, bigger each time. In the ice castle the Pokeball is locked:
+// the key (on the dead end farthest from the start) has to be picked up first.
+export const MAZE_WORLDS = [
+  { id: 'garden', name: 'Vườn hoa', emoji: '🌷' },
+  { id: 'forest', name: 'Rừng rậm', emoji: '🌲' },
+  { id: 'castle', name: 'Lâu đài băng', emoji: '🏰' },
+];
+
 export const MAZE_LEVELS = [
-  { w: 5, h: 5, berries: 2 },
-  { w: 6, h: 7, berries: 3 },
-  { w: 7, h: 9, berries: 4 },
+  { id: 'g1', world: 'garden', w: 5, h: 5, berries: 2 },
+  { id: 'g2', world: 'garden', w: 5, h: 6, berries: 2 },
+  { id: 'g3', world: 'garden', w: 6, h: 7, berries: 3 },
+  { id: 'f1', world: 'forest', w: 6, h: 8, berries: 3 },
+  { id: 'f2', world: 'forest', w: 7, h: 8, berries: 3 },
+  { id: 'f3', world: 'forest', w: 7, h: 9, berries: 4 },
+  { id: 'c1', world: 'castle', w: 7, h: 9, berries: 3, key: true },
+  { id: 'c2', world: 'castle', w: 8, h: 10, berries: 4, key: true },
+  { id: 'c3', world: 'castle', w: 9, h: 11, berries: 4, key: true },
 ];
 
 export const DIRS = {
@@ -81,19 +95,33 @@ export function placeBerries(maze, count, random = Math.random) {
   return [...shuffle(deadEnds), ...shuffle(others)].slice(0, count);
 }
 
+/** The dead end farthest (by path) from the start, never the goal: where the key goes. */
+export function farthestDeadEnd(maze) {
+  let best = null;
+  let bestDist = -1;
+  for (let y = 0; y < maze.h; y++) {
+    for (let x = 0; x < maze.w; x++) {
+      const p = { x, y };
+      if (same(p, maze.start) || same(p, maze.goal) || openings(maze, x, y) !== 1) continue;
+      const d = shortestPath(maze, maze.start, p).length;
+      if (d > bestDist) {
+        best = p;
+        bestDist = d;
+      }
+    }
+  }
+  return best;
+}
+
 export function createMazeLevel(level, random = Math.random) {
   const cfg = MAZE_LEVELS[level];
   const maze = generateMaze(cfg.w, cfg.h, random);
-  return {
-    level,
-    maze,
-    pos: { ...maze.start },
-    berries: placeBerries(maze, cfg.berries, random),
-    collected: 0,
-    steps: 0,
-    shortest: shortestPath(maze).length - 1,
-    done: false,
-  };
+  const key = cfg.key ? farthestDeadEnd(maze) : null;
+  const berries = placeBerries(maze, cfg.berries + (key ? 1 : 0), random).filter((b) => !key || !same(b, key)).slice(0, cfg.berries);
+  const shortest = key
+    ? shortestPath(maze, maze.start, key).length - 1 + shortestPath(maze, key, maze.goal).length - 1
+    : shortestPath(maze).length - 1;
+  return { level, maze, pos: { ...maze.start }, berries, key, hasKey: !key, collected: 0, steps: 0, shortest, done: false, locked: false };
 }
 
 /**
@@ -108,6 +136,7 @@ export function slide(state, dir) {
   const path = [];
   let berries = state.berries;
   let collected = state.collected;
+  let hasKey = state.hasKey;
   for (let guard = 0; guard < maze.w * maze.h; guard++) {
     pos = { x: pos.x + DIRS[current].dx, y: pos.y + DIRS[current].dy };
     path.push(pos);
@@ -117,13 +146,18 @@ export function slide(state, dir) {
       collected += 1;
       break;
     }
+    if (state.key && !hasKey && same(pos, state.key)) {
+      hasKey = true;
+      break;
+    }
     if (same(pos, maze.goal) || openings(maze, pos.x, pos.y) !== 2) break;
     // Follow the corridor round bends
     const back = DIRS[current].opposite;
     current = DIR_NAMES.find((d) => DIRS[d].wall !== back && canMove(maze, pos.x, pos.y, d));
   }
   return {
-    state: { ...state, pos, berries, collected, steps: state.steps + path.length, done: same(pos, maze.goal) },
+    // Reaching the Pokeball without the key: it stays locked (`locked` tells the UI to say so)
+    state: { ...state, pos, berries, collected, hasKey, steps: state.steps + path.length, done: same(pos, maze.goal) && hasKey, locked: same(pos, maze.goal) && !hasKey },
     path,
   };
 }

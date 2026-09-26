@@ -49,7 +49,7 @@ function GameTile({ game, onPlay, locked }) {
  * Games tab: every game is played with one of the child's scanned Pokemon. Before the
  * first scan the games stay locked (only the silhouette quiz is open).
  */
-export function GamesHub({ collection = [], berries, onBerries, onBattleResult, onOpenCollection, onGold, onOpenShop, onScan, onTeamScan }) {
+export function GamesHub({ collection = [], berries, onBerries, onBattleResult, onOpenCollection, onGold, onOpenShop, onScan, onTeamScan, teamUseScanned = false }) {
   const [selectedId, setSelectedId] = useState(collection[0]?.id || null);
   const [playing, setPlaying] = useState(null); // { section, id }
   const selected = collection.find((c) => c.id === selectedId) || collection[0] || null;
@@ -162,7 +162,7 @@ export function GamesHub({ collection = [], berries, onBerries, onBattleResult, 
         </div>
       )}
 
-      {playing?.section === 'team' && <TeamBattle collection={collection} onScanned={onTeamScan} onGold={onGold} onClose={close} />}
+      {playing?.section === 'team' && <TeamBattle collection={collection} allowScanned={teamUseScanned} onScanned={onTeamScan} onGold={onGold} onClose={close} />}
       {selected && is('battle') && <BattleArena card={card} onClose={close} onResult={(result) => onBattleResult?.(selected.id, result)} />}
       {selected && is('cooking') && <CookingGame chef={card} onBerries={onBerries} onGold={onGold} onClose={close} />}
       {selected && is('shop') && <ShopGame shopkeeper={card} onBerries={onBerries} onGold={onGold} onClose={close} />}

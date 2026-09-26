@@ -1,14 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { Music, ArrowLeft } from 'lucide-react';
-import { NOTES, SONGS, startSong, pressNote, noteTimes, musicStars } from '../../utils/logic/music';
-import { goldForStars } from '../../utils/gold';
+import { Music, ArrowLeft, Lock } from 'lucide-react';
+import { NOTES, SONGS, MUSIC_TIERS, startSong, pressNote, noteTimes, musicStars } from '../../utils/logic/music';
+import { getProgress, recordStars, isUnlocked, goldForLevel, totalStars } from '../../utils/progress';
 import { sounds } from '../../utils/soundEffects';
-import { KidGameShell, SessionSummary } from '../kidgames/Common';
+import { KidGameShell, SessionSummary, StarRow } from '../kidgames/Common';
 import { PokeballIcon } from '../PokeballIcon';
 import { useLater } from '../sports/sportsKit';
 
-const SONG_ICONS = { twinkle: '⭐', mary: '🐑', jingle: '🔔', joy: '🎉' };
+const SONG_ICONS = { hotcross: '🥐', clair: '🌙', twinkle: '⭐', oldmac: '🐮', mary: '🐑', london: '🌉', row: '🚣', jingle: '🔔', joy: '🎉', twinklefull: '🌟' };
+const GAME = 'music';
 const LANE_SIZE = 7;
 
 function Xylophone({ onHit, target, lit, hits }) {
@@ -70,6 +71,8 @@ export function MusicGame({ player, onClose, onGold }) {
   const [floats, setFloats] = useState([]);
   const [lit, setLit] = useState(-1);
   const [dance, setDance] = useState(0);
+  const [progress, setProgress] = useState(() => getProgress(GAME));
+  const [reward, setReward] = useState(null); // { gold, improved } of the song just finished
   const paid = useRef(false);
   const floatId = useRef(0);
   const later = useLater();
@@ -123,15 +126,22 @@ export function MusicGame({ player, onClose, onGold }) {
     return () => timers.forEach(clearTimeout);
   }, [mode, song]);
 
+  // A finished song: best stars saved (the next song opens), gold paid once
   useEffect(() => {
     if (mode !== 'done' || !play || paid.current) return;
     paid.current = true;
-    onGold?.(goldForStars(musicStars(play.mistakes, play.song.melody.length)));
+    const earned = musicStars(play.mistakes, play.song.melody.length);
+    const { improved, progress: next } = recordStars(GAME, play.song.id, earned);
+    const gold = goldForLevel(earned, improved);
+    setProgress(next);
+    setReward({ gold, improved });
+    onGold?.(gold);
     sounds.playSuccessFanfare();
   }, [mode, play, onGold]);
 
   const choose = (s) => {
     paid.current = false;
+    setReward(null);
     setPlay(startSong(s));
     setMode('play');
   };
@@ -157,16 +167,40 @@ export function MusicGame({ player, onClose, onGold }) {
             <img src={player.image} alt={player.name} className="w-20 h-20 object-contain drop-shadow-xl sport-bob" />
             <p className="bubble-pop px-4 py-2 rounded-3xl bg-white text-base font-black text-purple-800 shadow">Bé muốn chơi bài nào? 🎶</p>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            {SONGS.map((s, i) => (
-              <button key={s.id} onClick={() => choose(s)} className="pop-in p-3 rounded-3xl bg-white/95 shadow-lg text-left active:scale-95 transition-transform" style={{ animationDelay: `${i * 80}ms` }}>
-                <span className="text-4xl">{SONG_ICONS[s.id]}</span>
-                <p className="mt-1 text-base font-black text-purple-800 leading-tight">{s.title}</p>
-                <p className="text-[11px] font-semibold text-slate-500">{s.subtitle}</p>
-                <p className="mt-1 text-xs font-bold text-fuchsia-600">{s.melody.length} nốt</p>
-              </button>
-            ))}
-          </div>
+          <p className="text-right text-sm font-black text-amber-200">⭐ {totalStars(progress)}/{SONGS.length * 3}</p>
+          {MUSIC_TIERS.map((tier) => (
+            <section key={tier.id} aria-label={`Mức ${tier.name}`} className="space-y-2">
+              <p className="text-sm font-black text-white">
+                {tier.emoji} Mức {tier.name}
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                {SONGS.map((s, i) => {
+                  if (s.tier !== tier.id) return null;
+                  const open = isUnlocked(SONGS, progress, i);
+                  const next = open && !progress[s.id] && SONGS.findIndex((x, j) => isUnlocked(SONGS, progress, j) && !progress[x.id]) === i;
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => open && choose(s)}
+                      disabled={!open}
+                      aria-label={open ? s.title : `${s.title} (chưa mở)`}
+                      className={`pop-in relative p-3 rounded-3xl shadow-lg text-left transition-transform ${open ? 'bg-white/95 active:scale-95' : 'bg-white/40'} ${next ? 'ring-4 ring-amber-300' : ''}`}
+                      style={{ animationDelay: `${i * 60}ms` }}
+                    >
+                      <span className={`text-4xl ${open ? '' : 'grayscale opacity-60'}`}>{SONG_ICONS[s.id]}</span>
+                      {!open && <Lock className="absolute top-3 right-3 w-5 h-5 text-slate-600" />}
+                      <p className="mt-1 text-base font-black text-purple-800 leading-tight">{s.title}</p>
+                      <p className="text-[11px] font-semibold text-slate-500">{s.subtitle}</p>
+                      <div className="mt-1 flex items-center justify-between">
+                        <span className="text-xs font-bold text-fuchsia-600">{s.melody.length} nốt</span>
+                        <StarRow stars={progress[s.id] || 0} size="w-3.5 h-3.5" />
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
           <button onClick={() => setMode('free')} className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 text-white text-lg font-black shadow-lg flex items-center justify-center gap-2 active:scale-95">
             <Music className="w-5 h-5" /> Chơi tự do
           </button>
@@ -179,11 +213,22 @@ export function MusicGame({ player, onClose, onGold }) {
             title="Hay quá! 👏"
             stars={stars}
             maxStars={3}
-            gold={goldForStars(stars)}
+            gold={reward?.gold || 0}
             detail={`Bé đã chơi xong bài "${play.song.title}"${play.mistakes ? ` (${play.mistakes} lần gõ nhầm)` : ' không nhầm nốt nào!'}`}
             onReplay={() => setMode('pick')}
             onClose={onClose}
           />
+          {(() => {
+            const i = SONGS.indexOf(play.song);
+            const next = SONGS[i + 1];
+            return next && isUnlocked(SONGS, progress, i + 1) ? (
+              <div className="px-6 pb-6 -mt-3 flex justify-center">
+                <button onClick={() => choose(next)} className="pop-in px-6 py-3 rounded-2xl bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white text-lg font-black shadow-lg active:scale-95">
+                  Bài tiếp theo: {next.title} ➜
+                </button>
+              </div>
+            ) : null;
+          })()}
         </div>
       )}
 

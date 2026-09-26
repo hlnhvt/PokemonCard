@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Camera, BookOpen, Gamepad2, Volume2, VolumeX, Moon, Sun, Waves } from 'lucide-react';
+import { Camera, BookOpen, Gamepad2, Volume2, VolumeX, Moon, Sun, Waves, Settings } from 'lucide-react';
 import { THEMES } from '../utils/theme';
 import { PokeballIcon } from './PokeballIcon';
 
@@ -18,7 +18,7 @@ const TABS = [
   { id: 'games', label: 'Trò Chơi', Icon: Gamepad2, active: 'bg-gradient-to-r from-emerald-600 to-teal-600 shadow-emerald-600/30 border-emerald-400/40' },
 ];
 
-export function Header({ currentTab, setCurrentTab, collectionCount, isMuted, onToggleMute, theme = 'dark', onSelectTheme, gold, onOpenShop }) {
+export function Header({ currentTab, setCurrentTab, collectionCount, isMuted, onToggleMute, theme = 'dark', onSelectTheme, gold, onOpenShop, onOpenSettings }) {
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const currentTheme = THEMES.find((t) => t.id === theme) || THEMES[0];
   const ThemeIcon = THEME_ICONS[currentTheme.id] || Moon;
@@ -143,6 +143,12 @@ export function Header({ currentTab, setCurrentTab, collectionCount, isMuted, on
           >
             {isMuted ? <VolumeX className="w-4 h-4 text-slate-500" /> : <Volume2 className="w-4 h-4 text-amber-400 animate-pulse" />}
           </button>
+
+          {onOpenSettings && (
+            <button onClick={onOpenSettings} aria-label="Cài đặt" className="p-2 rounded-xl text-slate-400 hover:text-cyan-300 hover:bg-slate-900 border border-slate-800 transition-colors">
+              <Settings className="w-4 h-4" />
+            </button>
+          )}
         </nav>
 
       </div>

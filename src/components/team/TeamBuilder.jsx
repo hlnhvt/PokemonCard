@@ -92,7 +92,11 @@ function ScanSuccess({ member, onDone }) {
  * Building the 5 vs 5 team: scan cards (or pick Pokemon already scanned); empty places can
  * be filled with Pokemon lent at random, shown with a slot-machine spin.
  */
-export function TeamBuilder({ collection = [], team, setTeam, onScanned, onNext, random = Math.random }) {
+/**
+ * allowScanned (a parent setting): Pokemon scanned before may be picked. When off, every
+ * Pokemon must be scanned with the camera now (the scanner's shortcuts to saved cards are refused).
+ */
+export function TeamBuilder({ collection = [], allowScanned = false, team, setTeam, onScanned, onNext, random = Math.random }) {
   const [scanning, setScanning] = useState(false);
   const [success, setSuccess] = useState(null);
   const [rolling, setRolling] = useState([]); // lent Pokemon still spinning
@@ -163,13 +167,16 @@ export function TeamBuilder({ collection = [], team, setTeam, onScanned, onNext,
     setTeam((list) => list.filter((_, j) => j !== i));
   };
 
-  const choices = collection.map((c) => memberFromCard(c, 'owned'));
+  const choices = allowScanned ? collection.map((c) => memberFromCard(c, 'owned')) : [];
 
   return (
     <div className="px-4 pt-3 pb-5 space-y-4" data-testid="team-builder">
       <div className="text-center">
         <p className="text-2xl font-black text-white drop-shadow">Lập đội hình 5 Pokémon</p>
         <p className="text-sm font-bold text-white/80">Quét thẻ để chọn Pokémon bé muốn. Thiếu thẻ thì hệ thống cho mượn!</p>
+        {!allowScanned && collection.length > 0 && (
+          <p className="mt-1 text-xs font-bold text-amber-200" data-testid="scan-required">📷 Mỗi Pokémon cần được quét thẻ lại (phụ huynh có thể đổi trong ⚙️ Cài đặt)</p>
+        )}
       </div>
 
       {/* The five places */}
@@ -263,7 +270,15 @@ export function TeamBuilder({ collection = [], team, setTeam, onScanned, onNext,
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <ScannerModal onCardDetected={scanned} recentCards={collection} onOpenCard={(card) => { setScanning(false); add(memberFromCard(card, 'owned')); }} />
+            <ScannerModal onCardDetected={scanned} recentCards={collection} onOpenCard={(card) => {
+                if (!allowScanned) {
+                  setScanning(false);
+                  say(`Hãy chụp thẻ ${card.name} bằng camera để thêm vào đội nhé! 📷`);
+                  return;
+                }
+                setScanning(false);
+                add(memberFromCard(card, 'owned'));
+              }} />
           </div>,
           document.body
         )}

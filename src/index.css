@@ -1144,3 +1144,28 @@
 @media (prefers-reduced-motion: reduce) {
   .amb-fall, .amb-rise, .amb-twinkle, .shooting-star, .lava-glow { animation: none; }
 }
+
+/* Swipe hints (penalty, racing) */
+@keyframes swipeUpHint {
+  0% { transform: translate(-50%, 0); opacity: 0; }
+  15% { opacity: 1; }
+  70% { transform: translate(calc(-50% + var(--sx, 18px)), -120px); opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--sx, 18px)), -140px); opacity: 0; }
+}
+.swipe-up-hint { animation: swipeUpHint 1.6s ease-in-out infinite; }
+@keyframes swipeSideHint {
+  0%, 100% { transform: translate(calc(-50% - 60px), 0); opacity: 0; }
+  20% { opacity: 1; }
+  50% { transform: translate(calc(-50% + 60px), 0); opacity: 1; }
+  80% { opacity: 0; }
+}
+.swipe-side-hint { animation: swipeSideHint 1.8s ease-in-out infinite; }
+@keyframes arrowNudgeL { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-8px); } }
+@keyframes arrowNudgeR { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(8px); } }
+@keyframes arrowNudgeU { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+.nudge-l { animation: arrowNudgeL 0.9s ease-in-out infinite; }
+.nudge-r { animation: arrowNudgeR 0.9s ease-in-out infinite; }
+.nudge-u { animation: arrowNudgeU 0.9s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .swipe-up-hint, .swipe-side-hint, .nudge-l, .nudge-r, .nudge-u { animation: none; }
+}

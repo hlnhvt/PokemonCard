@@ -585,3 +585,55 @@ Lỗi phát hiện qua ảnh chụp Chrome và đã sửa:
 - Nền sàn đấu không hiện ở màn đối đầu, trận đấu và lễ trao cúp. Nguyên nhân 1: class `relative` thắng `absolute` theo thứ tự CSS của Tailwind. Nguyên nhân 2: lệnh sửa đầu tiên vô tình ghi ký tự backspace vào regex. Đã sửa cả hai.
 - Nút Tuyệt Kỹ Liên Hoàn trông như bấm được trong lúc chọn Pokémon tiếp theo: giờ mờ đi.
 - Bot trong test chọn chiêu thứ 4 cho Pokémon hệ Thường chỉ có 3 chiêu dự phòng. Giao diện không bị lỗi này vì chỉ hiện đúng số chiêu có.
+
+---
+
+## 21. Cài đặt, thao tác vuốt, thêm màn chơi (2026-09-26)
+
+**Cài đặt ⚙️** (nút mới trên thanh đầu trang)
+- Công tắc **"Cho phép chọn Pokémon đã quét"** cho Đấu đội 5 vs 5. **Mặc định tắt.**
+  - **Tắt:** trong màn lập đội không có danh sách Pokémon đã quét, và có dòng nhắc "Mỗi Pokémon cần được quét thẻ lại". Trong màn quét, chạm vào Pokémon gần đây / nổi tiếng sẽ bị từ chối kèm lời nhắc "Hãy chụp thẻ X bằng camera". Chỉ ảnh chụp thẻ mới thêm được Pokémon vào đội (thiếu thì vẫn được mượn).
+  - **Bật:** cho chọn Pokémon trong bộ sưu tập như trước.
+- Cài đặt được lưu trên máy (`pokescan_settings_v1`).
+
+**Sút penalty: điều khiển bằng vuốt (không còn chạm hoặc nút bấm)**
+- Sút: vuốt lên về phía khung thành. Độ nghiêng quyết định góc (vuốt 45° tới góc khung thành), độ dài quyết định độ cao.
+  - Trong lúc vuốt có đường chấm từ bóng tới khung thành và vòng ngắm vàng tại điểm bóng sẽ tới.
+  - Chạm nhẹ hoặc vuốt xuống không sút, có lời nhắc "Vuốt lên thật mạnh nhé!".
+- Bắt bóng: vuốt trái hoặc phải để bay sang bên, vuốt lên để bắt giữa.
+- Có bàn tay động và mũi tên nhún chỉ cách vuốt.
+
+**Đua xe: điều khiển bằng vuốt (bỏ nút Trái / Phải)**
+- Vuốt sang trái / phải để đổi làn. Một cú vuốt dài không nhấc tay có thể đổi 2 làn.
+- Chạm hoặc vuốt dọc không làm gì. Bàn phím ← → vẫn dùng được.
+- Trong lúc đếm ngược có bàn tay động hướng dẫn.
+
+**Thêm màn chơi**
+- **Mê cung:** 9 màn trong 3 thế giới. Mỗi thế giới có nền và màu tường riêng.
+  - Vườn hoa: 5×5 → 6×7.
+  - Rừng rậm: 6×8 → 7×9.
+  - Lâu đài băng: 7×9 → 9×11. Quả Pokéball bị khóa 🔒; chìa khóa 🔑 nằm ở ngõ cụt xa nhất, phải nhặt trước. Nút Gợi ý chỉ đường tới chìa khóa trước.
+- **Chơi nhạc:** 10 bài trong 3 mức.
+  - Dễ: Hot Cross Buns, Au Clair de la Lune, Twinkle.
+  - Vừa: Old MacDonald, Mary Had a Little Lamb, London Bridge.
+  - Khó: Row Your Boat, Jingle Bells, Ode to Joy, Twinkle cả bài.
+- Cả hai có **bản đồ màn chơi**:
+  - Mỗi màn hiện số sao cao nhất, tổng sao, và viền vàng ở màn nên chơi tiếp.
+  - Màn sau mở khóa khi màn trước có ít nhất 1 sao.
+  - Kết thúc màn có nút "Màn tiếp theo" / "Bài tiếp theo".
+- **Vàng:** lần đầu hoặc khi phá kỷ lục sao được 5 vàng mỗi sao; chơi lại không phá kỷ lục được 2 vàng. Tiến độ lưu trên máy (`pokescan_progress_v1`).
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| TT-08 | P1 | AUTO | Cài đặt tắt: không có danh sách Pokémon đã quét, có lời nhắc; lối tắt tới thẻ đã lưu trong màn quét bị từ chối; quét thật thì thêm được | Đúng |
+| AP-17 | P1 | AUTO | Nút ⚙️ mở Cài đặt; mặc định tắt; bật lên thì lưu và màn lập đội hiện Pokémon đã quét | Đúng |
+| PK-05, PK-06 | P1 | AUTO | Vuốt lên: nghiêng quyết định góc, dài quyết định độ cao; vuốt ngắn, vuốt xuống, vuốt ngang không sút; vuốt bay người trái / phải / giữa | Đúng |
+| SPT-03, SPT-04 | P1 | AUTO | Penalty: chạm và vuốt xuống không sút, vuốt lên thì sút; không còn nút bay người; vuốt ngang để bắt; cả trận 10 lượt bằng vuốt | Đúng |
+| SPT-07 | P1 | AUTO | Đua xe: không có nút; vuốt trái đổi làn; chạm và vuốt dọc không đổi; vuốt dài đổi 2 làn; phím vẫn dùng được | Đúng |
+| MZ-03, MZ-05, MZ-06 | P1 | AUTO | 9 màn, 3 thế giới, lớn dần; bot giải cả 9 màn với 3 sao (lấy chìa khóa trước ở lâu đài); tới Pokéball khi chưa có chìa thì vẫn khóa | Đúng |
+| MU-01 | P1 | AUTO | 10 bài, mỗi mức ít nhất 3 bài, bài khó dài hơn bài dễ, chỉ dùng 8 phím | Đúng |
+| LG-05, LG-05b | P1 | AUTO | Bài 2 bị khóa tới khi xong bài 1; xong bài lưu sao, trả 15 vàng, nút "Bài tiếp theo"; chơi lại không phá kỷ lục trả 2 vàng | Đúng |
+| LG-07, LG-07b, LG-08 | P1 | AUTO | Bản đồ mê cung; thắng liên tiếp 3 màn đầu (mỗi màn 15 vàng), màn 4 mở còn màn 5 khóa; lâu đài: nhặt chìa rồi mới thoát | Đúng |
+| UI-12 | P1 | MANUAL (Chrome) | Nút và bảng Cài đặt; penalty vuốt có đường ngắm; bắt bóng có mũi tên hướng dẫn; đua xe vuốt đổi làn; bản đồ mê cung, lâu đài có chìa khóa và gợi ý; bản đồ bài nhạc có khóa và sao | Không lỗi JS |
+
+Thay đổi kỹ thuật: `useCanvas` giờ đặt kích thước canvas khi vẽ (trước đây chỉ đặt một lần khi mở game). Nhờ vậy canvas mê cung xuất hiện sau bản đồ màn vẫn sắc nét.

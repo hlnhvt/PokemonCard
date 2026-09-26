@@ -7,8 +7,11 @@ const mocks = vi.hoisted(() => ({ fetchBattlePokemon: vi.fn(), strong: new Set()
 vi.mock('../../services/battleData', () => ({ fetchBattlePokemon: mocks.fetchBattlePokemon }));
 // The real scanner needs a camera; this stand-in "scans" a Mew card when tapped
 vi.mock('../ScannerModal', () => ({
-  ScannerModal: ({ onCardDetected }) => (
-    <button onClick={() => onCardDetected({ id: 'mew', name: 'Mew', speciesName: 'mew', pokedexNumber: '151', types: ['Psychic'], fallbackImage: 'mew.png' })}>fake-scan</button>
+  ScannerModal: ({ onCardDetected, onOpenCard, recentCards }) => (
+    <>
+      <button onClick={() => onCardDetected({ id: 'mew', name: 'Mew', speciesName: 'mew', pokedexNumber: '151', types: ['Psychic'], fallbackImage: 'mew.png' })}>fake-scan</button>
+      {recentCards?.[0] && <button onClick={() => onOpenCard(recentCards[0])}>fake-open-saved</button>}
+    </>
   ),
 }));
 
@@ -76,7 +79,7 @@ async function fight(maxMs = 400000) {
 
 describe('TeamBattle', () => {
   it('TT-01 team building: scanned Pokemon join; free places are lent with a slot-machine spin', async () => {
-    render(<TeamBattle collection={COLLECTION.slice(0, 2)} onClose={vi.fn()} random={seeded(1)} />);
+    render(<TeamBattle allowScanned collection={COLLECTION.slice(0, 2)} onClose={vi.fn()} random={seeded(1)} />);
     fireEvent.click(screen.getByLabelText('Thêm Pikachu vào đội'));
     fireEvent.click(screen.getByLabelText('Thêm Pikachu vào đội'));
     expect(within(screen.getByTestId('team-slots')).getAllByRole('img')).toHaveLength(1);
@@ -109,7 +112,7 @@ describe('TeamBattle', () => {
   });
 
   it('TT-03 six battle grounds; choosing one shows which Pokemon it suits', async () => {
-    render(<TeamBattle collection={COLLECTION} onClose={vi.fn()} random={seeded(3)} />);
+    render(<TeamBattle allowScanned collection={COLLECTION} onClose={vi.fn()} random={seeded(3)} />);
     await buildFullTeam();
     const grounds = screen.getByRole('radiogroup', { name: 'Sàn đấu' });
     expect(within(grounds).getAllByRole('radio')).toHaveLength(6);
@@ -121,7 +124,7 @@ describe('TeamBattle', () => {
   it('TT-04 a whole battle won: intro, Pokeball send-outs, switches of opponents, trophy ceremony and gold once', async () => {
     for (const c of COLLECTION) mocks.strong.add(c.id);
     const onGold = vi.fn();
-    render(<TeamBattle collection={COLLECTION} onGold={onGold} onClose={vi.fn()} random={seeded(4)} />);
+    render(<TeamBattle allowScanned collection={COLLECTION} onGold={onGold} onClose={vi.fn()} random={seeded(4)} />);
     await buildFullTeam();
     fireEvent.click(screen.getByRole('radio', { name: 'Bãi biển nắng' }));
     fireEvent.click(screen.getByText('Bắt đầu trận đấu!'));
@@ -148,7 +151,7 @@ describe('TeamBattle', () => {
 
   it('TT-05 a lost battle: the child picks who goes next; the end still pays consolation gold', async () => {
     const onGold = vi.fn();
-    render(<TeamBattle collection={COLLECTION} onGold={onGold} onClose={vi.fn()} random={seeded(5)} />);
+    render(<TeamBattle allowScanned collection={COLLECTION} onGold={onGold} onClose={vi.fn()} random={seeded(5)} />);
     await buildFullTeam();
     mocks.fetchBattlePokemon.mockImplementation((q) => {
       const name = String(q).toLowerCase();
@@ -175,7 +178,7 @@ describe('TeamBattle', () => {
 
   it('TT-06 a download error can be retried', async () => {
     mocks.fetchBattlePokemon.mockRejectedValue(new Error('Không tải được dữ liệu trận đấu.'));
-    render(<TeamBattle collection={COLLECTION} onClose={vi.fn()} random={seeded(6)} />);
+    render(<TeamBattle allowScanned collection={COLLECTION} onClose={vi.fn()} random={seeded(6)} />);
     await buildFullTeam();
     fireEvent.click(screen.getByText('Bắt đầu trận đấu!'));
     await advance(400);
@@ -184,6 +187,24 @@ describe('TeamBattle', () => {
     fireEvent.click(screen.getByText('Thử lại'));
     await advance(400);
     expect(dialog().dataset.phase).toBe('intro');
+  });
+
+  it('TT-08 setting off (default): saved Pokemon cannot be picked, scanning is required', async () => {
+    const onScanned = vi.fn((p) => p);
+    render(<TeamBattle collection={COLLECTION} onScanned={onScanned} onClose={vi.fn()} random={seeded(8)} />);
+    expect(screen.queryByText('⭐ Pokémon bé đã quét')).toBeNull();
+    expect(screen.queryByLabelText('Thêm Pikachu vào đội')).toBeNull();
+    expect(screen.getByTestId('scan-required')).toHaveTextContent('Cài đặt');
+    // The scanner's shortcut to a saved card is refused
+    fireEvent.click(screen.getByText('Quét thẻ thêm Pokémon'));
+    fireEvent.click(screen.getByText('fake-open-saved'));
+    expect(screen.getByRole('alert')).toHaveTextContent('Hãy chụp thẻ Pikachu bằng camera');
+    expect(within(screen.getByTestId('team-slots')).queryAllByRole('img')).toHaveLength(0);
+    // A real scan works
+    fireEvent.click(screen.getByText('Quét thẻ thêm Pokémon'));
+    fireEvent.click(screen.getByText('fake-scan'));
+    await advance(2000);
+    expect(within(screen.getByTestId('team-slots')).getByText('📷 Vừa quét')).toBeInTheDocument();
   });
 
   it('TT-07 the Games tab offers the team battle even before the first scan', () => {

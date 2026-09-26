@@ -25,23 +25,73 @@ export function parseMelody(text) {
     });
 }
 
+// Levels from easy to hard. Every melody stays inside the 8 bars (C4..C5).
+export const MUSIC_TIERS = [
+  { id: 'easy', name: 'Dễ', emoji: '🌱' },
+  { id: 'medium', name: 'Vừa', emoji: '⭐' },
+  { id: 'hard', name: 'Khó', emoji: '🔥' },
+];
+
 export const SONGS = [
   {
+    id: 'hotcross',
+    tier: 'easy',
+    title: 'Bánh nóng giòn',
+    subtitle: 'Hot Cross Buns',
+    tempo: 100,
+    melody: parseMelody('E4 D4 C4:2 E4 D4 C4:2 C4 C4 C4 C4 D4 D4 D4 D4 E4 D4 C4:2'),
+  },
+  {
+    id: 'clair',
+    tier: 'easy',
+    title: 'Dưới ánh trăng',
+    subtitle: 'Au Clair de la Lune',
+    tempo: 100,
+    melody: parseMelody('C4 C4 C4 D4 E4:2 D4:2 C4 E4 D4 D4 C4:4'),
+  },
+  {
     id: 'twinkle',
+    tier: 'easy',
     title: 'Ngôi sao lấp lánh',
     subtitle: 'Twinkle Twinkle Little Star',
     tempo: 100,
     melody: parseMelody('C4 C4 G4 G4 A4 A4 G4:2 F4 F4 E4 E4 D4 D4 C4:2'),
   },
   {
+    id: 'oldmac',
+    tier: 'medium',
+    title: 'Nông trại vui vẻ',
+    subtitle: 'Old MacDonald Had a Farm',
+    tempo: 110,
+    melody: parseMelody('F4 F4 F4 C4 D4 D4 C4:2 A4 A4 G4 G4 F4:2'),
+  },
+  {
     id: 'mary',
+    tier: 'medium',
     title: 'Chú cừu nhỏ',
     subtitle: 'Mary Had a Little Lamb',
     tempo: 110,
     melody: parseMelody('E4 D4 C4 D4 E4 E4 E4:2 D4 D4 D4:2 E4 G4 G4:2 E4 D4 C4 D4 E4 E4 E4 E4 D4 D4 E4 D4 C4:4'),
   },
   {
+    id: 'london',
+    tier: 'medium',
+    title: 'Cầu London',
+    subtitle: 'London Bridge Is Falling Down',
+    tempo: 110,
+    melody: parseMelody('G4 A4 G4 F4 E4 F4 G4:2 D4 E4 F4:2 E4 F4 G4:2 G4 A4 G4 F4 E4 F4 G4:2 D4:2 G4:2 E4 C4:2'),
+  },
+  {
+    id: 'row',
+    tier: 'hard',
+    title: 'Chèo thuyền',
+    subtitle: 'Row, Row, Row Your Boat',
+    tempo: 110,
+    melody: parseMelody('C4 C4 C4 D4 E4:2 E4 D4 E4 F4 G4:2 C5 C5 C5 G4 G4 G4 E4 E4 E4 C4 C4 C4 G4 F4 E4 D4 C4:2'),
+  },
+  {
     id: 'jingle',
+    tier: 'hard',
     title: 'Chuông ngân vang',
     subtitle: 'Jingle Bells',
     tempo: 120,
@@ -49,10 +99,19 @@ export const SONGS = [
   },
   {
     id: 'joy',
+    tier: 'hard',
     title: 'Khúc hoan ca',
     subtitle: 'Ode to Joy',
     tempo: 110,
     melody: parseMelody('E4 E4 F4 G4 G4 F4 E4 D4 C4 C4 D4 E4 E4 D4 D4:2 E4 E4 F4 G4 G4 F4 E4 D4 C4 C4 D4 E4 D4 C4 C4:2'),
+  },
+  {
+    id: 'twinklefull',
+    tier: 'hard',
+    title: 'Ngôi sao lấp lánh (cả bài)',
+    subtitle: 'Twinkle Twinkle Little Star',
+    tempo: 110,
+    melody: parseMelody('C4 C4 G4 G4 A4 A4 G4:2 F4 F4 E4 E4 D4 D4 C4:2 G4 G4 F4 F4 E4 E4 D4:2 G4 G4 F4 F4 E4 E4 D4:2 C4 C4 G4 G4 A4 A4 G4:2 F4 F4 E4 E4 D4 D4 C4:2'),
   },
 ];
 

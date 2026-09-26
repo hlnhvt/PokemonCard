@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { childKick, planAiKick, childSave, columnOf, onTarget, ROUNDS } from './penalty';
+import { childKick, planAiKick, childSave, columnOf, onTarget, ROUNDS, shotFromSwipe, diveFromSwipe } from './penalty';
 import { perfectLaunch, simulateShot, aiLaunch, launchFromDrag, guidePoints, START } from './basketball';
 import { createRace, stepRace, steer, placeOf, player, TRACK, LANES } from './racing';
 import { seeded } from '../../test/seeded';
@@ -49,6 +49,27 @@ describe('penalty', () => {
     });
     console.info(`[penalty] guessing child wins ${Math.round(wins * 100)}%`);
     expect(wins).toBeGreaterThan(0.3);
+  });
+});
+
+describe('penalty swipes', () => {
+  it('PK-05 swipe up to shoot: slant picks the side, length the height; other swipes do nothing', () => {
+    expect(shotFromSwipe(0, -150).x).toBe(0);
+    expect(shotFromSwipe(120, -120).x).toBeCloseTo(0.94, 5);
+    expect(shotFromSwipe(-120, -120).x).toBeCloseTo(-0.94, 5);
+    expect(shotFromSwipe(0, -300).y).toBeGreaterThan(shotFromSwipe(0, -120).y);
+    expect(shotFromSwipe(0, -1000).y).toBe(0.94);
+    expect(shotFromSwipe(3, -10)).toBeNull();
+    expect(shotFromSwipe(0, 150)).toBeNull();
+    expect(shotFromSwipe(200, -10)).toBeNull();
+  });
+
+  it('PK-06 swipe to dive: left, right, up = middle', () => {
+    expect(diveFromSwipe(-100, 10)).toBe('left');
+    expect(diveFromSwipe(100, -20)).toBe('right');
+    expect(diveFromSwipe(10, -100)).toBe('center');
+    expect(diveFromSwipe(5, 100)).toBeNull();
+    expect(diveFromSwipe(5, 5)).toBeNull();
   });
 });
 

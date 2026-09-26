@@ -47,15 +47,21 @@ export function useLater() {
 
 /** Sharp canvas of a fixed logical size (W x H), scaled for the screen's pixel ratio. */
 export function useCanvas(ref, width, height) {
-  useEffect(() => {
+  // Sized when the context is asked for, so a canvas that appears later (after a menu) is sharp too
+  return () => {
     const canvas = ref.current;
-    if (!canvas) return;
+    const ctx = canvas?.getContext?.('2d') || null;
+    if (!ctx) return null;
     const dpr = Math.min(2.5, window.devicePixelRatio || 1);
-    canvas.width = Math.round(width * dpr);
-    canvas.height = Math.round(height * dpr);
-    canvas.getContext?.('2d')?.setTransform(dpr, 0, 0, dpr, 0, 0);
-  }, [ref, width, height]);
-  return () => ref.current?.getContext?.('2d') || null;
+    const w = Math.round(width * dpr);
+    const h = Math.round(height * dpr);
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return ctx;
+  };
 }
 
 /** Pointer position in the canvas' logical coordinates. */

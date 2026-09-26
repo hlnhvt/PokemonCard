@@ -11,6 +11,8 @@ import { getBerries, addBerries } from './utils/berries';
 import { getGold, addGold, GOLD_REWARDS, goldForMatch } from './utils/gold';
 import { getBag, buyItem, giveItem } from './utils/inventory';
 import { GiftShop } from './components/GiftShop';
+import { SettingsDialog } from './components/SettingsDialog';
+import { getSettings, saveSetting } from './utils/settings';
 import { fetchPokemonOnline } from './services/pokemonOnlineService';
 import { sounds } from './utils/soundEffects';
 import { rollShiny } from './utils/shiny';
@@ -38,6 +40,8 @@ export function App() {
   const [bag, setBag] = useState(getBag);
   const [showShop, setShowShop] = useState(false);
   const [goldToast, setGoldToast] = useState(null);
+  const [settings, setSettings] = useState(getSettings);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     applyTheme(theme);
@@ -233,6 +237,7 @@ export function App() {
         onSelectTheme={setTheme}
         gold={gold}
         onOpenShop={() => setShowShop(true)}
+        onOpenSettings={() => setShowSettings(true)}
       />
 
       {goldToast && (
@@ -308,6 +313,7 @@ export function App() {
             onOpenShop={() => setShowShop(true)}
             onScan={() => setCurrentTab('scan')}
             onTeamScan={handleTeamScan}
+            teamUseScanned={!!settings.teamUseScanned}
           />
         )}
       </main>
@@ -321,6 +327,7 @@ export function App() {
         />
       )}
 
+      {showSettings && <SettingsDialog settings={settings} onChange={(key, value) => setSettings(saveSetting(key, value))} onClose={() => setShowSettings(false)} />}
       {showShop && <GiftShop gold={gold} bag={bag} onBuy={handleBuy} onClose={() => setShowShop(false)} />}
 
       {evolution && (

@@ -8,8 +8,9 @@ import { MusicGame } from './MusicGame';
 import { MazeGame } from './MazeGame';
 import { makeMathLesson } from '../../utils/logic/math';
 import { makeEnglishLesson } from '../../utils/logic/english';
-import { SONGS, NOTES } from '../../utils/logic/music';
+import { SONGS, NOTES, songById } from '../../utils/logic/music';
 import { createMazeLevel, slide, shortestPath, DIRS, MAZE_LEVELS } from '../../utils/logic/maze';
+import { getProgress } from '../../utils/progress';
 import { sounds } from '../../utils/soundEffects';
 import { seeded } from '../../test/seeded';
 
@@ -133,12 +134,13 @@ describe('MemoryGame', () => {
 });
 
 describe('MusicGame', () => {
-  it('LG-05 pick a song, follow the lit bars, hear it back, get stars and gold', async () => {
+  it('LG-05 songs open one after another; follow the lit bars, hear it back, stars and gold', async () => {
     const onGold = vi.fn();
     render(<MusicGame player={PLAYER} onClose={vi.fn()} onGold={onGold} />);
-    fireEvent.click(screen.getByText('Ngôi sao lấp lánh'));
+    expect(screen.getByLabelText('Dưới ánh trăng (chưa mở)')).toBeDisabled();
+    fireEvent.click(screen.getByLabelText('Bánh nóng giòn'));
     expect(dialog().dataset.mode).toBe('play');
-    const song = SONGS[0];
+    const song = songById('hotcross');
     // A wrong bar sounds but does not advance
     fireEvent.pointerDown(screen.getByLabelText('Phím Si'));
     expect(dialog().dataset.mistakes).toBe('1');
@@ -151,6 +153,23 @@ describe('MusicGame', () => {
     expect(dialog().dataset.mode).toBe('done');
     expect(onGold).toHaveBeenCalledTimes(1);
     expect(onGold).toHaveBeenCalledWith(15);
+    expect(getProgress('music').hotcross).toBe(3);
+    // The next song is open now
+    fireEvent.click(screen.getByText(/Bài tiếp theo: Dưới ánh trăng/));
+    expect(dialog().dataset.mode).toBe('play');
+  });
+
+  it('LG-05b ten songs in three levels; a replay without more stars pays a little', async () => {
+    localStorage.setItem('pokescan_progress_v1', JSON.stringify({ music: { hotcross: 3 } }));
+    const onGold = vi.fn();
+    render(<MusicGame player={PLAYER} onClose={vi.fn()} onGold={onGold} />);
+    for (const t of ['Mức Dễ', 'Mức Vừa', 'Mức Khó']) expect(screen.getByRole('region', { name: t })).toBeInTheDocument();
+    expect(SONGS).toHaveLength(10);
+    expect(screen.getByLabelText('Dưới ánh trăng')).toBeEnabled();
+    fireEvent.click(screen.getByLabelText('Bánh nóng giòn'));
+    for (const n of songById('hotcross').melody) fireEvent.pointerDown(screen.getByLabelText(`Phím ${NOTES[n.note].label}`));
+    await advance(16000, 250);
+    expect(onGold).toHaveBeenCalledWith(2);
   });
 
   it('LG-06 free play has no guide and no reward', () => {
@@ -165,32 +184,58 @@ describe('MusicGame', () => {
 });
 
 describe('MazeGame', () => {
-  it('LG-07 arrow keys walk the Pokemon through 3 mazes; gold at the end', async () => {
+  /** Walk a level with the keyboard, mirroring the engine (key first when there is one). */
+  async function solve(st) {
+    for (let guard = 0; !st.done && guard < 300; guard++) {
+      const next = shortestPath(st.maze, st.pos, st.hasKey ? st.maze.goal : st.key)[1];
+      const dir = Object.keys(DIRS).find((d) => st.pos.x + DIRS[d].dx === next.x && st.pos.y + DIRS[d].dy === next.y);
+      const out = slide(st, dir);
+      st = out.state;
+      fireEvent.keyDown(window, { key: { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' }[dir] });
+      await advance(Math.ceil((out.path.length / 6) * 1000) + 100);
+    }
+    await advance(1400);
+    return st;
+  }
+
+  it('LG-07 the map opens maze 1; each maze won gives stars and gold and opens the next', async () => {
     const onGold = vi.fn();
     const mirror = seeded(5);
     render(<MazeGame player={PLAYER} onClose={vi.fn()} onGold={onGold} random={seeded(5)} />);
-    for (let level = 0; level < MAZE_LEVELS.length; level++) {
-      let st = createMazeLevel(level, mirror);
+    expect(screen.getByTestId('maze-map')).toBeInTheDocument();
+    expect(screen.getByLabelText('Mê cung 2 (chưa mở)')).toBeDisabled();
+    fireEvent.click(screen.getByLabelText('Mê cung 1'));
+    for (let level = 0; level < 3; level++) {
       expect(dialog().dataset.level).toBe(String(level));
-      for (let guard = 0; !st.done && guard < 200; guard++) {
-        const next = shortestPath(st.maze, st.pos, st.maze.goal)[1];
-        const dir = Object.keys(DIRS).find((d) => st.pos.x + DIRS[d].dx === next.x && st.pos.y + DIRS[d].dy === next.y);
-        const out = slide(st, dir);
-        st = out.state;
-        fireEvent.keyDown(window, { key: { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' }[dir] });
-        await advance(Math.ceil((out.path.length / 6) * 1000) + 100);
-      }
-      expect(dialog().dataset.won).toBe('true');
-      await advance(2100);
+      await solve({ ...createMazeLevel(level, mirror) });
+      expect(screen.getByTestId('maze-result')).toBeInTheDocument();
+      expect(onGold).toHaveBeenCalledTimes(level + 1);
+      expect(onGold).toHaveBeenLastCalledWith(15);
+      fireEvent.click(screen.getByText('Màn tiếp theo ➜'));
     }
-    expect(dialog().dataset.done).toBe('true');
+    expect(getProgress('maze')).toMatchObject({ g1: 3, g2: 3, g3: 3 });
+    fireEvent.click(screen.getByLabelText('Bản đồ mê cung'));
+    expect(screen.getByLabelText('Mê cung 4')).toBeEnabled();
+    expect(screen.getByLabelText('Mê cung 5 (chưa mở)')).toBeDisabled();
+  });
+
+  it('LG-07b ice castle: the Pokeball stays locked until the key is picked up', async () => {
+    const onGold = vi.fn();
+    localStorage.setItem('pokescan_progress_v1', JSON.stringify({ maze: Object.fromEntries(MAZE_LEVELS.slice(0, 6).map((l) => [l.id, 1])) }));
+    render(<MazeGame player={PLAYER} onClose={vi.fn()} onGold={onGold} random={seeded(9)} />);
+    fireEvent.click(screen.getByLabelText('Mê cung 7'));
+    expect(dialog().dataset.key).toBe('false');
+    const st = await solve({ ...createMazeLevel(6, seeded(9)) });
+    expect(st.done).toBe(true);
+    expect(dialog().dataset.key).toBe('true');
+    expect(screen.getByTestId('maze-result')).toBeInTheDocument();
     expect(onGold).toHaveBeenCalledTimes(1);
-    expect(screen.getByTestId('gold-reward')).toBeInTheDocument();
   });
 
   it('LG-08 walking into a hedge does nothing; the pad buttons move too', async () => {
     const level = createMazeLevel(0, seeded(6));
     render(<MazeGame player={PLAYER} onClose={vi.fn()} random={seeded(6)} />);
+    fireEvent.click(screen.getByLabelText('Mê cung 1'));
     const blocked = Object.keys(DIRS).find((d) => level.maze.cells[0][DIRS[d].wall]);
     fireEvent.keyDown(window, { key: { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' }[blocked] });
     expect(sounds.playOops).toHaveBeenCalled();

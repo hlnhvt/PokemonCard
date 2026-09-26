@@ -11,6 +11,7 @@ const ROAD = 264;
 const LANE_W = ROAD / LANES;
 const ROAD_LEFT = (W - ROAD) / 2;
 const PLAYER_Y = 430;
+const SWIPE_STEP = 36; // screen pixels of sideways swipe per lane change
 const COLORS = { player: '#3b82f6', cpu0: '#ef4444', cpu1: '#22c55e', cpu2: '#a855f7' };
 const PLACE_TEXT = ['', 'Về nhất! 🥇', 'Về nhì! 🥈', 'Về ba! 🥉', 'Về thứ 4 – lần sau cố lên nhé!'];
 const PLACE_RESULT = ['', 'win', 'draw', 'draw', 'lose'];
@@ -397,10 +398,29 @@ export function RacingGame({ player, onClose, onBerries, onGold, random = Math.r
     rerender();
   };
 
-  const onStagePointer = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const mid = rect.width ? rect.left + rect.width / 2 : 0;
-    move(e.clientX < mid ? -1 : 1);
+  // Swipe left / right to change lane. A long swipe without lifting the finger keeps
+  // changing lanes, one every SWIPE_STEP pixels.
+  const swipe = useRef(null);
+  const onSwipeStart = (e) => {
+    swipe.current = { x: e.clientX, y: e.clientY };
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  };
+  const onSwipeMove = (e) => {
+    const s = swipe.current;
+    if (!s) return;
+    const dx = e.clientX - s.x;
+    if (Math.abs(dx) >= SWIPE_STEP && Math.abs(dx) > Math.abs(e.clientY - s.y)) {
+      move(Math.sign(dx));
+      swipe.current = { x: e.clientX, y: e.clientY };
+    }
+  };
+  const onSwipeEnd = (e) => {
+    const s = swipe.current;
+    swipe.current = null;
+    // A short flick released before reaching SWIPE_STEP still counts
+    if (!s || e?.clientX == null) return;
+    const dx = e.clientX - s.x;
+    if (Math.abs(dx) >= SWIPE_STEP * 0.6 && Math.abs(dx) > Math.abs(e.clientY - s.y)) move(Math.sign(dx));
   };
 
   const { place, ranking } = st;
@@ -414,27 +434,15 @@ export function RacingGame({ player, onClose, onBerries, onGold, random = Math.r
       onClose={onClose}
       background="bg-gradient-to-b from-emerald-700 via-emerald-800 to-slate-900"
       dataAttrs={{ 'data-phase': st.phase, 'data-place': place, 'data-lane': st.lane }}
-      footer={
-        <div className="relative z-10 grid grid-cols-2 gap-3 px-3 py-2 bg-black/40">
-          {[
-            [-1, '⬅️ Trái'],
-            [1, 'Phải ➡️'],
-          ].map(([dir, text]) => (
-            <button
-              key={dir}
-              onPointerDown={(e) => {
-                e.stopPropagation();
-                move(dir);
-              }}
-              className="py-3 rounded-2xl bg-gradient-to-b from-sky-300 to-blue-600 text-white text-xl font-black shadow-lg active:scale-95 border-b-4 border-blue-800"
-            >
-              {text}
-            </button>
-          ))}
-        </div>
-      }
     >
-      <div className="relative flex-1 min-h-0 flex items-center justify-center overflow-hidden touch-none" onPointerDown={onStagePointer} data-testid="racing-stage">
+      <div
+        className="relative flex-1 min-h-0 flex items-center justify-center overflow-hidden touch-none"
+        onPointerDown={onSwipeStart}
+        onPointerMove={onSwipeMove}
+        onPointerUp={onSwipeEnd}
+        onPointerCancel={() => (swipe.current = null)}
+        data-testid="racing-stage"
+      >
         <canvas ref={canvasRef} data-testid="racing-canvas" className="max-w-full max-h-full" style={{ aspectRatio: `${W} / ${H}`, width: '100%', height: 'auto' }} />
         {st.count > 0 && st.phase === 'race' && (
           <div key={st.count} className="count-pop absolute left-1/2 top-[40%] text-8xl font-black text-white sport-banner pointer-events-none" data-testid="countdown">
@@ -442,9 +450,14 @@ export function RacingGame({ player, onClose, onBerries, onGold, random = Math.r
           </div>
         )}
         {st.count > 0 && st.phase === 'race' && (
-          <p className="absolute bottom-3 left-1/2 -translate-x-1/2 w-[90%] px-3 py-1.5 rounded-2xl bg-black/55 text-center text-white text-sm font-black pointer-events-none">
-            Chạm bên trái / phải để đổi làn. Né vũng dầu 🛢️ và cọc 🚧, đi qua mũi tên vàng để tăng tốc!
-          </p>
+          <>
+            <span className="swipe-side-hint absolute left-1/2 bottom-24 text-5xl pointer-events-none drop-shadow-lg" aria-hidden="true" data-testid="swipe-hint">
+              👆
+            </span>
+            <p className="absolute bottom-3 left-1/2 -translate-x-1/2 w-[90%] px-3 py-1.5 rounded-2xl bg-black/55 text-center text-white text-sm font-black pointer-events-none">
+              Vuốt sang trái / phải để đổi làn. Né vũng dầu 🛢️ và cọc 🚧, đi qua mũi tên vàng để tăng tốc!
+            </p>
+          </>
         )}
         <Banner banner={banner} />
         {st.phase === 'done' && (
