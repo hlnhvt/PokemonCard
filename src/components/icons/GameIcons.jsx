@@ -209,6 +209,145 @@ const GAME_PICS = {
       <circle cx="36" cy="19" r="7.5" fill="none" stroke="#f59e0b" strokeWidth="2.5" />
     </>
   ),
+  // Carnival
+  diglett: (
+    <>
+      <ellipse cx="24" cy="40" rx="20" ry="6" fill="#78350f" />
+      <path d="M12 40V24a12 12 0 0 1 24 0v16z" fill="#a16207" stroke="#451a03" strokeWidth="2" />
+      <ellipse cx="19.5" cy="23" rx="1.8" ry="3" fill={INK} />
+      <ellipse cx="28.5" cy="23" rx="1.8" ry="3" fill={INK} />
+      <ellipse cx="24" cy="30" rx="5" ry="3.4" fill="#f9a8d4" stroke="#be185d" strokeWidth="1.2" />
+      <path d="M30 4l12 8-4 5-12-8z" fill="#94a3b8" stroke={INK} strokeWidth="1.5" />
+      <path d="M36 12l-8 12" stroke="#92400e" strokeWidth="3.5" strokeLinecap="round" />
+      <path d="M8 8l3 3M6 16h4M14 4l1 4" stroke="#fde047" strokeWidth="2.2" strokeLinecap="round" />
+    </>
+  ),
+  ringtoss: (
+    <>
+      <ellipse cx="24" cy="42" rx="14" ry="3.5" fill="#15803d" opacity="0.5" />
+      <rect x="21.5" y="18" width="5" height="24" rx="2.5" fill="#f59e0b" stroke="#92400e" strokeWidth="1.2" />
+      <circle cx="24" cy="30" r="3.2" fill="#f59e0b" stroke="#fff" strokeWidth="1.2" />
+      <Ball x={24} y={12} r={7} />
+      <ellipse cx="24" cy="38" rx="12" ry="4.5" fill="none" stroke="#1e293b" strokeWidth="5" />
+      <path d="M12 38a12 4.5 0 0 1 24 0" fill="none" stroke="#ef4444" strokeWidth="3.2" />
+      <path d="M36 38a12 4.5 0 0 1-24 0" fill="none" stroke="#fff" strokeWidth="3.2" />
+    </>
+  ),
+  psyduck: (
+    <>
+      <path d="M2 38q5.5-4 11 0t11 0 11 0 11 0V46H2z" fill="#38bdf8" stroke="#0369a1" strokeWidth="1.2" />
+      <circle cx="20" cy="22" r="13" fill="#fff" stroke="#7f1d1d" strokeWidth="1.5" />
+      <circle cx="20" cy="22" r="9.5" fill="#ef4444" />
+      <circle cx="20" cy="22" r="7" fill="#facc15" stroke="#a16207" strokeWidth="1" />
+      <path d="M17 15.5l-1-3M20 15l0-3.5M23 15.5l1-3" stroke="#1e293b" strokeWidth="1.2" strokeLinecap="round" />
+      <circle cx="17.5" cy="21" r="1.3" fill="#1e293b" />
+      <circle cx="22.5" cy="21" r="1.3" fill="#1e293b" />
+      <ellipse cx="20" cy="25" rx="3.2" ry="1.8" fill="#fde68a" stroke="#a16207" strokeWidth="0.8" />
+      <circle cx="38" cy="12" r="4" fill="#7dd3fc" stroke="#0284c7" strokeWidth="1" />
+      <circle cx="33" cy="16" r="2.2" fill="#bae6fd" />
+      <Ball x={40} y={40} r={5} />
+    </>
+  ),
+  cans: (
+    <>
+      <rect x="4" y="40" width="40" height="4" rx="1.5" fill="#b45309" />
+      <rect x="7" y="27" width="10" height="13" rx="2" fill="#38bdf8" stroke="#0369a1" strokeWidth="1" />
+      <rect x="19" y="27" width="10" height="13" rx="2" fill="#facc15" stroke="#a16207" strokeWidth="1" />
+      <rect x="13" y="14" width="10" height="13" rx="2" fill="#4ade80" stroke="#15803d" strokeWidth="1" />
+      <rect x="31" y="31" width="13" height="9" rx="2" transform="rotate(-25 37 35)" fill="#fb923c" stroke="#c2410c" strokeWidth="1" />
+      <circle cx="12" cy="33.5" r="2.2" fill="#fff" />
+      <circle cx="24" cy="33.5" r="2.2" fill="#fff" />
+      <circle cx="18" cy="20.5" r="2.2" fill="#fff" />
+      <path d="M29 10l2-4M33 12l4-2M31 8l1-5" stroke="#fde047" strokeWidth="1.6" strokeLinecap="round" />
+      <Ball x={33} y={16} r={5.5} />
+    </>
+  ),
+  claw: (
+    <>
+      <rect x="7" y="3" width="34" height="42" rx="6" fill="#d946ef" stroke="#701a75" strokeWidth="2" />
+      <rect x="11" y="9" width="26" height="25" rx="2" fill="#312e81" />
+      <path d="M11 11h26" stroke="#e2e8f0" strokeWidth="2" />
+      <path d="M24 11v6" stroke="#e2e8f0" strokeWidth="1.5" />
+      <rect x="20.5" y="16.5" width="7" height="3" rx="1.5" fill="#cbd5e1" />
+      <path d="M21 19.5l-2 4 2 2M27 19.5l2 4-2 2" fill="none" stroke="#e2e8f0" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M19.5 22l1-3.5 2 2.5M28.5 22l-1-3.5-2 2.5" fill="#facc15" stroke="#a16207" strokeWidth="0.8" />
+      <circle cx="24" cy="24.5" r="3.6" fill="#facc15" stroke="#a16207" strokeWidth="0.8" />
+      <circle cx="22.7" cy="24" r="0.6" fill="#1e293b" />
+      <circle cx="25.3" cy="24" r="0.6" fill="#1e293b" />
+      <circle cx="16" cy="30.5" r="3.2" fill="#f9a8d4" />
+      <Ball x={31.5} y={30.5} r={3.2} />
+      <rect x="13" y="37" width="9" height="4.5" rx="1.2" fill="#1e1b4b" />
+      <circle cx="32" cy="39" r="2.8" fill="#ef4444" stroke="#7f1d1d" strokeWidth="1" />
+      <circle cx="10" cy="6" r="1" fill="#fef08a" />
+      <circle cx="38" cy="6" r="1" fill="#fef08a" />
+      <circle cx="24" cy="6" r="1" fill="#fef08a" />
+    </>
+  ),
+  cups: (
+    <>
+      <ellipse cx="24" cy="40" rx="21" ry="5" fill="#15803d" />
+      <path d="M6 16h10l3 22H3z" fill="#ef4444" stroke="#7f1d1d" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M4 31h16" stroke="#fde047" strokeWidth="2.5" />
+      <path d="M32 12h10l3 24H29z" fill="#3b82f6" stroke="#1e3a8a" strokeWidth="1.6" strokeLinejoin="round" transform="rotate(-14 37 30)" />
+      <path d="M30 27h16" stroke="#ffffff" strokeWidth="2.5" transform="rotate(-14 37 30)" />
+      <Ball x={24} y={34} r={5.5} />
+      <path d="M24 22v-4M18 25l-2.5-2.5M30 25l2.5-2.5" stroke="#fde047" strokeWidth="2" strokeLinecap="round" />
+    </>
+  ),
+  fishing: (
+    <>
+      <rect x="2" y="24" width="44" height="22" rx="8" fill="#0891b2" />
+      <path d="M5 30q4-2 8 0t8 0M27 40q4-2 8 0t8 0" stroke="#a5f3fc" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+      <path d="M4 4q20 2 32 20" stroke="#78350f" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+      <path d="M36 24v6" stroke="#ffffff" strokeWidth="1" />
+      <path d="M16 36c3-7 13-7 17 0-4 7-14 7-17 0z" fill="#f97316" stroke="#9a3412" strokeWidth="1.3" />
+      <path d="M16 36l-5-4v8z" fill="#fde047" stroke="#9a3412" strokeWidth="1.1" />
+      <path d="M24 30.5l2-3 2 3" fill="#fde047" stroke="#9a3412" strokeWidth="1" />
+      <circle cx="29" cy="35" r="1.6" fill="#fff" stroke="#1e293b" strokeWidth="0.8" />
+      <path d="M32 37q3 1 3 4" stroke="#fde68a" strokeWidth="1" fill="none" />
+      <Ball x={36} y={30} r={3} />
+      <ellipse cx="36" cy="33.5" rx="6" ry="1.6" fill="none" stroke="#e0f2fe" strokeWidth="1" />
+    </>
+  ),
+  ponyta: (
+    <>
+      <circle cx="24" cy="24" r="22" fill="#fde68a" />
+      <path d="M6 40h36" stroke="#b45309" strokeWidth="3" strokeLinecap="round" strokeDasharray="4 3" />
+      <path d="M14 36c0-8 4-15 10-17l4-7 3 6c4 1 7 4 7 7l-5 2-3-2-2 11z" fill="#fff7ed" stroke="#9a3412" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M22 19c-3-5-1-10 3-12-1 3 1 4 3 3-1 3 2 4 4 3-1 4-4 7-10 6z" fill="#f97316" stroke="#c2410c" strokeWidth="1.2" />
+      <path d="M11 31c-4-1-6-4-5-7 2 2 4 2 6 1-1 3 1 5 3 5z" fill="#fb923c" />
+      <circle cx="31" cy="22" r="1.6" fill="#1e293b" />
+      <Ball x={38} y={38} r={6} />
+    </>
+  ),
+  hammer: (
+    <>
+      <rect x="21" y="9" width="8" height="31" rx="4" fill="#f59e0b" stroke="#92400e" strokeWidth="2" />
+      <path d="M17 12c0-5 3-8 8-8s8 3 8 8z" fill="#fde047" stroke="#a16207" strokeWidth="2" />
+      <Ball x={25} y={24} r={4.5} />
+      <rect x="14" y="40" width="22" height="5" rx="2" fill="#e11d48" stroke="#9f1239" strokeWidth="1.5" />
+      <g transform="rotate(-35 12 36)">
+        <rect x="10" y="18" width="4" height="22" rx="2" fill="#92400e" />
+        <rect x="3" y="11" width="18" height="11" rx="3" fill="#ef4444" stroke="#7f1d1d" strokeWidth="1.5" />
+      </g>
+      <path d="M38 9l3-3M39 14h5M36 5V1" stroke="#facc15" strokeWidth="2.5" strokeLinecap="round" />
+    </>
+  ),
+  wheel: (
+    <>
+      <circle cx="24" cy="25" r="21" fill="#b45309" stroke="#78350f" strokeWidth="2" />
+      <path d="M24 25L24 8A17 17 0 0 1 36.02 12.98z" fill="#facc15" />
+      <path d="M24 25L36.02 12.98A17 17 0 0 1 41 25z" fill="#38bdf8" />
+      <path d="M24 25L41 25A17 17 0 0 1 36.02 37.02z" fill="#f97316" />
+      <path d="M24 25L36.02 37.02A17 17 0 0 1 24 42z" fill="#f43f5e" />
+      <path d="M24 25L24 42A17 17 0 0 1 11.98 37.02z" fill="#a855f7" />
+      <path d="M24 25L11.98 37.02A17 17 0 0 1 7 25z" fill="#22c55e" />
+      <path d="M24 25L7 25A17 17 0 0 1 11.98 12.98z" fill="#ec4899" />
+      <path d="M24 25L11.98 12.98A17 17 0 0 1 24 8z" fill="#3b82f6" />
+      <Ball x={24} y={25} r={5.5} />
+      <path d="M19 1h10l-5 10z" fill="#dc2626" stroke="#7f1d1d" strokeWidth="1.5" strokeLinejoin="round" />
+    </>
+  ),
   // Big banners
   team: (
     <>

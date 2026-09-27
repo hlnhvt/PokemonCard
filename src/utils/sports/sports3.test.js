@@ -214,22 +214,47 @@ describe('red light, green light', () => {
     expect([redLightResult('won'), redLightResult('finished'), redLightResult('timeout')]).toEqual(['win', 'draw', 'lose']);
   });
 
-  it('RL-02 the light cycles green -> turning -> red -> green; rivals run on green and some get caught', () => {
-    const s = createRedLight({ random: seeded(2) });
-    const seen = [];
+  it('RL-02 the doll turns often and by surprise: quick songs, fakes (then a real turn), quicker turns later; rivals get caught', () => {
+    let turns = 0;
+    let fakes = 0;
+    let quick = 0;
     let outs = 0;
-    for (let t = 0; t < 40 && s.status === 'play'; t += DT) {
-      stepRedLight(s, DT, false);
-      for (const e of s.events) {
-        if (e.type === 'light') seen.push(e.light);
-        if (e.type === 'out') outs++;
+    let fakeThenFake = 0;
+    const N = 20;
+    for (let seed = 1; seed <= N; seed++) {
+      const s = createRedLight({ random: seeded(seed) });
+      let greenStart = 0;
+      let last = 'green';
+      let firstTurn = null;
+      for (let t = 0; t < 60; t += DT) {
+        stepRedLight(s, DT, false);
+        for (const e of s.events) {
+          if (e.type === 'out') outs++;
+          if (e.type !== 'light') continue;
+          if (e.light === 'green') greenStart = s.clock;
+          if (e.light === 'turning' || e.light === 'fake') {
+            if (s.clock - greenStart < 1.05 && s.clock > 4) quick++;
+            if (e.light === 'fake' && last === 'fake') fakeThenFake++;
+            last = e.light;
+          }
+          if (e.light === 'turning') {
+            turns++;
+            firstTurn ??= s.turnMax;
+          }
+          if (e.light === 'fake') fakes++;
+        }
+        s.events.length = 0;
       }
-      s.events.length = 0;
+      expect(s.turnMax).toBeLessThan(firstTurn);
+      expect(playerOf(s).y).toBe(0);
     }
-    expect(seen.slice(0, 4)).toEqual(['turning', 'red', 'green', 'turning']);
-    expect(s.runners.slice(1).some((c) => c.y > 300)).toBe(true);
-    expect(playerOf(s).y).toBe(0); // never pressed
-    console.info(`[redlight] rivals caught in 40 s: ${outs}`);
+    console.info(`[redlight] per minute: ${(turns / N).toFixed(1)} turns, ${(fakes / N).toFixed(1)} fakes, ${(quick / N).toFixed(1)} quick surprises; rivals caught ${(outs / N).toFixed(1)} per race`);
+    expect(turns / N).toBeGreaterThanOrEqual(10);
+    expect(fakes / N).toBeGreaterThanOrEqual(1.5);
+    expect(quick / N).toBeGreaterThanOrEqual(2);
+    expect(fakeThenFake).toBe(0);
+    expect(outs).toBeGreaterThan(0);
+    expect(TRACK).toBeGreaterThanOrEqual(1800);
   });
 
   it('RL-03 a child letting go 0.15 s after the turn usually wins; one who never stops is caught', () => {

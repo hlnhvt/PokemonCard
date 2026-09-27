@@ -17,6 +17,7 @@ const laneX = (lane) => 30 + LANE_W / 2 + lane * LANE_W;
 const LIGHT_UI = {
   green: { text: 'ĐÈN XANH – CHẠY!', cls: 'from-emerald-400 to-green-600', icon: '🟢' },
   turning: { text: 'SẮP QUAY LẠI!', cls: 'from-amber-300 to-orange-500', icon: '🟡' },
+  fake: { text: 'SẮP QUAY LẠI!', cls: 'from-amber-300 to-orange-500', icon: '🟡' },
   red: { text: 'ĐÈN ĐỎ – ĐỨNG IM!', cls: 'from-rose-500 to-red-700', icon: '🔴' },
 };
 
@@ -80,7 +81,7 @@ function drawField(ctx, cam, light, t) {
     }
   }
   // Mood tint: green glow or red alarm
-  if (light !== 'turning') {
+  if (light === 'green' || light === 'red') {
     ctx.fillStyle = light === 'red' ? `rgba(220,38,38,${0.1 + Math.sin(t * 6) * 0.04})` : 'rgba(34,197,94,0.06)';
     ctx.fillRect(0, 0, W, H);
   }
@@ -231,7 +232,12 @@ export function RedLightGame({ player, onClose, onBerries, onGold, random = Math
         say('BẮT ĐẦU!', 'green');
         sounds.playEnergySurge();
       } else if (e.type === 'light') {
-        if (e.light === 'turning') sounds.playScanBeep();
+        if (e.light === 'turning' || e.light === 'fake') sounds.playScanBeep();
+        if (e.light === 'green' && v.faked) {
+          v.faked = false;
+          say('Hù! Chưa quay đâu 😜', 'blue');
+        }
+        if (e.light === 'fake') v.faked = true;
         if (e.light === 'green') {
           v.turned = 0.35; // quick turn back
           sounds.playNote?.(523, { duration: 0.25 });
@@ -269,12 +275,13 @@ export function RedLightGame({ player, onClose, onBerries, onGold, random = Math
 
     // Doll turning: flip 1 -> 0 -> 1 around the moment it changes face
     const facing = s.light === 'red' ? 1 : 0;
-    if (s.light === 'turning') v.flip = Math.abs(Math.cos((1 - s.lightT / 0.55) * Math.PI));
+    if (s.light === 'turning') v.flip = Math.abs(Math.cos((1 - s.lightT / s.turnMax) * Math.PI));
+    else if (s.light === 'fake') v.flip = 1 - 0.85 * Math.sin((1 - s.lightT / (s.turnMax * 0.75)) * Math.PI);
     else if (v.turned > 0) {
       v.turned -= dt;
       v.flip = Math.abs(Math.cos((1 - v.turned / 0.35) * Math.PI));
     } else v.flip = 1;
-    const showFace = s.light === 'turning' ? s.lightT < 0.55 / 2 : v.turned > 0.35 / 2 ? 1 : facing;
+    const showFace = s.light === 'turning' ? s.lightT < s.turnMax / 2 : s.light === 'fake' ? 0 : v.turned > 0.35 / 2 ? 1 : facing;
     // Singing notes while green
     if (s.light === 'green' && s.clock > 0 && Math.random() < dt * 3) v.notes.push({ x: DOLL.x + (Math.random() - 0.5) * 60, y: DOLL.y - 20, vx: (Math.random() - 0.5) * 30, life: 1.4, max: 1.4, ch: Math.random() < 0.5 ? '♪' : '♫' });
 
@@ -440,7 +447,7 @@ export function RedLightGame({ player, onClose, onBerries, onGold, random = Math
               {ui.count}
             </div>
             <p className="absolute top-[58%] left-1/2 -translate-x-1/2 w-[88%] px-3 py-2 rounded-2xl bg-black/60 text-center text-white text-sm font-black pointer-events-none">
-              Giữ nút để chạy khi Jigglypuff quay lưng hát. Khi nó quay lại, buông tay đứng im ngay nhé!
+              Giữ nút để chạy khi Jigglypuff quay lưng hát. Khi nó quay lại, buông tay đứng im ngay nhé! Cẩn thận: có lúc nó quay rất nhanh, có lúc chỉ giả vờ 😜
             </p>
           </>
         )}

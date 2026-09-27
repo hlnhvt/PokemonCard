@@ -6,7 +6,7 @@ import { EnglishGame } from './EnglishGame';
 import { MemoryGame } from './MemoryGame';
 import { MusicGame } from './MusicGame';
 import { MazeGame } from './MazeGame';
-import { makeMathLesson } from '../../utils/logic/math';
+import { makeTopicLesson, MATH_TOPICS } from '../../utils/logic/mathTopics';
 import { makeEnglishLesson } from '../../utils/logic/english';
 import { SONGS, NOTES, songById } from '../../utils/logic/music';
 import { createMazeLevel, slide, shortestPath, DIRS, MAZE_LEVELS } from '../../utils/logic/maze';
@@ -33,12 +33,18 @@ async function advance(ms, step = 100) {
 const dialog = () => screen.getByRole('dialog');
 
 describe('MathGame', () => {
-  it('LG-01 wrong answers count aloud as a hint; 9 questions end with stars and gold once', async () => {
+  it('LG-01 choose a kind and a level; wrong answers count aloud as a hint; 8 questions end with stars and gold once', async () => {
+    localStorage.removeItem('pokescan_progress_v1');
+    localStorage.removeItem('pokescan_math_level');
     const onGold = vi.fn();
-    const lesson = makeMathLesson(seeded(1));
     render(<MathGame player={PLAYER} onClose={vi.fn()} onGold={onGold} random={seeded(1)} />);
+    const menu = screen.getByTestId('math-menu');
+    expect(within(menu).getAllByRole('button', { name: /^Toán / })).toHaveLength(12);
+    expect(within(menu).getByRole('radio', { name: 'Dễ' })).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'Toán Đếm hình' }));
+    const lesson = makeTopicLesson('count', 'easy', seeded(1));
     expect(screen.getByTestId('math-question')).toHaveTextContent(lesson[0].text);
-    expect(screen.getAllByTestId('math-thing')).toHaveLength(lesson[0].a);
+    expect(screen.getAllByTestId('math-thing')).toHaveLength(lesson[0].answer);
 
     // A wrong balloon: "let's count", numbers appear on the pictures
     const wrong = lesson[0].choices.find((n) => n !== lesson[0].answer);
@@ -48,7 +54,6 @@ describe('MathGame', () => {
 
     for (let i = 0; i < lesson.length; i++) {
       expect(dialog().dataset.question).toBe(String(i));
-      if (lesson[i].kind === 'sub') await advance(1200); // the Pokemon eats some first
       fireEvent.click(screen.getByLabelText(`Đáp án ${lesson[i].answer}`));
       expect(screen.getByRole('status')).toHaveTextContent('Đúng rồi!');
       await advance(lesson[i].answer * 400 + 700);
@@ -57,7 +62,36 @@ describe('MathGame', () => {
     expect(screen.getByTestId('gold-reward')).toHaveTextContent('+15 vàng');
     expect(onGold).toHaveBeenCalledTimes(1);
     expect(onGold).toHaveBeenCalledWith(15);
+    localStorage.removeItem('pokescan_progress_v1');
   });
+
+  it('LG-01b every kind of maths can be played at the hard level; a wrong answer shows the hint', async () => {
+    localStorage.removeItem('pokescan_progress_v1');
+    const onGold = vi.fn();
+    render(<MathGame player={PLAYER} onClose={vi.fn()} onGold={onGold} random={seeded(5)} />);
+    fireEvent.click(screen.getByRole('radio', { name: 'Khó' }));
+    const r = seeded(5);
+    for (const t of MATH_TOPICS) {
+      fireEvent.click(screen.getByRole('button', { name: `Toán ${t.title}` }));
+      const lesson = makeTopicLesson(t.id, 'hard', r);
+      expect(dialog().dataset.kind).toBe(t.id);
+      if (!['things', 'add', 'sub'].includes(lesson[0].visual.type)) {
+        const wrong = lesson[0].choices.find((n) => n !== lesson[0].answer);
+        fireEvent.click(screen.getByLabelText(`Đáp án ${wrong}`));
+        expect(screen.getByRole('status')).toHaveTextContent('Gợi ý');
+        await advance(1700);
+      }
+      for (let i = 0; i < lesson.length; i++) {
+        if (lesson[i].visual.type === 'sub') await advance(1200);
+        fireEvent.click(screen.getByLabelText(`Đáp án ${lesson[i].answer}`));
+        await advance(typeof lesson[i].answer === 'number' && ['things', 'add', 'sub'].includes(lesson[i].visual.type) ? lesson[i].answer * 400 + 700 : 1400);
+      }
+      expect(dialog().dataset.done).toBe('true');
+      fireEvent.click(screen.getByText('Chơi lại'));
+    }
+    expect(onGold).toHaveBeenCalledTimes(12);
+    localStorage.removeItem('pokescan_progress_v1');
+  }, 120000);
 });
 
 describe('EnglishGame', () => {

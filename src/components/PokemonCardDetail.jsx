@@ -25,6 +25,7 @@ import { CookingGame } from './kidgames/CookingGame';
 import { ShopGame } from './kidgames/ShopGame';
 import { SPORTS, findSport } from './sports';
 import { LOGIC_GAMES, findLogicGame } from './logic';
+import { CARNIVAL_GAMES, findCarnivalGame } from './carnival';
 import { rankOf, GAME_RANK } from '../utils/pokemonRank';
 import { getCardMedia } from '../services/pokemonOnlineService';
 import { fedToday } from '../utils/friendship';
@@ -120,6 +121,7 @@ export function PokemonCardDetail({
     },
     ...SPORTS.map((s) => ({ id: s.id, title: s.title, description: s.description, icon: s.icon, gradient: s.gradient, group: 'sport', onPlay: () => setExtra({ kind: 'sport', id: s.id }) })),
     ...LOGIC_GAMES.map((g) => ({ id: g.id, title: g.title, description: g.description, icon: g.icon, gradient: g.gradient, group: 'logic', onPlay: () => setExtra({ kind: 'logic', id: g.id }) })),
+    ...CARNIVAL_GAMES.map((g) => ({ id: g.id, title: g.title, description: g.description, icon: g.icon, gradient: g.gradient, group: 'carnival', onPlay: () => setExtra({ kind: 'carnival', id: g.id }) })),
   ];
   // Stronger Pokemon play more games (utils/pokemonRank.js)
   games.forEach((g) => {
@@ -667,7 +669,7 @@ export function PokemonCardDetail({
       {isShopping && <ShopGame shopkeeper={{ ...pokemon, fallbackImage: buddyImage }} onBerries={onBerries} onGold={onGold} onClose={() => setIsShopping(false)} />}
 
       {extra && (() => {
-        const Game = (extra.kind === 'sport' ? findSport(extra.id) : findLogicGame(extra.id)).Component;
+        const Game = ({ sport: findSport, logic: findLogicGame, carnival: findCarnivalGame }[extra.kind])(extra.id).Component;
         return <Game player={{ name: pokemon.name, image: buddyImage, types: pokemon.types }} onBerries={onBerries} onGold={onGold} onClose={() => setExtra(null)} />;
       })()}
 

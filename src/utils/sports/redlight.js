@@ -2,19 +2,25 @@
 // sings with its back turned. When it turns round (red light) anyone still moving is out.
 // First over the line wins. Pure rules; `random` is injectable for tests.
 
-export const TRACK = 1100; // distance from the start line to the finish line
+export const TRACK = 1900; // distance from the start line to the finish line
 export const RUN_SPEED = 118; // the child's Pokemon, per second
 export const GRACE = 0.28; // seconds after the doll faces you before moving counts
-export const TURN_TIME = 0.55; // the doll turning round (warning)
-export const TIME_LIMIT = 60;
+export const TURN_TIME = 0.55; // the doll turning round at the start (warning); quicker later
+export const MIN_TURN_TIME = 0.36;
+export const TIME_LIMIT = 100;
 export const RIVALS = 5;
+export const FAKE_CHANCE = 0.22; // the doll pretends to turn, then looks away again
+export const SURPRISE_CHANCE = 0.22; // a very short song: the doll turns almost at once
 
-const greenTime = (random, clock) => {
-  // Shorter songs as the race goes on
-  const k = Math.min(1, clock / 35);
-  return 2.4 + random() * 2.2 - k * 0.9;
+// How far into the race (0..1): songs get shorter and the turn quicker
+const pace = (clock) => Math.min(1, Math.max(0, clock) / 45);
+const greenTime = (random, clock, afterFake = false) => {
+  if (afterFake) return 0.35 + random() * 1.1; // right after a fake: often a quick real turn
+  if (clock > 3 && random() < SURPRISE_CHANCE) return 0.5 + random() * 0.5;
+  return 1.5 + random() * 2.3 - pace(clock) * 0.6;
 };
-const redTime = (random) => 1.8 + random() * 1.5;
+const redTime = (random) => 1.3 + random() * 1.7;
+export const turnTime = (clock) => TURN_TIME - (TURN_TIME - MIN_TURN_TIME) * pace(clock);
 
 export function createRedLight({ random = Math.random, rivals = RIVALS } = {}) {
   const runners = [{ id: 'player', lane: Math.floor(rivals / 2), y: 0, speed: RUN_SPEED, moving: false, out: false, place: 0 }];
@@ -24,7 +30,10 @@ export function createRedLight({ random = Math.random, rivals = RIVALS } = {}) {
   return {
     random,
     clock: -3, // 3, 2, 1 countdown
-    light: 'green', // green | turning | red
+    light: 'green', // green | turning | red | fake (pretends to turn, then back to green)
+    turnMax: TURN_TIME,
+    fakes: 0,
+    afterFake: false,
     lightT: greenTime(random, 0),
     redFor: 0, // seconds the doll has been watching
     runners,
@@ -39,11 +48,18 @@ export const playerOf = (s) => s.runners[0];
 function setLight(s, light) {
   s.light = light;
   const r = s.random;
-  if (light === 'green') s.lightT = greenTime(r, s.clock);
-  else if (light === 'turning') {
-    s.lightT = TURN_TIME;
+  if (light === 'green') {
+    s.lightT = greenTime(r, s.clock, s.afterFake);
+    s.afterFake = false;
+  } else if (light === 'turning' || light === 'fake') {
+    s.turnMax = turnTime(s.clock);
+    s.lightT = light === 'fake' ? s.turnMax * 0.75 : s.turnMax;
+    if (light === 'fake') {
+      s.fakes += 1;
+      s.afterFake = true;
+    }
     // Now and then a rival does not notice the doll turning and gets caught
-    for (const c of s.runners) if (c.id !== 'player') c.slip = !c.out && !c.place && r() < 0.25;
+    for (const c of s.runners) if (c.id !== 'player') c.slip = light === 'turning' && !c.out && !c.place && r() < 0.1;
   }
   else {
     s.lightT = redTime(r);
@@ -67,7 +83,13 @@ export function stepRedLight(s, dt, running) {
   // The doll
   s.lightT -= dt;
   if (s.light === 'red') s.redFor += dt;
-  if (s.lightT <= 0) setLight(s, s.light === 'green' ? 'turning' : s.light === 'turning' ? 'red' : 'green');
+  if (s.lightT <= 0) {
+    let next = 'green';
+    if (s.light === 'green') next = s.clock > 4 && !s.afterFakeUsed && s.random() < FAKE_CHANCE ? 'fake' : 'turning';
+    else if (s.light === 'turning') next = 'red';
+    if (s.light === 'green') s.afterFakeUsed = next === 'fake'; // after a fake the next turn is real
+    setLight(s, next);
+  }
 
   for (const c of s.runners) {
     if (c.out || c.place) {
@@ -76,7 +98,7 @@ export function stepRedLight(s, dt, running) {
     }
     if (c.id === 'player') c.moving = running;
     else if (s.light === 'red') c.moving = c.moving && s.redFor < c.react; // still stopping
-    else if (s.light === 'turning') c.moving = c.slip ? c.moving : c.moving && s.random() > dt * 1.2; // most stop while it turns
+    else if (s.light === 'turning' || s.light === 'fake') c.moving = c.slip ? c.moving : c.moving && s.random() > dt * 1.2; // most stop while it turns (fooled by a fake too)
     else {
       // Green: run, with a short pause now and then to look natural
       if (c.wait > 0) c.wait -= dt;

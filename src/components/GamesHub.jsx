@@ -7,6 +7,7 @@ import { CookingGame } from './kidgames/CookingGame';
 import { ShopGame } from './kidgames/ShopGame';
 import { SPORTS, findSport } from './sports';
 import { LOGIC_GAMES, findLogicGame } from './logic';
+import { CARNIVAL_GAMES, findCarnivalGame } from './carnival';
 import { PokeballIcon } from './PokeballIcon';
 import { TeamBattle } from './team/TeamBattle';
 import { LeagueGame } from './league/LeagueGame';
@@ -32,6 +33,7 @@ const SECTIONS = [
   { id: 'play', title: '🎮 Vui chơi', games: PLAY_GAMES },
   { id: 'sport', title: '🏆 Thi đấu thể thao', games: SPORTS },
   { id: 'logic', title: '🧠 Trò chơi trí tuệ', games: LOGIC_GAMES },
+  { id: 'carnival', title: '🎪 Hội chợ Pokémon', games: CARNIVAL_GAMES },
 ];
 
 function GameTile({ game, onPlay, locked, needRank }) {
@@ -237,8 +239,9 @@ export function GamesHub({ collection = [], berries, onBerries, onBattleResult, 
       {selected && is('cooking') && <CookingGame chef={card} onBerries={onBerries} onGold={onGold} onClose={close} />}
       {selected && is('shop') && <ShopGame shopkeeper={card} onBerries={onBerries} onGold={onGold} onClose={close} />}
       {selected && is('runner') && <RunnerGame pokemon={selected} image={player.image} onBerries={onBerries} onGold={onGold} onClose={close} />}
-      {selected && (playing?.section === 'sport' || playing?.section === 'logic') && (() => {
-        const Game = (playing.section === 'sport' ? findSport(playing.id) : findLogicGame(playing.id)).Component;
+      {selected && ['sport', 'logic', 'carnival'].includes(playing?.section) && (() => {
+        const find = { sport: findSport, logic: findLogicGame, carnival: findCarnivalGame }[playing.section];
+        const Game = find(playing.id).Component;
         return <Game player={player} onBerries={onBerries} onGold={onGold} onClose={close} />;
       })()}
     </div>

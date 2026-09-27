@@ -1203,3 +1203,103 @@ Cả 3 trò nằm trong nhóm "🏆 Thi đấu thể thao" (tab Trò chơi và t
 | AUTO (toàn bộ) | P1 | AUTO | 509 test vẫn đạt sau khi đổi icon (GH-04 đổi sang tìm chữ "Tiệm quà") | Đạt |
 | ICON-01 | P1 | AUTO (script) | Mọi icon được import từ PokeIcons đều có export (57/57); không còn import `lucide-react` | Đạt |
 | UI-27 | P1 | MANUAL (Chrome) | Thanh trên cùng, tab Trò chơi (banner, ô trò chơi), trang chi tiết Pokémon hiển thị icon mới | Đúng, không lỗi JS |
+
+---
+
+## 39. Đèn xanh đèn đỏ: đường dài hơn, quản trò quay nhiều và bất ngờ hơn (2026-09-27)
+
+- **Đường đua** dài 1100 → 1900. Giới hạn thời gian 60 → 100 giây.
+- **Quản trò quay nhiều hơn:**
+  - Mỗi lượt hát dài 1,5–3,8 giây (trước là 2,4–4,6) và ngắn dần về cuối trận.
+  - Mô phỏng 20 trận: khoảng 11,8 lần quay mỗi phút (trước khoảng 9,7).
+- **Bất ngờ hơn:**
+  - 22% lượt hát rất ngắn (0,5–1 giây). Mô phỏng: khoảng 4,4 lần mỗi phút.
+  - Thời gian báo trước khi quay giảm từ 0,55 xuống 0,36 giây về cuối trận.
+  - 🟡 **Quay giả** (22% lượt, sau 4 giây đầu): quản trò quay nửa người rồi quay lưng lại. Màn hình hiện "Hù! Chưa quay đâu 😜".
+    - Lượt hát ngay sau quay giả thường rất ngắn, nên dễ có cú quay thật ngay sau đó.
+    - Không bao giờ quay giả hai lần liền.
+    - Buông tay lúc quay giả vẫn an toàn.
+  - Đèn lúc quay giả giống hệt lúc quay thật ("SẮP QUAY LẠI!"), để bé không đoán trước được.
+- **Đối thủ:** cũng bị lừa bởi lần quay giả (dừng lại và mất thời gian). Tỉ lệ đối thủ lơ đãng giảm từ 25% xuống 10%, vì trận dài hơn nhiều lượt quay hơn. Trung bình 2,4 đối thủ bị loại mỗi trận.
+- **Bé mô phỏng** (buông tay chậm 0,15 giây): thắng 70% (trước 77%), không lần nào bị loại. Không bao giờ dừng thì luôn bị loại.
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| RL-02 | P1 | AUTO | 20 trận × 60 giây: ≥ 10 lần quay mỗi phút, ≥ 1,5 lần quay giả, ≥ 2 lần quay bất ngờ; không quay giả liền nhau; báo trước ngắn dần; có đối thủ bị loại; đường ≥ 1800 | 11,8 / 2,5 / 4,4 |
+| RL-03 | P1 | AUTO | Bé dừng đúng lúc thường thắng và không bị loại; không dừng thì bị loại | 70%, 0 lần bị loại |
+| NG3-03, NG3-04 | P1 | AUTO | Giao diện: chạy đúng luật về đích; chạy lúc đèn đỏ thì thua | Đạt |
+
+---
+
+## 40. Làm toán: 12 thể loại × 3 mức độ khó (2026-09-27)
+
+- **Chọn bài:** bảng 12 thể loại, 3 mức (🌱 Dễ, 🔥 Vừa, 👑 Khó). Mỗi ô hiện số sao đã đạt ở mức đang chọn. Mức độ được nhớ trong `pokescan_math_level`. Mỗi bài 8 câu.
+- **Các thể loại** (`utils/logic/mathTopics.js`):
+
+| Thể loại | Dễ | Vừa | Khó |
+|---|---|---|---|
+| Đếm hình | 2–7 hình | 6–12 | 11–20 (hình nhỏ) |
+| Phép cộng | tổng ≤ 10 (hình) | ≤ 20 (hình) | 2 chữ số ≤ 99 |
+| Phép trừ | ≤ 10 (Pokémon ăn mất) | ≤ 20 | 30–99 |
+| So sánh < = > | hai nhóm hình ≤ 10 | số ≤ 50 | phép cộng so với số |
+| Số còn thiếu | a + ? = c | ? − b = c | a × ? = c |
+| Dãy số | +1, +2 | +2, +5, +10, −1, −2 | +3, +4, −5, −10, gấp đôi |
+| Phép nhân | nhóm hình 2, 5, 10 | bảng 2–5 | bảng 6–9 |
+| Chia đều | chia cho 2 bạn Pokémon | ÷ 2–5 | ÷ 3–9 |
+| Đếm tiền | 2–3 xu (1, 2, 5) | 3–5 xu (1, 2, 5, 10) | tiền thối lại |
+| Xem đồng hồ | giờ đúng | giờ rưỡi | giờ phút (5, 10, 15...) |
+| Hình học | số cạnh tam / tứ giác | 3–6 cạnh | 5–8 cạnh, tổng góc 2 hình |
+| Toán đố | cộng / trừ 1 bước | 2 bước | nhân / chia |
+
+- **Hình minh họa cho từng thể loại:**
+  - Nhóm hình; hộp nhóm cho phép nhân; Pokémon của bé chia đều đồ.
+  - Đồng xu vàng; đồng hồ SVG có tâm Pokéball; đa giác có đỉnh vàng; dãy số dạng bong bóng.
+  - Toán đố có hình Pokémon nhân vật. Số lớn hiện trên thẻ to.
+- **Trả lời:**
+  - Đáp án là bóng bay: 3 quả, riêng mức Khó 4 quả. Riêng đồng hồ dùng nút dài.
+  - Sai ở bài có hình đếm được thì Pokémon đếm to từng hình. Sai ở các bài khác thì hiện "💡 Gợi ý".
+- Sao và vàng lưu theo bài (`progress.math`, mã `thể-loại-mức`).
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| MT-01 | P1 | AUTO | 12 × 3 bài × 25 lần tạo: 8 câu, đáp án nằm trong lựa chọn, lựa chọn không trùng, không số âm, có gợi ý | Đạt |
+| MT-02 | P1 | AUTO | Đáp án đúng: cộng, trừ, dấu so sánh, dãy số, chia, tổng xu, tiền thối, giờ rưỡi, tổng góc | Đạt |
+| MT-03 | P1 | AUTO | Mức cao dùng số lớn hơn và 4 lựa chọn | Đạt |
+| LG-01 | P1 | AUTO | Bảng chọn 12 thể loại; Đếm hình Dễ: sai thì đếm to, 8 câu, +15 vàng một lần | Đạt |
+| LG-01b | P1 | AUTO | Cả 12 thể loại mức Khó chơi hết được; sai thì hiện gợi ý; vàng 12 lần | Đạt |
+| UI-28 | P1 | MANUAL (Chrome) | Bảng chọn, đồng hồ (Khó), đếm tiền (Vừa), dãy số, hình học, phép nhân, toán đố | Đúng, không lỗi JS |
+
+---
+
+## 41. 🎪 Hội chợ Pokémon: 10 trò chơi carnival (2026-09-27)
+
+Mục mới "🎪 Hội chợ Pokémon" nằm trong tab Trò chơi và bảng chọn trò của từng Pokémon. Mọi Pokémon đều chơi được, không cần hạng.
+- Mỗi trò có khung lều hội chợ: sọc đỏ trắng và cờ đuôi nheo, đếm ngược 3-2-1, thanh điểm, và màn kết quả có sao, vàng, **vé**.
+- Vé: 1–3 theo số sao, cộng thêm 1 vé nếu đạt 3 sao. Vé lưu trong `pokescan_tickets_v1`.
+- Vé dùng để quay **Vòng quay may mắn**.
+
+| Trò | Cách chơi | Điểm nổi bật | Mô phỏng cân bằng |
+|---|---|---|---|
+| 🔨 Đập Diglett | Đập Diglett thò lên từ 9 lỗ trong 40 giây. Diglett vàng +30, lỡ đập Voltorb −40. Nhanh dần, combo | Búa đập, sao choáng, số điểm bay | Cẩn thận 1530 điểm (3★), đập bừa 840, chậm 240 (1★) |
+| 🎯 Ném vòng Pokéball | Vuốt lên ném vòng vào 9 cọc có thú Pokémon (hàng xa 30 / 20 / 10), 8 vòng | Đường ngắm, vòng xoay bay theo cung, rơi trúng cọc | Giỏi trung bình 231 (3★ 90%), ném bừa 61 |
+| 🦆 Bắn vịt Psyduck | 3 hàng vịt chạy; chạm để bắn bóng nước. Vịt vàng +30, vịt nhỏ +20, bóng bay Pikachu −20. 40 giây | Tia nước, vịt lật, nước bắn tung | Giỏi 1148 (3★), bắn bừa 323 |
+| 🥫 Ném bóng đổ tháp lon | Vuốt ném Pokéball; 3 tháp lon in hình Pokémon, 3 bóng mỗi tháp. Có vật lý rơi đổ | "RẦM!", thưởng dọn sạch sớm | Giỏi 359 (3★, dọn 3/3), ngắm bừa 221 |
+| 🧸 Máy gắp thú | Chỉnh càng trái / phải rồi bấm GẮP; 6 lượt. Mew hiếm 50 điểm | Tủ kính đèn chạy, càng có thể tuột, kệ quà | Chuẩn tâm 129 (3★), lệch 110, thả bừa 64 |
+| 🥤 Đoán cốc | Nhìn Pokéball dưới cốc, cốc đảo theo cung. 6 vòng: 3 → 9 lần đảo, nhanh dần, từ vòng 4 có 4 cốc | Cốc lật lên, bóng lấp lánh | Theo dõi tốt 130 (3★), mất dấu khi nhanh 82, đoán bừa 20 |
+| 🎣 Câu cá Magikarp | Chạm để quăng cần; phao rung (cá rỉa) thì chờ; phao chìm "GIẬT NGAY!" thì chạm. Magikarp 10, Goldeen 20, Gyarados 50, giày cũ 0. 60 giây | Hồ nước, lá sen, vòng sóng, cá kéo lên | Giật sau 0,3 giây: 193 (3★); chậm 0,85 giây: 33; giật khi cá rỉa: 0 |
+| 🐴 Đua ngựa Ponyta | Chạm khi kim vào ô XANH để Ponyta phi nhanh; đua 4 làn với Rapidash, Ponyta, Mudsdale. Ô xanh hẹp dần | Lửa bốc sau ngựa, khán đài, thanh vị trí | Bấm đúng nhịp về nhất 12/12; bấm bừa hạng 3,8 |
+| 💪 Búa sức mạnh Machop | Dừng thanh lực đúng đỉnh, Machop đập búa, quả nặng bay lên; ≥ 95% thì "DING!". 5 lượt, nhanh dần | Chuông rung, đèn tháp nháy | Phản xạ tốt 746 (3★, 5 chuông), chậm 583, bừa 245 |
+| 🎡 Vòng quay may mắn | Mỗi lần quay tốn 1 vé. 10 ô: vàng 5 / 10 / 20 / 50, quả mọng Oran / Razz, +1 vé, Jackpot 100 vàng (2%), "chúc may mắn lần sau" | Kim tích tắc chậm dần, đèn viền, bảng quà | Trung bình 10,1 vàng mỗi vé (mô phỏng 22 nghìn lần quay: 10,18) |
+
+- **Sửa trong lúc tích hợp:**
+  - Khung hội chợ nhận số vé đang có trực tiếp, nên số vé ở Vòng quay cập nhật ngay sau mỗi lần quay.
+  - Đoán cốc: bàn được đưa lên giữa màn hình.
+  - Đập Diglett: thêm bảng hiệu gỗ có đèn chạy.
+- Các robot mô phỏng chơi gần như hoàn hảo, nên [Inference] điểm của bé thật sẽ thấp hơn các con số ở bảng trên.
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| CV-00..02 | P1 | AUTO | Vé cộng / tiêu; luật Đập Diglett; mô phỏng cân bằng | Đạt |
+| CVU-00, CVU-01 | P1 | AUTO | Hội chợ mở cho mọi hạng; chơi hết Đập Diglett, trả vé và vàng 1 lần | Đạt |
+| 9 bộ test engine + 9 bộ test giao diện (ringtoss, psyduck, cans, claw, cups, fishing, ponyta, hammer, wheel) | P1 | AUTO | Luật, mô phỏng cân bằng, chơi hết trò qua giao diện, vàng 1 lần; Vòng quay trừ vé và trả đúng quà | Đạt (564 test toàn dự án) |
+| UI-29 | P1 | MANUAL (Chrome) | Mục Hội chợ và 10 trò trên Chrome | Đúng, không lỗi JS |

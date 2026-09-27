@@ -4,7 +4,7 @@ import { X, ChevronRight, Lock } from './icons/PokeIcons';
 import { rankFor } from '../utils/pokemonRank';
 import { GameIcon } from './icons/GameIcons';
 
-const GROUP_TITLES = { play: '🎮 Vui chơi', sport: '🏆 Thi đấu thể thao', logic: '🧠 Trò chơi trí tuệ' };
+const GROUP_TITLES = { play: '🎮 Vui chơi', sport: '🏆 Thi đấu thể thao', logic: '🧠 Trò chơi trí tuệ', carnival: '🎪 Hội chợ Pokémon' };
 
 /** Games in groups, in the order the groups first appear (games without a group form one list). */
 function groupsOf(games) {
