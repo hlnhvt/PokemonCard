@@ -58,7 +58,7 @@ function escape(state, f) {
 }
 
 export function decide(state, f, memory) {
-  const cfg = AI_SKILL[f.team];
+  const cfg = f.team === 'red' && state.aiRed ? state.aiRed : AI_SKILL[f.team];
   const r = state.random;
   // Run out of a boss warning first (bots react a little late, like children)
   if (state.boss) {

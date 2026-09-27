@@ -1075,3 +1075,44 @@ Cả 3 trò nằm trong nhóm "🏆 Thi đấu thể thao" (tab Trò chơi và t
 | TT-11 | P1 | AUTO | Lưu đội 3 Pokémon, mở lại, bấm Dùng thì đội được lấp đúng thứ tự, xóa được | Đạt |
 | TT-12 | P1 | AUTO | Khi bắt buộc quét thẻ: không có mục lưu / dùng đội hình | Đạt |
 | UI-24 | P1 | MANUAL (Chrome) | Lưu 2 đội; đổi sang Charizard giữa trận thì thanh máu đầy lúc ra sân; nút Đổi có Pokéball | Đúng, không lỗi JS |
+
+---
+
+## 35. Đấu trường: 4 mức độ khó; chế độ Trận lẻ, Giải đấu, Cúp (2026-09-27)
+
+**Độ khó** (`ARENA_DIFFICULTY` trong `utils/moba/engine.js`):
+- Chỉ đội đối thủ thay đổi: sát thương, máu, và mức nhanh nhạy của máy (hay dùng chiêu, lúc chạy về nhà).
+- Cách chơi cũ (không chọn độ khó) nằm giữa Dễ và Trung bình, như phụ huynh nhận xét. Trung bình nay khó hơn cách chơi cũ.
+- Trận lẻ chọn được độ khó; lựa chọn được nhớ trong `pokescan_moba_difficulty`.
+
+| Mức | Sát thương × | Máu × | Máy dùng chiêu | Máy đội bé thắng (18 trận 2 phút) |
+|---|---|---|---|---|
+| Dễ | 0,95 | 0,95 | 0,75 | 78% |
+| Trung bình | 1,09 | 1,09 | 0,82 | 56% |
+| Khó | 1,17 | 1,17 | 0,82 | 22% |
+| Cao thủ | 1,23 | 1,23 | 0,86 | 11% |
+
+- Khi dò thông số, kết quả với 36–45 trận dao động mạnh ở vùng giữa (vd. 1,02 → 58%, 1,08 → 60%, 1,14 → 31%). Vì vậy các con số trên chỉ là ước lượng.
+
+**Chế độ chơi** (`utils/moba/tournament.js`, `TournamentBoard.jsx`):
+- ⚔️ **Trận lẻ:** một trận, tự chọn độ khó.
+- 🏅 **Giải đấu:** 5 trận gặp 5 đội khác nhau (Đội Lửa Đỏ, Đội Sóng Xanh...). Độ khó tăng dần: Dễ → Trung bình → Trung bình → Khó → Cao thủ.
+  - Thắng 3 điểm, hòa 1 điểm.
+  - Cuối giải: Cúp Vàng (≥ 12 điểm, +60 vàng), Bạc (≥ 8, +35), Đồng (≥ 5, +20), dưới 5 điểm vẫn được +5.
+- 🏆 **Cúp:** Tứ kết (Trung bình) → Bán kết (Khó) → Chung kết (Cao thủ).
+  - Thua là dừng. Hòa số hạ gục thì đội gây nhiều sát thương hơn đi tiếp (có dấu ⚖️).
+  - Thưởng thêm: vô địch +80, dừng ở Chung kết +40, Bán kết +20, Tứ kết +5.
+- **Bảng giải:** giữa các trận hiện đội đối thủ, độ khó, kết quả từng trận, điểm (Giải đấu), trận tiếp theo và đội hình đối thủ.
+  - Sau mỗi trận, bảng kết quả có nút "Tiếp tục ➜" và dòng ghi chú (vd. "Giải đấu · Trận 1 · 1 điểm").
+  - Hết giải có lễ trao thưởng (cúp / huy chương, pháo hoa, vàng thưởng) và nút Chơi lại.
+- Mỗi trận vẫn được vàng như trận thường. Vàng thưởng cuối giải được trả đúng 1 lần.
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| MB-09 | P1 | AUTO | Mức khó tăng máu / sát thương của đối thủ (không đổi đội bé); máy đội bé thắng: Dễ ≥ 75%, Dễ > Trung bình > Cao thủ, Khó < Dễ, Cao thủ ≤ 30% | 78 / 56 / 22 / 11% |
+| TR-01 | P1 | AUTO | Giải đấu: 5 trận khó dần, 5 đội khác nhau, điểm 3/1/0, huy chương và vàng thưởng | Đạt |
+| TR-02 | P1 | AUTO | Cúp: thua là dừng (tên vòng), hòa phân định bằng sát thương, thắng 3 trận là vô địch | Đạt |
+| MG-09 | P1 | AUTO | Trận lẻ có 4 mức độ khó, mặc định Trung bình, lựa chọn được nhớ | Đạt |
+| MG-10 | P1 | AUTO | Giải đấu 5 trận: bảng giải, "Tiếp tục" sau mỗi trận, lễ trao thưởng, vàng 6 lần (5 trận + thưởng) | Đạt |
+| MG-11 | P1 | AUTO | Cúp: bảng vẽ từ Chung kết xuống Tứ kết; kết thúc Vô địch hoặc Dừng bước; Chơi lại | Đạt |
+| UI-25 | P1 | MANUAL (Chrome) | Màn chế độ chơi, lịch Giải đấu, trận 1 phút xong có nút Tiếp tục, bảng giải cập nhật điểm | Đúng, không lỗi JS |

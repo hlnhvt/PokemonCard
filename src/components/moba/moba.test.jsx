@@ -5,6 +5,7 @@ import { MobaGame, MobaDashboard } from './MobaGame';
 import { BossGame } from './BossGame';
 import { goldForBoss } from '../../utils/gold';
 import { currentMap } from '../../utils/moba/map';
+import { medalOf, CUP_GOLD } from '../../utils/moba/tournament';
 import { GamesHub } from '../GamesHub';
 import { goldForMoba } from '../../utils/gold';
 import { sounds } from '../../utils/soundEffects';
@@ -179,4 +180,70 @@ describe('MobaGame', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Săn Boss' }));
     expect(screen.getByRole('dialog', { name: 'Săn Boss' })).toBeInTheDocument();
   });
+
+  it('MG-09 single match: four difficulties, the choice is remembered', async () => {
+    localStorage.removeItem('pokescan_moba_difficulty');
+    render(<MobaGame collection={COLLECTION} allowScanned onClose={vi.fn()} random={seeded(9)} />);
+    await toSetup();
+    const modes = screen.getByRole('radiogroup', { name: 'Chế độ chơi' });
+    expect(within(modes).getByRole('radio', { name: 'Trận lẻ' })).toHaveAttribute('aria-checked', 'true');
+    const diff = screen.getByRole('radiogroup', { name: 'Độ khó đấu trường' });
+    expect(within(diff).getAllByRole('radio').map((r) => r.getAttribute('aria-label'))).toEqual(['Dễ', 'Trung bình', 'Khó', 'Cao thủ']);
+    expect(within(diff).getByRole('radio', { name: 'Trung bình' })).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(within(diff).getByRole('radio', { name: 'Cao thủ' }));
+    expect(localStorage.getItem('pokescan_moba_difficulty')).toBe('expert');
+    localStorage.removeItem('pokescan_moba_difficulty');
+  });
+
+  async function playTournamentMatch() {
+    fireEvent.click(screen.getByRole('button', { name: /^Bắt đầu (Trận|Tứ kết|Bán kết|Chung kết)/ }));
+    for (let t = 0; t < 120000 && !screen.queryByTestId('moba-dashboard'); t += 1000) await advance(1000, 250);
+    fireEvent.click(screen.getByText('Tiếp tục ➜'));
+  }
+
+  it('MG-10 league: a board of 5 matches getting harder; points after each match; a medal and bonus gold at the end', async () => {
+    const onGold = vi.fn();
+    render(<MobaGame collection={COLLECTION} allowScanned onGold={onGold} onClose={vi.fn()} random={seeded(10)} />);
+    await toSetup();
+    fireEvent.click(screen.getByRole('radio', { name: 'Giải đấu' }));
+    expect(screen.getByTestId('mode-schedule')).toHaveTextContent('Trận 5: 👑 Cao thủ');
+    expect(screen.queryByText('🔴 Đội đối thủ')).toBeNull();
+    fireEvent.click(screen.getByRole('radio', { name: '1 phút' }));
+    fireEvent.click(screen.getByText('Bắt đầu giải đấu!'));
+    const board = () => screen.getByTestId('tournament-board');
+    expect(within(board()).getAllByTestId('tour-match')).toHaveLength(5);
+    for (let m = 0; m < 5; m++) {
+      expect(board().dataset.index).toBe(String(m));
+      await playTournamentMatch();
+    }
+    expect(board().dataset.status).toBe('finished');
+    const points = Number(board().dataset.points);
+    const ceremony = screen.getByTestId('tour-ceremony');
+    expect(ceremony).toHaveTextContent(`${points} điểm`);
+    // 5 match payments and the medal bonus
+    expect(onGold).toHaveBeenCalledTimes(6);
+    expect(onGold).toHaveBeenLastCalledWith(medalOf(points).gold);
+  }, 300000);
+
+  it('MG-11 cup: quarter-final, semi-final, final; losing ends the run with the round reached', async () => {
+    const onGold = vi.fn();
+    render(<MobaGame collection={COLLECTION} allowScanned onGold={onGold} onClose={vi.fn()} random={seeded(11)} />);
+    await toSetup();
+    fireEvent.click(screen.getByRole('radio', { name: 'Cúp' }));
+    fireEvent.click(screen.getByRole('radio', { name: '1 phút' }));
+    fireEvent.click(screen.getByText('Bắt đầu tranh cúp!'));
+    const board = () => screen.getByTestId('tournament-board');
+    expect(within(board()).getAllByTestId('tour-match').map((r) => r.textContent)).toEqual([expect.stringContaining('Chung kết'), expect.stringContaining('Bán kết'), expect.stringContaining('Tứ kết')]);
+    for (let m = 0; m < 3 && board().dataset.status === 'playing'; m++) await playTournamentMatch();
+    const status = board().dataset.status;
+    expect(['finished', 'out']).toContain(status);
+    const ceremony = screen.getByTestId('tour-ceremony');
+    if (status === 'finished') {
+      expect(ceremony).toHaveTextContent('VÔ ĐỊCH CÚP');
+      expect(onGold).toHaveBeenLastCalledWith(CUP_GOLD.champion);
+    } else expect(ceremony).toHaveTextContent('Dừng bước ở');
+    fireEvent.click(within(ceremony).getByText('Chơi lại'));
+    expect(board().dataset.status).toBe('playing');
+    expect(board().dataset.index).toBe('0');
+  }, 300000);
 });

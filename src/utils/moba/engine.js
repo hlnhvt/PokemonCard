@@ -14,6 +14,18 @@ const ULT_GAIN = { dealt: 0.14, taken: 0.1, kill: 30 }; // per damage point / pe
 // Children's team gets a little help (tuned with bot matches in moba.test.js)
 export const TEAM_POWER = { blue: 1.02, red: 0.99 };
 
+/**
+ * Arena difficulty: the opposing team's damage and HP, and how sharp its bots are
+ * (how often they use skills, when they run home). Without a difficulty the match plays
+ * like before (between easy and normal). Tuned with bot matches in moba.test.js (MB-09).
+ */
+export const ARENA_DIFFICULTY = {
+  easy: { label: 'Dễ', icon: '🙂', dmg: 0.95, hp: 0.95, cast: 0.75, retreat: 0.32 },
+  normal: { label: 'Trung bình', icon: '😤', dmg: 1.09, hp: 1.09, cast: 0.82, retreat: 0.3 },
+  hard: { label: 'Khó', icon: '🔥', dmg: 1.17, hp: 1.17, cast: 0.82, retreat: 0.3 },
+  expert: { label: 'Cao thủ', icon: '👑', dmg: 1.23, hp: 1.23, cast: 0.86, retreat: 0.28 },
+};
+
 // Move names per type: [basic, skill 1, skill 2, ultimate]
 const KIT_NAMES = {
   normal: ['Cú đấm', 'Lao tới', 'Tiếng hét', 'Siêu Tốc Liên Hoàn'],
@@ -116,11 +128,23 @@ export function spawnPoint(team, idx, slots = 5) {
  * blue / red: 1, 3 or 5 members each { name, image, types, power }. duration in seconds.
  * The child starts controlling blue fighter `control`.
  */
-export function createMatch({ blue, red, duration = 180, random = Math.random, control = 0, mapId = 'forest' }) {
+export function createMatch({ blue, red, duration = 180, random = Math.random, control = 0, mapId = 'forest', difficulty = null }) {
   selectMap(mapId);
+  const diff = ARENA_DIFFICULTY[difficulty] || null;
+  const fighters = [...blue.map((m, i) => makeFighter(m, 'blue', i, blue.length)), ...red.map((m, i) => makeFighter(m, 'red', i, red.length))];
+  if (diff) {
+    for (const f of fighters) {
+      if (f.team !== 'red') continue;
+      f.maxHp = Math.round(f.maxHp * diff.hp);
+      f.hp = f.maxHp;
+    }
+  }
   return {
     mapId,
-    fighters: [...blue.map((m, i) => makeFighter(m, 'blue', i, blue.length)), ...red.map((m, i) => makeFighter(m, 'red', i, red.length))],
+    difficulty,
+    redDmg: diff ? diff.dmg : 1,
+    aiRed: diff ? { castChance: diff.cast, retreat: diff.retreat } : null,
+    fighters,
     pace: PACE[Math.min(blue.length, red.length)] || 1,
     projectiles: [],
     events: [],
@@ -158,7 +182,7 @@ function damage(state, attacker, target, mult) {
   // Immunities would be frustrating in a fast game: they count as "not very effective"
   const eff = Math.max(0.5, effectiveness(attacker.types[0], target.types));
   const crit = state.random() < 0.08;
-  const amount = Math.max(1, Math.round(attacker.atk * mult * eff * TEAM_POWER[attacker.team] * (state.pace || 1) * (0.9 + state.random() * 0.2) * (crit ? 1.6 : 1)));
+  const amount = Math.max(1, Math.round(attacker.atk * mult * eff * TEAM_POWER[attacker.team] * (attacker.team === 'red' ? state.redDmg || 1 : 1) * (state.pace || 1) * (0.9 + state.random() * 0.2) * (crit ? 1.6 : 1)));
   const dealt = Math.min(target.hp, amount);
   target.hp -= dealt;
   attacker.dealt += dealt;

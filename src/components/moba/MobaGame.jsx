@@ -6,7 +6,9 @@ import { OPPONENT_POOL } from '../../utils/battle/opponentPool';
 import { TYPE_COLORS, TYPE_VI } from '../../utils/battle/typeChart';
 import { pickOpponentTeam } from '../../utils/team/teamBattle';
 import { memberFromPool } from '../../utils/team/members';
-import { kitOf } from '../../utils/moba/engine';
+import { kitOf, ARENA_DIFFICULTY } from '../../utils/moba/engine';
+import { ARENA_MODES, createTournament, recordMatch, currentMatch, tournamentBonus } from '../../utils/moba/tournament';
+import { TournamentBoard } from './TournamentBoard';
 import { goldForMoba } from '../../utils/gold';
 import { TeamBuilder } from '../team/TeamBuilder';
 import { GoldReward } from '../kidgames/Common';
@@ -18,6 +20,15 @@ import { readMapId } from './mapChoice';
 
 const MINUTES = [1, 2, 3, 5];
 const MINUTES_KEY = 'pokescan_moba_minutes';
+const DIFFICULTY_KEY = 'pokescan_moba_difficulty';
+const readDifficulty = () => {
+  try {
+    const id = localStorage.getItem(DIFFICULTY_KEY);
+    return ARENA_DIFFICULTY[id] ? id : 'normal';
+  } catch {
+    return 'normal';
+  }
+};
 const readMinutes = () => {
   try {
     const m = Number(localStorage.getItem(MINUTES_KEY));
@@ -119,7 +130,7 @@ function DashTeam({ team, result, maxDealt }) {
 }
 
 /** Dashboard after the match (like the big online games): result, score and every Pokemon's stats. */
-export function MobaDashboard({ result, gold, onReplay, onClose }) {
+export function MobaDashboard({ result, gold, onReplay, onClose, onContinue, note }) {
   const win = result.winner === 'blue';
   const draw = result.winner === 'draw';
   useEffect(() => {
@@ -151,13 +162,22 @@ export function MobaDashboard({ result, gold, onReplay, onClose }) {
         <DashTeam team="red" result={result} maxDealt={maxDealt} />
       </div>
       <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
+        {note && <span className="px-3 py-1 rounded-full bg-white/10 text-xs font-black text-amber-200">{note}</span>}
         <GoldReward amount={gold} dark />
-        <button onClick={onReplay} className="px-5 py-2.5 rounded-2xl bg-red-500 text-white font-black flex items-center gap-2 active:scale-95">
-          <RotateCcw className="w-5 h-5" /> Đấu lại
-        </button>
-        <button onClick={onClose} className="px-6 py-2.5 rounded-2xl bg-sky-600 text-white font-black active:scale-95">
-          Xong
-        </button>
+        {onContinue ? (
+          <button onClick={onContinue} className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 text-slate-900 font-black active:scale-95">
+            Tiếp tục ➜
+          </button>
+        ) : (
+          <>
+            <button onClick={onReplay} className="px-5 py-2.5 rounded-2xl bg-red-500 text-white font-black flex items-center gap-2 active:scale-95">
+              <RotateCcw className="w-5 h-5" /> Đấu lại
+            </button>
+            <button onClick={onClose} className="px-6 py-2.5 rounded-2xl bg-sky-600 text-white font-black active:scale-95">
+              Xong
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -178,6 +198,10 @@ export function MobaGame({ collection = [], allowScanned = false, onScanned, onG
   const [foes, setFoes] = useState([]);
   const [result, setResult] = useState(null);
   const [round, setRound] = useState(0);
+  const [playMode, setPlayMode] = useState('single'); // single | league | cup
+  const [difficulty, setDifficulty] = useState(readDifficulty);
+  const [tour, setTour] = useState(null);
+  const [bonus, setBonus] = useState(0);
 
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && screen !== 'play' && onClose();
@@ -197,11 +221,23 @@ export function MobaGame({ collection = [], allowScanned = false, onScanned, onG
     }
   };
 
-  const toSetup = () => {
+  const newFoes = () => {
     const players = team.map((m) => ({ ...m, bst: m.power, types: m.types?.length ? m.types : ['normal'] }));
     setFoes(pickOpponentTeam(players, OPPONENT_POOL, random).map(memberFromPool));
+  };
+  const toSetup = () => {
+    newFoes();
     setScreen('setup');
   };
+  const chooseDifficulty = (id) => {
+    setDifficulty(id);
+    try {
+      localStorage.setItem(DIFFICULTY_KEY, id);
+    } catch {
+      // ignore
+    }
+  };
+  const matchDifficulty = tour ? currentMatch(tour).difficulty : difficulty;
 
   const start = () => {
     try {
@@ -209,16 +245,41 @@ export function MobaGame({ collection = [], allowScanned = false, onScanned, onG
     } catch {
       // ignore
     }
+    if (playMode !== 'single' && !tour) {
+      // League or cup: the board first, then match after match
+      setTour(createTournament(playMode, random));
+      setBonus(0);
+      setScreen('board');
+      return;
+    }
     enterLandscape();
     setRound((r) => r + 1);
     setScreen('play');
+  };
+  const restartTour = () => {
+    setTour(createTournament(playMode, random));
+    setBonus(0);
+    newFoes();
   };
 
   const finish = (sum) => {
     const kills = sum.score.blue;
     const gold = goldForMoba(sum.winner === 'blue' ? 'win' : sum.winner === 'draw' ? 'draw' : 'lose', kills);
     onGold?.(gold);
-    setResult({ ...sum, gold });
+    let note = null;
+    if (tour) {
+      const dealt = sum.rows.reduce((a, r) => ({ ...a, [r.team]: a[r.team] + r.dealt }), { blue: 0, red: 0 });
+      const played = currentMatch(tour);
+      const next = recordMatch(tour, { winner: sum.winner, score: sum.score, dealt });
+      setTour(next);
+      note = `${ARENA_MODES[tour.mode].label} · ${played.round}${tour.mode === 'league' ? ` · ${next.points} điểm` : ''}`;
+      if (next.status !== 'playing') {
+        const b = tournamentBonus(next);
+        setBonus(b);
+        if (b) onGold?.(b);
+      } else newFoes();
+    }
+    setResult({ ...sum, gold, note });
     setScreen('result');
   };
 
@@ -234,12 +295,13 @@ export function MobaGame({ collection = [], allowScanned = false, onScanned, onG
             red={foes.map(toFighter)}
             minutes={minutes}
             mapId={mapId}
+            difficulty={matchDifficulty}
             control={control}
             random={random}
             onEnd={finish}
             onQuit={() => {
               leaveLandscape();
-              setScreen('setup');
+              setScreen(tour ? 'board' : 'setup');
             }}
           />
         )}
@@ -249,6 +311,16 @@ export function MobaGame({ collection = [], allowScanned = false, onScanned, onG
             <MobaDashboard
               result={result}
               gold={result.gold}
+              note={result.note}
+              onContinue={
+                tour
+                  ? () => {
+                      leaveLandscape();
+                      setResult(null);
+                      setScreen('board');
+                    }
+                  : null
+              }
               onReplay={() => {
                 leaveLandscape();
                 setResult(null);
@@ -281,8 +353,70 @@ export function MobaGame({ collection = [], allowScanned = false, onScanned, onG
         {screen === 'build' && <ModePicker size={size} onChange={changeMode} />}
         {screen === 'build' && <TeamBuilder collection={collection} allowScanned={allowScanned} team={team} setTeam={setTeam} onScanned={onScanned} onNext={toSetup} random={random} size={size} />}
 
+        {screen === 'board' && tour && (
+          <TournamentBoard
+            tour={tour}
+            foes={foes}
+            bonus={bonus}
+            onPlay={() => {
+              enterLandscape();
+              setRound((r) => r + 1);
+              setScreen('play');
+            }}
+            onRestart={restartTour}
+            onClose={onClose}
+          />
+        )}
+
         {screen === 'setup' && (
           <div className="px-4 pt-3 pb-5 space-y-4" data-testid="moba-setup">
+            <div>
+              <p className="text-lg font-black text-white">🎮 Chế độ chơi</p>
+              <div className="mt-2 grid grid-cols-3 gap-2" role="radiogroup" aria-label="Chế độ chơi">
+                {Object.entries(ARENA_MODES).map(([id, m]) => (
+                  <button
+                    key={id}
+                    role="radio"
+                    aria-checked={playMode === id}
+                    aria-label={m.label}
+                    onClick={() => {
+                      setPlayMode(id);
+                      setTour(null);
+                    }}
+                    className={`flex flex-col items-center py-2 px-1 rounded-2xl border-2 transition-all active:scale-95 ${playMode === id ? 'border-amber-300 bg-gradient-to-b from-amber-400 to-orange-500 text-slate-900 scale-105 shadow-lg' : 'border-white/15 bg-white/10 text-white'}`}
+                  >
+                    <span className="text-2xl leading-none">{m.icon}</span>
+                    <span className="text-sm font-black">{m.label}</span>
+                    <span className={`text-[9px] font-bold text-center leading-tight ${playMode === id ? 'text-slate-900/75' : 'text-white/60'}`}>{m.hint}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {playMode === 'single' ? (
+              <div>
+                <p className="text-lg font-black text-white">🎚️ Độ khó</p>
+                <div className="mt-2 grid grid-cols-4 gap-2" role="radiogroup" aria-label="Độ khó đấu trường">
+                  {Object.entries(ARENA_DIFFICULTY).map(([id, d]) => (
+                    <button key={id} role="radio" aria-checked={difficulty === id} aria-label={d.label} onClick={() => chooseDifficulty(id)} className={`flex flex-col items-center py-2 rounded-2xl font-black transition-all ${difficulty === id ? 'bg-amber-400 text-slate-900 scale-105 shadow-lg' : 'bg-white/10 text-white'}`}>
+                      <span className="text-xl leading-none">{d.icon}</span>
+                      <span className="text-xs">{d.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-2xl bg-black/25 p-3" data-testid="mode-schedule">
+                <p className="text-sm font-black text-white">{ARENA_MODES[playMode].icon} Lịch thi đấu (khó dần)</p>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {ARENA_MODES[playMode].schedule.map((d, i) => (
+                    <span key={i} className="px-2 py-1 rounded-xl bg-white/10 text-[11px] font-black text-white">
+                      {ARENA_MODES[playMode].rounds?.[i] || `Trận ${i + 1}`}: {ARENA_DIFFICULTY[d].icon} {ARENA_DIFFICULTY[d].label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
             <div>
               <p className="flex items-center gap-2 text-lg font-black text-white">
                 <Clock className="w-5 h-5" /> Thời gian trận đấu
@@ -312,7 +446,7 @@ export function MobaGame({ collection = [], allowScanned = false, onScanned, onG
 
             <MapPicker value={mapId} onChange={setMapId} />
 
-            <div className="rounded-2xl bg-black/30 p-3">
+            {playMode === 'single' && <div className="rounded-2xl bg-black/30 p-3">
               <p className="text-sm font-black text-rose-300">🔴 Đội đối thủ</p>
               <div className={`mt-1 flex ${foes.length > 1 ? 'justify-between' : 'justify-center'}`}>
                 {foes.map((f) => (
@@ -322,7 +456,7 @@ export function MobaGame({ collection = [], allowScanned = false, onScanned, onG
                   </span>
                 ))}
               </div>
-            </div>
+            </div>}
 
             <ul className="rounded-2xl bg-white/10 p-3 text-xs font-bold text-white/85 space-y-1">
               <li>🕹️ Kéo ngón tay ở nửa trái màn hình để di chuyển. Pokémon tự đánh thường khi đối thủ ở gần.</li>
@@ -337,7 +471,7 @@ export function MobaGame({ collection = [], allowScanned = false, onScanned, onG
                 Đổi đội
               </button>
               <button onClick={start} className="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-orange-500 via-red-500 to-purple-600 text-white text-lg font-black shadow-lg flex items-center justify-center gap-2 active:scale-95">
-                <Swords className="w-6 h-6" /> Vào trận!
+                <Swords className="w-6 h-6" /> {playMode === 'single' ? 'Vào trận!' : playMode === 'league' ? 'Bắt đầu giải đấu!' : 'Bắt đầu tranh cúp!'}
               </button>
             </div>
           </div>

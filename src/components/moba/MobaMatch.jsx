@@ -50,12 +50,12 @@ function SkillButton({ label, name, cd, max, ready, big, onPress, color, charge,
  * The arena match itself (landscape). blue / red: members { name, image, types, power }.
  * onEnd(summary) when the time is up.
  */
-export function MobaMatch({ blue, red, minutes, control = 0, mapId = 'forest', boss = null, random = Math.random, onEnd, onQuit }) {
+export function MobaMatch({ blue, red, minutes, control = 0, mapId = 'forest', boss = null, difficulty = null, random = Math.random, onEnd, onQuit }) {
   const portrait = usePortrait();
   const canvasRef = useRef(null);
   const stageRef = useRef(null);
   // boss: { id, difficulty } for the boss raid (the whole team against one boss)
-  const [initial] = useState(() => (boss ? createBossMatch({ team: blue, boss: bossById(boss.id), difficulty: boss.difficulty, duration: minutes * 60, random, control, mapId }) : createMatch({ blue, red, duration: minutes * 60, random, control, mapId })));
+  const [initial] = useState(() => (boss ? createBossMatch({ team: blue, boss: bossById(boss.id), difficulty: boss.difficulty, duration: minutes * 60, random, control, mapId }) : createMatch({ blue, red, duration: minutes * 60, random, control, mapId, difficulty })));
   const stateRef = useRef(initial);
   const fxRef = useRef(null);
   const mapRef = useRef(null);
