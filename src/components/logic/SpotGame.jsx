@@ -1,10 +1,20 @@
 import React, { useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { Lightbulb } from 'lucide-react';
-import { VIEW, HORIZON, LEVELS, CHANGE_TEXT, createSpot, tapAt, giveHint as hintOf, nextLevel, spotStars } from '../../utils/logic/spot';
-import { goldForStars } from '../../utils/gold';
+import { Lightbulb, Lock } from 'lucide-react';
+import { VIEW, HORIZON, LEVELS, TIERS, CHANGE_TEXT, createSpot, tapAt, giveHint as hintOf, levelOpen } from '../../utils/logic/spot';
+import { getProgress, recordStars, goldForLevel, totalStars } from '../../utils/progress';
 import { sounds } from '../../utils/soundEffects';
-import { KidGameShell, SessionSummary, StarRow } from '../kidgames/Common';
+import { KidGameShell, StarRow, GoldReward } from '../kidgames/Common';
+
+const GAME = 'spot';
+// Colours of the meadow for each theme
+const SCENERY = {
+  day: { sky: ['#7dd3fc', '#e0f2fe'], hill: '#4ade80', grass: ['#86efac', '#22c55e'], path: '#fde68a' },
+  sunset: { sky: ['#fb923c', '#fde68a'], hill: '#65a30d', grass: ['#bef264', '#4d7c0f'], path: '#fed7aa' },
+  night: { sky: ['#1e1b4b', '#4338ca'], hill: '#166534', grass: ['#15803d', '#14532d'], path: '#a8a29e' },
+  autumn: { sky: ['#bae6fd', '#fef3c7'], hill: '#ea580c', grass: ['#fdba74', '#c2410c'], path: '#fef3c7' },
+};
+const THEME_NAME = { day: '☀️ Ban ngày', sunset: '🌇 Hoàng hôn', night: '🌙 Ban đêm', autumn: '🍂 Mùa thu' };
 
 const darker = (hex) => {
   const n = parseInt(hex.slice(1), 16);
@@ -131,7 +141,8 @@ function Thing({ o }) {
 }
 
 /** One picture: sky, hills, meadow, the things, and the child's Pokemon in the middle. */
-function Picture({ objects, mascot, label, found, diffs, hint, misses, onTap, testId }) {
+function Picture({ objects, mascot, label, found, diffs, hint, misses, onTap, testId, theme = 'day' }) {
+  const sc = SCENERY[theme];
   const svgRef = useRef(null);
   const tap = (e) => {
     const rect = svgRef.current?.getBoundingClientRect();
@@ -140,22 +151,23 @@ function Picture({ objects, mascot, label, found, diffs, hint, misses, onTap, te
   };
   return (
     <div className="relative">
-      <span className="absolute left-2 top-2 z-10 px-2 py-0.5 rounded-full bg-white/85 text-[11px] font-black text-slate-700 shadow pointer-events-none">{label}</span>
+      <span className="block mb-0.5 px-1 text-[11px] font-black text-slate-700">{label}</span>
       <svg ref={svgRef} viewBox={`0 0 ${VIEW.w} ${VIEW.h}`} className="w-full h-auto rounded-2xl border-4 border-white shadow-xl touch-none cursor-pointer" onPointerDown={tap} data-testid={testId} role="img" aria-label={label}>
         <defs>
           <linearGradient id={`sky-${testId}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#7dd3fc" />
-            <stop offset="1" stopColor="#e0f2fe" />
+            <stop offset="0" stopColor={sc.sky[0]} />
+            <stop offset="1" stopColor={sc.sky[1]} />
           </linearGradient>
           <linearGradient id={`grass-${testId}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#86efac" />
-            <stop offset="1" stopColor="#22c55e" />
+            <stop offset="0" stopColor={sc.grass[0]} />
+            <stop offset="1" stopColor={sc.grass[1]} />
           </linearGradient>
         </defs>
         <rect width={VIEW.w} height={HORIZON + 6} fill={`url(#sky-${testId})`} />
-        <path d={`M0 ${HORIZON} Q80 ${HORIZON - 26} 160 ${HORIZON - 4} T320 ${HORIZON - 10} V${HORIZON + 10} H0 Z`} fill="#4ade80" />
+        <path d={`M0 ${HORIZON} Q80 ${HORIZON - 26} 160 ${HORIZON - 4} T320 ${HORIZON - 10} V${HORIZON + 10} H0 Z`} fill={sc.hill} />
         <rect y={HORIZON} width={VIEW.w} height={VIEW.h - HORIZON} fill={`url(#grass-${testId})`} />
-        <path d={`M120 ${VIEW.h} Q150 ${HORIZON + 50} 165 ${HORIZON + 8} Q185 ${HORIZON + 50} 215 ${VIEW.h} Z`} fill="#fde68a" opacity="0.7" />
+        <path d={`M120 ${VIEW.h} Q150 ${HORIZON + 50} 165 ${HORIZON + 8} Q185 ${HORIZON + 50} 215 ${VIEW.h} Z`} fill={sc.path} opacity="0.7" />
+        {theme === 'night' && [[30, 12], [96, 30], [150, 8], [210, 26], [280, 14], [60, 50], [250, 55]].map(([x, y]) => <circle key={`${x}-${y}`} cx={x} cy={y} r="1.2" fill="#fef9c3" opacity="0.9" />)}
         {objects.map((o) => (
           <Thing key={o.id} o={o} />
         ))}
@@ -188,17 +200,65 @@ function Picture({ objects, mascot, label, found, diffs, hint, misses, onTap, te
   );
 }
 
+/** Map of the 35 levels in three tiers, with the stars won. */
+function LevelMap({ progress, onPlay }) {
+  const next = LEVELS.findIndex((l, i) => levelOpen(progress, i) && !progress[l.id]);
+  return (
+    <div className="px-4 pt-3 pb-5 space-y-3" data-testid="spot-map">
+      <div className="flex items-center justify-between">
+        <p className="text-xl font-black text-emerald-900">Chọn màn</p>
+        <span className="px-3 py-1 rounded-full bg-white/80 text-sm font-black text-amber-600">⭐ {totalStars(progress)}/{LEVELS.length * 3}</span>
+      </div>
+      {TIERS.map((tier) => (
+        <section key={tier.id} className="rounded-3xl bg-white/60 p-3 shadow-inner" aria-label={`Màn ${tier.label}`}>
+          <p className="text-sm font-black text-emerald-900">
+            {tier.icon} {tier.label}
+            {tier.id === 'hard' && <span className="ml-1 text-xs font-bold text-rose-600">(khác nhau rất nhỏ!)</span>}
+          </p>
+          <div className="mt-2 grid grid-cols-6 gap-2">
+            {LEVELS.map((lv, i) => {
+              if (lv.tier !== tier.id) return null;
+              const open = levelOpen(progress, i);
+              const stars = Number(progress[lv.id]) || 0;
+              return (
+                <button
+                  key={lv.id}
+                  onClick={() => open && onPlay(i)}
+                  disabled={!open}
+                  aria-label={open ? `Màn ${i + 1}` : `Màn ${i + 1} (chưa mở)`}
+                  className={`relative flex flex-col items-center gap-0.5 py-1.5 rounded-2xl ${open ? 'bg-white shadow active:scale-95' : 'bg-slate-200/70'} ${i === next ? 'ring-4 ring-amber-300 hint-pulse' : ''}`}
+                >
+                  <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-black ${open ? 'bg-gradient-to-b from-emerald-400 to-green-600 text-white' : 'bg-slate-300 text-slate-500'}`}>
+                    {open ? i + 1 : <Lock className="w-4 h-4" />}
+                  </span>
+                  <StarRow stars={stars} size="w-2.5 h-2.5" />
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
 /**
  * "Tìm điểm khác nhau": two pictures of a Pokemon meadow, the second with a few changes.
- * Tap a difference on either picture to circle it on both. 5 levels, more things and more
- * differences each time; a hint lights one up (costs a bit of the stars).
+ * 35 levels (easy, medium, hard) chosen on a map; tap a difference on either picture to
+ * circle it on both. A hint lights one up (costs a bit of the stars).
  */
 export function SpotGame({ player, onClose, onGold, random = Math.random }) {
-  const [s, setS] = useState(() => createSpot({ random }));
+  const [progress, setProgress] = useState(() => getProgress(GAME));
+  const [s, setS] = useState(null); // the level being played, null on the map
+  const [reward, setReward] = useState(null);
   const [pop, setPop] = useState(null);
   const paid = useRef(false);
-  const level = LEVELS[s.level];
-  const recentMisses = s.misses.slice(-3);
+
+  const play = (level) => {
+    paid.current = false;
+    setReward(null);
+    setS(createSpot({ random, level }));
+  };
 
   const tap = (x, y) => {
     const out = tapAt(s, x, y);
@@ -207,65 +267,69 @@ export function SpotGame({ player, onClose, onGold, random = Math.random }) {
     if (out.result === 'found') {
       sounds.playCoin();
       setPop({ id: Date.now(), text: CHANGE_TEXT[out.diff.change] });
-      if (out.state.status !== 'play') {
+      if (out.state.status === 'done') {
         sounds.playSuccessFanfare();
         try {
-          confetti({ particleCount: out.state.status === 'done' ? 160 : 80, spread: 80, origin: { y: 0.4 }, zIndex: 9999 });
+          confetti({ particleCount: 100, spread: 80, origin: { y: 0.4 }, zIndex: 9999 });
         } catch {
           // decoration
         }
-        if (out.state.status === 'done' && !paid.current) {
+        if (!paid.current) {
           paid.current = true;
-          onGold?.(goldForStars(spotStars(out.state.stars)));
+          const saved = recordStars(GAME, LEVELS[out.state.level].id, out.state.stars);
+          setProgress(saved.progress);
+          const gold = goldForLevel(out.state.stars, saved.improved);
+          setReward({ gold, improved: saved.improved });
+          onGold?.(gold);
         }
       }
     } else sounds.playOops();
   };
 
   const hint = () => {
-    if (s.hint != null) return;
+    if (!s || s.hint != null) return;
     sounds.playPop();
     setS(hintOf(s));
   };
 
-  const replay = () => {
-    paid.current = false;
-    setS(createSpot({ random }));
-  };
-
-  const stars = spotStars(s.stars);
+  const level = s ? LEVELS[s.level] : null;
+  const hasNext = s && s.level + 1 < LEVELS.length;
 
   return (
     <KidGameShell
-      title="🔎 Tìm điểm khác nhau"
+      title="🔎 Điểm khác nhau"
       label="Tìm điểm khác nhau"
-      round={s.status === 'done' ? LEVELS.length : s.level}
-      rounds={LEVELS.length}
+      round={s ? s.found.length : 0}
+      rounds={s ? level.diffs : 1}
       onClose={onClose}
       background="bg-gradient-to-b from-emerald-200 via-sky-100 to-amber-100"
-      dataAttrs={{ 'data-status': s.status, 'data-level': s.level + 1, 'data-found': s.found.length }}
+      dataAttrs={{ 'data-status': s ? s.status : 'map', 'data-level': s ? s.level + 1 : 0, 'data-found': s ? s.found.length : 0 }}
     >
-      {s.status === 'done' ? (
-        <SessionSummary title="Mắt tinh như đại bàng! 🦅" stars={stars} maxStars={3} gold={goldForStars(stars)} detail={`Tìm hết ${LEVELS.reduce((a, l) => a + l.diffs, 0)} điểm khác nhau qua ${LEVELS.length} màn`} onReplay={replay} onClose={onClose} />
+      {!s ? (
+        <LevelMap progress={progress} onPlay={play} />
       ) : (
         <div className="relative px-3 pt-3 pb-4 flex flex-col gap-2">
           <div className="flex items-center gap-2">
+            <button onClick={() => setS(null)} className="px-2.5 py-1 rounded-full bg-white/85 text-xs font-black text-slate-600 shadow" aria-label="Về bản đồ màn">
+              ← Màn
+            </button>
             <span className="px-3 py-1 rounded-full bg-white/85 text-sm font-black text-emerald-700 shadow">Màn {s.level + 1}/{LEVELS.length}</span>
-            <div className="flex gap-1" aria-label={`Đã tìm ${s.found.length}/${level.diffs}`} data-testid="spot-count">
-              {Array.from({ length: level.diffs }).map((_, i) => (
-                <span key={i} className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shadow transition-all ${i < s.found.length ? 'bg-amber-400 text-white scale-110' : 'bg-white/80 text-slate-300'}`}>
-                  {i < s.found.length ? '★' : i + 1}
-                </span>
-              ))}
-            </div>
+            <span className="text-[11px] font-black text-slate-600">{THEME_NAME[s.theme]}</span>
             <button onClick={hint} disabled={s.hint != null || s.status !== 'play'} aria-label="Gợi ý" className="ml-auto px-3 py-1.5 rounded-full bg-amber-400 text-slate-900 text-sm font-black flex items-center gap-1 shadow active:scale-95 disabled:opacity-50">
               <Lightbulb className="w-4 h-4" /> Gợi ý
             </button>
           </div>
-          <p className="text-center text-sm font-black text-slate-700">Hình dưới có {level.diffs} điểm khác hình trên. Chạm vào chỗ khác nhau nhé! 👀</p>
+          <div className="flex items-center gap-1 flex-wrap" aria-label={`Đã tìm ${s.found.length}/${level.diffs}`} data-testid="spot-count">
+            {Array.from({ length: level.diffs }).map((_, i) => (
+              <span key={i} className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black shadow transition-all ${i < s.found.length ? 'bg-amber-400 text-white scale-110' : 'bg-white/80 text-slate-300'}`}>
+                {i < s.found.length ? '★' : i + 1}
+              </span>
+            ))}
+            <span className="ml-1 text-xs font-black text-slate-700">Hình dưới có {level.diffs} điểm khác hình trên 👀</span>
+          </div>
 
-          <Picture objects={s.left} mascot={player.image} label="Hình gốc" found={s.found} diffs={s.diffs} hint={s.hint} misses={recentMisses} onTap={tap} testId="spot-left" />
-          <Picture objects={s.right} mascot={player.image} label="Hình khác" found={s.found} diffs={s.diffs} hint={s.hint} misses={recentMisses} onTap={tap} testId="spot-right" />
+          <Picture objects={s.left} mascot={player.image} label="Hình gốc" found={s.found} diffs={s.diffs} hint={s.hint} misses={s.misses.slice(-3)} onTap={tap} testId="spot-left" theme={s.theme} />
+          <Picture objects={s.right} mascot={player.image} label="Hình khác" found={s.found} diffs={s.diffs} hint={s.hint} misses={s.misses.slice(-3)} onTap={tap} testId="spot-right" theme={s.theme} />
 
           {pop && (
             <div key={pop.id} className="banner-slam absolute left-1/2 top-1/2 z-20 pointer-events-none whitespace-nowrap px-4 py-1.5 rounded-2xl bg-gradient-to-r from-amber-300 to-orange-500 text-white text-xl font-black shadow-xl border-2 border-white">
@@ -273,17 +337,24 @@ export function SpotGame({ player, onClose, onGold, random = Math.random }) {
             </div>
           )}
 
-          {s.status === 'levelDone' && (
+          {s.status === 'done' && (
             <div className="absolute inset-0 z-30 flex items-center justify-center bg-slate-900/40 p-6" data-testid="spot-level-done">
-              <div className="pop-in w-full max-w-xs rounded-3xl bg-white p-5 text-center shadow-2xl">
+              <div className="pop-in w-full max-w-xs rounded-3xl bg-white p-5 text-center shadow-2xl space-y-2">
                 <p className="text-2xl font-black text-emerald-600">Mắt tinh quá! 👀</p>
-                <div className="my-2 flex justify-center">
-                  <StarRow stars={s.stars[s.stars.length - 1]} size="w-10 h-10" animate />
+                <div className="flex justify-center">
+                  <StarRow stars={s.stars} size="w-10 h-10" animate />
                 </div>
-                <p className="text-sm font-bold text-slate-600">Màn sau có nhiều đồ hơn và {LEVELS[s.level + 1].diffs} điểm khác nhau</p>
-                <button onClick={() => setS(nextLevel(s))} className="mt-3 px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-lg font-black shadow-lg active:scale-95">
-                  Màn tiếp theo ➜
-                </button>
+                {reward && <div className="flex justify-center"><GoldReward amount={reward.gold} /></div>}
+                <div className="flex gap-2 justify-center pt-1">
+                  <button onClick={() => setS(null)} className="px-4 py-2.5 rounded-2xl bg-slate-200 text-slate-700 font-black active:scale-95">
+                    Bản đồ
+                  </button>
+                  {hasNext && (
+                    <button onClick={() => play(s.level + 1)} className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-black shadow-lg active:scale-95">
+                      Màn tiếp theo ➜
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           )}

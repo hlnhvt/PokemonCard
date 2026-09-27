@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { LANES, LANE_INFO, FALL_TIME, RHYTHM_SONGS, createRun, tapLane, sweepMisses, rhythmStars, accuracy } from '../../utils/logic/rhythm';
-import { songById, NOTES } from '../../utils/logic/music';
-import { goldForStars } from '../../utils/gold';
+import { LANES, LANE_INFO, RHYTHM_LEVELS, TIERS, SPEEDS, levelOpen, speedValue, levelTitle, createRun, tapLane, sweepMisses, rhythmStars, accuracy } from '../../utils/logic/rhythm';
+import { NOTES } from '../../utils/logic/music';
+import { getProgress, recordStars, goldForLevel, totalStars } from '../../utils/progress';
 import { sounds } from '../../utils/soundEffects';
-import { KidGameShell, SessionSummary } from '../kidgames/Common';
+import { KidGameShell, SessionSummary, StarRow } from '../kidgames/Common';
 import { useLoop, useLater, useCanvas, burst, updateParticles } from '../sports/sportsKit';
 
 const W = 360;
@@ -12,7 +12,17 @@ const H = 520;
 const RING_Y = 440;
 const LANE_W = W / LANES;
 const JUDGE_TEXT = { perfect: { text: 'PERFECT!', cls: 'text-amber-300' }, good: { text: 'GOOD', cls: 'text-sky-300' }, miss: { text: 'MISS', cls: 'text-slate-300' } };
-const SONG_ICONS = { hotcross: '🥐', twinkle: '⭐', mary: '🐑', joy: '🎉' };
+const SONG_ICONS = { hotcross: '🥐', twinkle: '⭐', mary: '🐑', joy: '🎉', clair: '🌙', oldmac: '🐄', london: '🌉', row: '🚣', jingle: '🔔', twinklefull: '🌟' };
+const GAME = 'rhythm';
+const SPEED_KEY = 'pokescan_rhythm_speed';
+const readSpeed = () => {
+  try {
+    const id = localStorage.getItem(SPEED_KEY);
+    return SPEEDS.some((s) => s.id === id) ? id : 'normal';
+  } catch {
+    return 'normal';
+  }
+};
 const KEYS = { ArrowLeft: 0, ArrowDown: 1, ArrowUp: 2, ArrowRight: 3, d: 0, f: 1, j: 2, k: 3 };
 
 const laneX = (lane) => LANE_W * (lane + 0.5);
@@ -72,6 +82,9 @@ export function RhythmGame({ player, onClose, onGold }) {
   const canvasRef = useRef(null);
   const getCtx = useCanvas(canvasRef, W, H);
   const [screen, setScreen] = useState('pick'); // pick | play | done
+  const [speed, setSpeed] = useState(readSpeed);
+  const [progress, setProgress] = useState(() => getProgress(GAME));
+  const [reward, setReward] = useState(null);
   const [ui, setUi] = useState({ combo: 0, score: 0, judge: null, run: null });
   const [pressed, setPressed] = useState(-1);
   const game = useRef(null);
@@ -80,7 +93,7 @@ export function RhythmGame({ player, onClose, onGold }) {
 
   const start = (songId) => {
     paid.current = false;
-    game.current = { run: createRun(songId), t: 0, particles: [], flash: Array(LANES).fill(0), lastNote: -1 };
+    game.current = { run: createRun(songId, { speed: speedValue(speed) }), t: 0, particles: [], flash: Array(LANES).fill(0), lastNote: -1 };
     setUi({ combo: 0, score: 0, judge: null, run: game.current.run });
     setScreen('play');
   };
@@ -126,7 +139,12 @@ export function RhythmGame({ player, onClose, onGold }) {
     const stars = rhythmStars(run);
     if (!paid.current) {
       paid.current = true;
-      onGold?.(goldForStars(stars));
+      const saved = recordStars(GAME, run.levelId, stars);
+      setProgress(saved.progress);
+      // Faster than normal pays a little more the first time
+      const gold = Math.round(goldForLevel(stars, saved.improved) * (saved.improved ? Math.max(1, run.speed) : 1));
+      setReward({ gold, improved: saved.improved });
+      onGold?.(gold);
     }
     sounds.playSuccessFanfare();
     try {
@@ -188,7 +206,7 @@ export function RhythmGame({ player, onClose, onGold }) {
     // Falling notes (with a trail)
     for (const n of g.run.chart) {
       if (g.run.judged[n.id]) continue;
-      const k = 1 - (n.time - g.t) / FALL_TIME;
+      const k = 1 - (n.time - g.t) / g.run.fall;
       if (k < 0 || k > 1.25) continue;
       const y = RING_Y * k;
       const x = laneX(n.lane);
@@ -228,23 +246,68 @@ export function RhythmGame({ player, onClose, onGold }) {
       dataAttrs={{ 'data-screen': screen, 'data-combo': ui.combo, 'data-score': ui.score }}
     >
       {screen === 'pick' && (
-        <div className="px-4 py-5 space-y-3">
+        <div className="px-4 py-4 space-y-3" data-testid="rhythm-map">
           <div className="flex items-center gap-3">
-            <img src={player.image} alt={player.name} className="w-20 h-20 object-contain drop-shadow-xl dance-bob" />
-            <p className="bubble-pop px-4 py-2 rounded-3xl bg-white text-base font-black text-purple-800 shadow">Chạm đúng lúc nốt nhạc rơi vào vòng tròn nhé! 🎶</p>
+            <img src={player.image} alt={player.name} className="w-16 h-16 object-contain drop-shadow-xl dance-bob" />
+            <p className="bubble-pop flex-1 px-4 py-2 rounded-3xl bg-white text-sm font-black text-purple-800 shadow">Chạm đúng lúc nốt nhạc rơi vào vòng tròn nhé! 🎶</p>
+            <span className="shrink-0 px-2 py-1 rounded-full bg-white/90 text-xs font-black text-amber-600">⭐ {totalStars(progress)}/{RHYTHM_LEVELS.length * 3}</span>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            {RHYTHM_SONGS.map((s, i) => {
-              const song = songById(s.id);
-              return (
-                <button key={s.id} onClick={() => start(s.id)} aria-label={`Nhảy bài ${song.title}`} className="pop-in p-3 rounded-3xl bg-white/95 shadow-lg text-left active:scale-95" style={{ animationDelay: `${i * 70}ms` }}>
-                  <span className="text-4xl">{SONG_ICONS[s.id]}</span>
-                  <p className="mt-1 text-base font-black text-purple-800 leading-tight">{song.title}</p>
-                  <p className="text-xs font-bold text-fuchsia-600">{song.melody.length} nốt · {['Dễ', 'Dễ', 'Vừa', 'Khó'][i]}</p>
+          <div className="rounded-3xl bg-white/10 p-2">
+            <p className="px-1 text-sm font-black text-white">Tốc độ</p>
+            <div className="mt-1 grid grid-cols-4 gap-1.5" role="radiogroup" aria-label="Tốc độ">
+              {SPEEDS.map((s) => (
+                <button
+                  key={s.id}
+                  role="radio"
+                  aria-checked={speed === s.id}
+                  aria-label={s.label}
+                  onClick={() => {
+                    setSpeed(s.id);
+                    try {
+                      localStorage.setItem(SPEED_KEY, s.id);
+                    } catch {
+                      // ignore
+                    }
+                  }}
+                  className={`flex flex-col items-center py-1.5 rounded-2xl font-black transition-all active:scale-95 ${speed === s.id ? 'bg-gradient-to-b from-amber-300 to-orange-500 text-slate-900 scale-105 shadow-lg' : 'bg-white/10 text-white'}`}
+                >
+                  <span className="text-xl leading-none">{s.icon}</span>
+                  <span className="text-[11px]">{s.label}</span>
+                  <span className="text-[9px] opacity-75">×{s.value}</span>
                 </button>
-              );
-            })}
+              ))}
+            </div>
           </div>
+          {TIERS.map((tier) => (
+            <section key={tier.id} className="rounded-3xl bg-white/10 p-2" aria-label={`Màn ${tier.label}`}>
+              <p className="px-1 text-sm font-black text-white">
+                {tier.icon} {tier.label}
+              </p>
+              <div className="mt-1.5 grid grid-cols-4 gap-2">
+                {RHYTHM_LEVELS.map((lv, i) => {
+                  if (lv.tier !== tier.id) return null;
+                  const open = levelOpen(progress, i);
+                  const stars = Number(progress[lv.id]) || 0;
+                  const title = levelTitle(lv);
+                  return (
+                    <button
+                      key={lv.id}
+                      onClick={() => open && start(lv.id)}
+                      disabled={!open}
+                      aria-label={open ? `Nhảy bài ${title}` : `Màn ${i + 1} (chưa mở)`}
+                      title={title}
+                      className={`relative flex flex-col items-center p-1.5 rounded-2xl transition-transform ${open ? 'bg-white/95 shadow-lg active:scale-95' : 'bg-white/20 opacity-60'}`}
+                    >
+                      <span className="absolute left-1 top-0.5 text-[10px] font-black text-purple-400">{i + 1}</span>
+                      <span className="text-2xl leading-none mt-1">{open ? SONG_ICONS[lv.songId] : '🔒'}</span>
+                      <span className="w-full text-center text-[9px] font-black text-purple-800 leading-tight line-clamp-2 min-h-[22px]">{title}</span>
+                      <StarRow stars={stars} size="w-3 h-3" />
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
         </div>
       )}
 
@@ -254,8 +317,8 @@ export function RhythmGame({ player, onClose, onGold }) {
             title={stars === 3 ? 'Siêu sao nhảy múa! 🌟' : 'Nhảy giỏi lắm! 💃'}
             stars={stars}
             maxStars={3}
-            gold={goldForStars(stars)}
-            detail={`Perfect ${run.counts.perfect} · Good ${run.counts.good} · Miss ${run.counts.miss} · Combo cao nhất ${run.maxCombo} · Chính xác ${Math.round(accuracy(run) * 100)}%`}
+            gold={reward?.gold ?? 0}
+            detail={`${levelTitle(RHYTHM_LEVELS.find((l) => l.id === run.levelId))} · tốc độ ×${run.speed} · Perfect ${run.counts.perfect} · Good ${run.counts.good} · Miss ${run.counts.miss} · Combo cao nhất ${run.maxCombo} · Chính xác ${Math.round(accuracy(run) * 100)}%`}
             onReplay={() => setScreen('pick')}
             onClose={onClose}
           />

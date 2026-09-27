@@ -14,28 +14,78 @@ export const LANE_INFO = [
 export const FALL_TIME = 2.2;
 export const WINDOWS = { perfect: 0.13, good: 0.28 };
 export const POINTS = { perfect: 100, good: 60 };
-// Songs used, slower than in the music game
-export const RHYTHM_SONGS = [
-  { id: 'hotcross', speed: 0.8 },
-  { id: 'twinkle', speed: 0.8 },
-  { id: 'mary', speed: 0.85 },
-  { id: 'joy', speed: 0.85 },
+// Playing speed the child picks: the song and the falling notes both go faster or slower
+export const SPEEDS = [
+  { id: 'slow', label: 'Chậm', icon: '🐢', value: 0.75 },
+  { id: 'normal', label: 'Vừa', icon: '🚶', value: 1 },
+  { id: 'fast', label: 'Nhanh', icon: '🏃', value: 1.25 },
+  { id: 'turbo', label: 'Siêu tốc', icon: '⚡', value: 1.5 },
 ];
+export const speedValue = (id) => (SPEEDS.find((s) => s.id === id) || SPEEDS[1]).value;
+
+export const TIERS = [
+  { id: 'easy', label: 'Dễ', icon: '🌱' },
+  { id: 'medium', label: 'Vừa', icon: '🔥' },
+  { id: 'hard', label: 'Khó', icon: '👑' },
+];
+export const VARIANT_TEXT = { normal: '', mirror: 'đảo chiều', shift: 'đổi làn', dense: 'dồn nốt', chord: 'hợp âm' };
+
+// 34 levels: the first four are the original dances (same ids), then 30 more from all the
+// songs, with variants: mirror (lanes flipped), shift (lanes moved over), dense (long notes
+// split in two), chord (every 4th note also lights a second lane at the same time).
+const L = (songId, speed, variant, tier) => ({ id: variant === 'normal' ? songId : `${songId}-${variant}`, songId, speed, variant, tier });
+export const RHYTHM_LEVELS = [
+  L('hotcross', 0.8, 'normal', 'easy'), L('twinkle', 0.8, 'normal', 'easy'), L('clair', 0.8, 'normal', 'easy'), L('hotcross', 0.85, 'mirror', 'easy'),
+  L('twinkle', 0.85, 'shift', 'easy'), L('clair', 0.85, 'mirror', 'easy'), L('oldmac', 0.8, 'normal', 'easy'), L('mary', 0.85, 'normal', 'easy'),
+  L('london', 0.8, 'normal', 'easy'), L('oldmac', 0.85, 'shift', 'easy'), L('row', 0.8, 'normal', 'easy'), L('jingle', 0.8, 'normal', 'easy'),
+  L('joy', 0.85, 'normal', 'medium'), L('mary', 0.95, 'mirror', 'medium'), L('london', 0.95, 'shift', 'medium'), L('row', 0.95, 'mirror', 'medium'),
+  L('jingle', 0.95, 'shift', 'medium'), L('twinklefull', 0.9, 'normal', 'medium'), L('hotcross', 0.95, 'dense', 'medium'), L('clair', 0.95, 'dense', 'medium'),
+  L('oldmac', 1, 'dense', 'medium'), L('joy', 1, 'mirror', 'medium'), L('twinkle', 1, 'dense', 'medium'),
+  L('mary', 1.05, 'dense', 'hard'), L('london', 1.05, 'dense', 'hard'), L('row', 1.1, 'dense', 'hard'), L('jingle', 1.1, 'dense', 'hard'),
+  L('joy', 1.1, 'dense', 'hard'), L('twinklefull', 1.1, 'shift', 'hard'), L('hotcross', 1.1, 'chord', 'hard'), L('twinkle', 1.15, 'chord', 'hard'),
+  L('mary', 1.15, 'chord', 'hard'), L('jingle', 1.2, 'chord', 'hard'), L('twinklefull', 1.2, 'chord', 'hard'),
+];
+// The original four (kept for the tests and saved progress)
+export const RHYTHM_SONGS = RHYTHM_LEVELS.filter((l) => ['hotcross', 'twinkle', 'mary', 'joy'].includes(l.id));
+export const levelById = (id) => RHYTHM_LEVELS.find((l) => l.id === id) || RHYTHM_LEVELS[0];
+/** Display name of a level: the song, plus its variant ("đảo chiều", "hợp âm"...). */
+export const levelTitle = (lv) => `${songById(lv.songId).title}${VARIANT_TEXT[lv.variant] ? ` (${VARIANT_TEXT[lv.variant]})` : ''}`;
+
+/** A level is open when it starts its tier or the level before has a star. */
+export function levelOpen(progress, index) {
+  const lv = RHYTHM_LEVELS[index];
+  if (index === 0 || RHYTHM_LEVELS[index - 1].tier !== lv.tier) return true;
+  return (Number(progress[RHYTHM_LEVELS[index - 1].id]) || 0) > 0;
+}
 
 /** Lane of a note: the melody's pitch folded onto 4 lanes (low left, high right). */
 export const laneOf = (note) => Math.min(LANES - 1, Math.floor((note / 8) * LANES));
 
-/** The chart: [{ id, time, lane, note }] starting after a short lead-in. */
-export function makeChart(songId, lead = 2.5) {
-  const cfg = RHYTHM_SONGS.find((s) => s.id === songId) || RHYTHM_SONGS[0];
-  const song = songById(cfg.id);
-  const times = noteTimes({ ...song, tempo: song.tempo * cfg.speed });
-  return times.map((n, id) => ({ id, time: lead + n.start, lane: laneOf(n.note), note: n.note }));
+const moveLane = (lane, variant) => (variant === 'mirror' ? LANES - 1 - lane : variant === 'shift' ? (lane + 1) % LANES : lane);
+
+/**
+ * The chart of a level: [{ id, time, lane, note }] after a lead-in long enough to see the
+ * first note fall. speed (0.75..1.5) makes the song faster or slower.
+ */
+export function makeChart(levelId, { speed = 1, lead } = {}) {
+  const lv = levelById(levelId);
+  const song = songById(lv.songId);
+  let melody = song.melody;
+  if (lv.variant === 'dense') melody = melody.flatMap((n) => (n.beats >= 2 ? [{ ...n, beats: n.beats / 2 }, { ...n, beats: n.beats / 2 }] : [n]));
+  const times = noteTimes({ ...song, melody, tempo: song.tempo * lv.speed * speed });
+  const start = lead ?? Math.max(2.5, FALL_TIME / speed + 0.4);
+  const chart = [];
+  times.forEach((n, i) => {
+    const lane = moveLane(laneOf(n.note), lv.variant);
+    chart.push({ id: chart.length, time: start + n.start, lane, note: n.note });
+    if (lv.variant === 'chord' && i % 4 === 3) chart.push({ id: chart.length, time: start + n.start, lane: (lane + 2) % LANES, note: Math.min(7, n.note + 2) });
+  });
+  return chart;
 }
 
-export function createRun(songId) {
-  const chart = makeChart(songId);
-  return { songId, chart, judged: {}, score: 0, combo: 0, maxCombo: 0, counts: { perfect: 0, good: 0, miss: 0 }, done: false, end: chart[chart.length - 1].time + 1.5 };
+export function createRun(levelId, { speed = 1 } = {}) {
+  const chart = makeChart(levelId, { speed });
+  return { songId: levelById(levelId).songId, levelId, speed, fall: FALL_TIME / speed, chart, judged: {}, score: 0, combo: 0, maxCombo: 0, counts: { perfect: 0, good: 0, miss: 0 }, done: false, end: chart[chart.length - 1].time + 1.5 };
 }
 
 /**

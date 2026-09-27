@@ -5,7 +5,9 @@ import { OddOneGame } from './OddOneGame';
 import { SpotGame } from './SpotGame';
 import { LOGIC_GAMES } from './index';
 import { QUESTIONS, oddStars } from '../../utils/logic/oddone';
-import { LEVELS, createSpot, tapAt, nextLevel, spotStars } from '../../utils/logic/spot';
+import { createSpot, levelStars } from '../../utils/logic/spot';
+import { RhythmGame } from './RhythmGame';
+import { getProgress } from '../../utils/progress';
 import { goldForStars } from '../../utils/gold';
 import { sounds } from '../../utils/soundEffects';
 import { seeded } from '../../test/seeded';
@@ -52,32 +54,59 @@ describe('new thinking games', () => {
     expect(onGold).toHaveBeenCalledWith(goldForStars(oddStars(1)));
   });
 
-  it('NG2-02 spot the difference: a miss shows a cross, a hint lights one up, found ones are circled; 5 levels, gold once', async () => {
+  it('NG2-02 spot the difference: a map of 35 levels; a level with a miss, a hint and all found; stars saved, the next level opens', async () => {
+    localStorage.removeItem('pokescan_progress_v1');
     vi.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({ left: 0, top: 0, width: 320, height: 220, right: 320, bottom: 220, x: 0, y: 0 });
     const onGold = vi.fn();
     render(<SpotGame player={PLAYER} onClose={vi.fn()} onGold={onGold} random={seeded(4)} />);
-    let mirror = createSpot({ random: seeded(4) });
-    // A miss in the sky corner
+    const map = screen.getByTestId('spot-map');
+    expect(within(map).getAllByRole('button')).toHaveLength(35);
+    expect(within(map).getByRole('button', { name: 'Màn 2 (chưa mở)' })).toBeDisabled();
+    expect(within(map).getByRole('button', { name: 'Màn 13' })).toBeEnabled(); // each tier starts open
+    fireEvent.click(within(map).getByRole('button', { name: 'Màn 1' }));
+    const mirror = createSpot({ random: seeded(4), level: 0 });
     fireEvent.pointerDown(screen.getByTestId('spot-left'), { clientX: 2, clientY: 2 });
-    mirror = tapAt(mirror, 2, 2).state;
     expect(screen.getByTestId('spot-left').querySelectorAll('.spot-miss')).toHaveLength(1);
     fireEvent.click(screen.getByRole('button', { name: 'Gợi ý' }));
     expect(screen.getByTestId('spot-right').querySelectorAll('.spot-hint')).toHaveLength(1);
-    for (let lv = 0; lv < LEVELS.length; lv++) {
-      for (const d of mirror.diffs) {
-        fireEvent.pointerDown(screen.getByTestId(lv % 2 ? 'spot-left' : 'spot-right'), { clientX: d.x, clientY: d.y });
-        mirror = tapAt(mirror, d.x, d.y).state;
-      }
-      if (lv < LEVELS.length - 1) {
-        expect(screen.getByTestId('spot-level-done')).toBeInTheDocument();
-        fireEvent.click(screen.getByText('Màn tiếp theo ➜'));
-        mirror = nextLevel(mirror);
-        expect(dialog().dataset.level).toBe(String(lv + 2));
-        expect(screen.getByTestId('spot-left').querySelectorAll('.spot-ring')).toHaveLength(0);
-      }
-    }
-    expect(dialog().dataset.status).toBe('done');
+    for (const d of mirror.diffs) fireEvent.pointerDown(screen.getByTestId('spot-right'), { clientX: d.x, clientY: d.y });
+    expect(screen.getByTestId('spot-level-done')).toBeInTheDocument();
+    expect(getProgress('spot').s1).toBe(levelStars(1, 1));
     expect(onGold).toHaveBeenCalledTimes(1);
-    expect(onGold).toHaveBeenCalledWith(goldForStars(spotStars(mirror.stars)));
+    fireEvent.click(screen.getByText('Màn tiếp theo ➜'));
+    expect(dialog().dataset.level).toBe('2');
+    fireEvent.click(screen.getByRole('button', { name: 'Về bản đồ màn' }));
+    expect(within(screen.getByTestId('spot-map')).getByRole('button', { name: 'Màn 2' })).toBeEnabled();
+    localStorage.removeItem('pokescan_progress_v1');
+  });
+
+  it('NG2-03 rhythm: 34 levels on the map, 4 speeds; a faster speed is used in the run and remembered; stars saved', async () => {
+    localStorage.removeItem('pokescan_progress_v1');
+    localStorage.removeItem('pokescan_rhythm_speed');
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+    vi.spyOn(sounds, 'playNote').mockImplementation(() => {});
+    const onGold = vi.fn();
+    render(<RhythmGame player={PLAYER} onClose={vi.fn()} onGold={onGold} />);
+    const map = screen.getByTestId('rhythm-map');
+    const levels = within(map).getAllByRole('button').filter((b) => b.closest('section'));
+    expect(levels).toHaveLength(34);
+    const speeds = screen.getByRole('radiogroup', { name: 'Tốc độ' });
+    expect(within(speeds).getByRole('radio', { name: 'Vừa' })).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(within(speeds).getByRole('radio', { name: 'Siêu tốc' }));
+    expect(localStorage.getItem('pokescan_rhythm_speed')).toBe('turbo');
+    expect(within(map).getByRole('button', { name: 'Màn 2 (chưa mở)' })).toBeDisabled();
+    fireEvent.click(within(map).getByRole('button', { name: 'Nhảy bài Bánh nóng giòn' }));
+    // Nobody taps: the whole song passes much faster than at normal speed
+    for (let t = 0; t < 30000 && dialog().dataset.screen !== 'done'; t += 250) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(250);
+      });
+    }
+    expect(dialog().dataset.screen).toBe('done');
+    expect(screen.getByText(/tốc độ ×1.5/)).toBeInTheDocument();
+    expect(getProgress('rhythm').hotcross).toBe(1);
+    expect(onGold).toHaveBeenCalledTimes(1);
+    localStorage.removeItem('pokescan_progress_v1');
+    localStorage.removeItem('pokescan_rhythm_speed');
   });
 });

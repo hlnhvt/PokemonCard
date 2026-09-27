@@ -5,13 +5,29 @@
 
 export const VIEW = { w: 320, h: 220 };
 export const HORIZON = 92; // sky above, meadow below
-export const LEVELS = [
-  { objects: 10, diffs: 3 },
-  { objects: 12, diffs: 4 },
-  { objects: 14, diffs: 5 },
-  { objects: 16, diffs: 5 },
-  { objects: 18, diffs: 6 },
+// 35 levels in three tiers: more things and more differences, and from the hard tier the
+// changes get subtle (a little bigger or smaller instead of much). The meadow changes too:
+// day, sunset, night, autumn.
+export const TIERS = [
+  { id: 'easy', label: 'Dễ', icon: '🌱' },
+  { id: 'medium', label: 'Vừa', icon: '🔥' },
+  { id: 'hard', label: 'Khó', icon: '👑' },
 ];
+export const THEMES = ['day', 'sunset', 'night', 'autumn'];
+export const LEVELS = Array.from({ length: 35 }, (_, i) => ({
+  id: `s${i + 1}`,
+  tier: i < 12 ? 'easy' : i < 24 ? 'medium' : 'hard',
+  objects: 8 + Math.round(i * 0.42),
+  diffs: 3 + Math.floor(i / 7),
+  subtle: i >= 24,
+  theme: THEMES[Math.floor(i / 3) % THEMES.length],
+}));
+
+/** A level is open when it starts its tier or the level before has a star. */
+export function levelOpen(progress, index) {
+  if (index === 0 || LEVELS[index - 1].tier !== LEVELS[index].tier) return true;
+  return (Number(progress[LEVELS[index - 1].id]) || 0) > 0;
+}
 
 // kind: where it may stand (sky / ground), its size, the colours it comes in
 export const KINDS = {
@@ -66,7 +82,7 @@ export function makeScene(levelIndex, random = Math.random) {
 }
 
 /** Copy of the scene with `count` changes; returns the right picture and where the changes are. */
-export function makeDifferences(scene, count, random = Math.random) {
+export function makeDifferences(scene, count, random = Math.random, { subtle = false } = {}) {
   const right = scene.objects.map((o) => ({ ...o }));
   const diffs = [];
   const chosen = [...scene.objects].sort(() => random() - 0.5);
@@ -83,7 +99,7 @@ export function makeDifferences(scene, count, random = Math.random) {
     const hit = { x: o.x, y: o.y, r: Math.max(16, o.size * 1.1) };
     if (change === 'gone') right.splice(i, 1);
     else if (change === 'color') right[i].color = pick(k.colors.filter((c) => c !== o.color), random);
-    else if (change === 'size') right[i].size = o.size * (random() < 0.5 ? 1.55 : 0.6);
+    else if (change === 'size') right[i].size = o.size * (random() < 0.5 ? (subtle ? 1.35 : 1.55) : subtle ? 0.72 : 0.6);
     else if (change === 'flip') right[i].flip = !o.flip;
     else if (change === 'swap') {
       right[i].kind = SWAP[o.kind];
@@ -102,14 +118,12 @@ export function makeDifferences(scene, count, random = Math.random) {
   return { right, diffs };
 }
 
-function newLevel(level, random) {
+/** One level: the two pictures and the differences. status: play | done */
+export function createSpot({ random = Math.random, level = 0 } = {}) {
+  const lv = LEVELS[level];
   const scene = makeScene(level, random);
-  const { right, diffs } = makeDifferences(scene, LEVELS[level].diffs, random);
-  return { left: scene.objects, right, diffs, found: [], misses: [], mistakes: 0, hints: 0, hint: null };
-}
-
-export function createSpot({ random = Math.random } = {}) {
-  return { random, level: 0, stars: [], status: 'play', ...newLevel(0, random) }; // play | levelDone | done
+  const { right, diffs } = makeDifferences(scene, lv.diffs, random, { subtle: lv.subtle });
+  return { random, level, theme: lv.theme, status: 'play', stars: 0, left: scene.objects, right, diffs, found: [], misses: [], mistakes: 0, hints: 0, hint: null };
 }
 
 /** A tap at (x, y) in picture coordinates (either picture). */
@@ -122,8 +136,8 @@ export function tapAt(s, x, y) {
     const done = found.length === s.diffs.length;
     const next = { ...s, found, hint: s.hint === d.id ? null : s.hint };
     if (done) {
-      next.stars = [...s.stars, levelStars(s.mistakes, s.hints)];
-      next.status = s.level === LEVELS.length - 1 ? 'done' : 'levelDone';
+      next.stars = levelStars(s.mistakes, s.hints);
+      next.status = 'done';
     }
     return { state: next, result: 'found', diff: d };
   }
@@ -137,15 +151,8 @@ export function giveHint(s) {
   return d ? { ...s, hints: s.hints + 1, hint: d.id } : s;
 }
 
-export function nextLevel(s) {
-  if (s.status !== 'levelDone') return s;
-  const level = s.level + 1;
-  return { ...s, level, status: 'play', ...newLevel(level, s.random) };
-}
-
 /** Stars of a level: 3 with at most one slip, 2 up to four, else 1 (a hint counts as two slips). */
 export const levelStars = (mistakes, hints) => {
   const slips = mistakes + hints * 2;
   return slips <= 1 ? 3 : slips <= 4 ? 2 : 1;
 };
-export const spotStars = (stars) => (stars.length ? Math.round(stars.reduce((a, b) => a + b, 0) / stars.length) : 1);

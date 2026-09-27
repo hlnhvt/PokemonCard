@@ -1142,3 +1142,40 @@ Cả 3 trò nằm trong nhóm "🏆 Thi đấu thể thao" (tab Trò chơi và t
 | BT-COMBO | P1 | AUTO | 5 đòn của đối thủ: thanh tuyệt kỹ vẫn 0; bé đánh trúng thì tăng đúng mức | Đạt |
 | TM-04, TM-06 | P1 | AUTO | Cân bằng trận đội vẫn trong khoảng mục tiêu | Đạt |
 | MB-05, MB-09 | P1 | AUTO | Cân bằng Đấu trường vẫn trong khoảng mục tiêu | Đạt |
+
+---
+
+## 37. Nhảy theo nhạc: 34 màn và chọn tốc độ; Tìm điểm khác nhau: 35 màn (2026-09-27)
+
+**💃 Nhảy theo nhạc** (`utils/logic/rhythm.js`, `RhythmGame.jsx`):
+- **34 màn** (4 màn cũ giữ nguyên mã, cộng 30 màn mới) từ 10 bài hát, chia 3 nhóm:
+  - 🌱 Dễ (12 màn): tốc độ bài 0,8–0,85.
+  - 🔥 Vừa (11 màn): 0,85–1.
+  - 👑 Khó (11 màn): 1,05–1,2.
+- **Biến thể làm màn khó hơn:**
+  - Đảo chiều: đổi làn trái ↔ phải.
+  - Đổi làn: mọi nốt dời sang làn bên cạnh.
+  - Dồn nốt: nốt dài tách thành 2 nốt ngắn.
+  - Hợp âm: cứ 4 nốt có 1 lần sáng 2 làn cùng lúc (không bao giờ trùng một làn).
+- **Chọn tốc độ:** 🐢 Chậm ×0,75, 🚶 Vừa ×1, 🏃 Nhanh ×1,25, ⚡ Siêu tốc ×1,5.
+  - Tốc độ đổi cả nhịp bài lẫn tốc độ nốt rơi. Nốt đầu tiên luôn được thấy rơi từ trên xuống.
+  - Lựa chọn được nhớ trong `pokescan_rhythm_speed`.
+- **Bản đồ màn:** ô nào cũng có tên bài và số sao đã đạt. Màn đầu mỗi nhóm luôn mở; màn sau mở khi màn trước có ít nhất 1 sao.
+- Sao lưu theo màn (`progress.rhythm`). Vàng: lần đầu hoặc khi đạt thêm sao được thưởng đủ (nhân với tốc độ nếu nhanh hơn Vừa); chơi lại được +2.
+
+**🔎 Tìm điểm khác nhau** (`utils/logic/spot.js`, `SpotGame.jsx`):
+- **35 màn chọn trên bản đồ:** 🌱 Dễ 1–12, 🔥 Vừa 13–24, 👑 Khó 25–35.
+  - Số đồ vật tăng từ 8 lên 22, số điểm khác tăng từ 3 lên 7.
+  - Nhóm Khó có điểm khác "rất nhỏ": to / nhỏ chỉ chênh ×1,35 / ×0,72 thay vì ×1,55 / ×0,6.
+- **4 khung cảnh** thay nhau mỗi 3 màn: ☀️ ngày, 🌇 hoàng hôn, 🌙 đêm (có sao), 🍂 mùa thu.
+- Mỗi màn chơi riêng, có nút "← Màn" (về bản đồ) và "Màn tiếp theo ➜". Sao và vàng lưu theo màn (`progress.spot`), cách mở màn giống Nhảy theo nhạc.
+- **Sửa lỗi:** nhãn "Hình gốc / Hình khác" trước đây che mất đồ vật ở góc trên bên trái. Nếu điểm khác nằm ở đó thì bé không thể tìm được. Nay nhãn nằm phía trên hình.
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| RH-05 | P1 | AUTO | 34 màn, 3 nhóm, nhóm sau nhanh hơn; mọi màn: làn hợp lệ, thời gian tăng dần, nốt cùng lúc chỉ ở màn hợp âm và khác làn; chơi hoàn hảo được 3 sao | Đạt |
+| RH-06 | P1 | AUTO | Tốc độ ×1,5 làm bài nhanh gấp đôi ×0,75, nốt rơi nhanh hơn, nốt đầu luôn thấy rơi; luật mở màn | Đạt |
+| SP-02, SP-03 | P1 | AUTO | Một màn: đúng / sai / gợi ý / xong có sao; 35 màn (12 / 12 / 11), tăng dần, nhóm Khó điểm khác nhỏ, 4 khung cảnh, màn nào cũng tạo đủ điểm khác | Đạt |
+| NG2-02 | P1 | AUTO | Bản đồ 35 màn (màn 2 khóa, màn 13 mở); chơi màn 1 xong thì lưu sao, vàng 1 lần, màn 2 mở | Đạt |
+| NG2-03 | P1 | AUTO | Bản đồ 34 màn, 4 tốc độ, chọn Siêu tốc (được nhớ, dùng trong bài), xong bài lưu sao | Đạt |
+| UI-26 | P1 | MANUAL (Chrome) | Bản đồ Nhảy theo nhạc, màn hợp âm tốc độ Nhanh, bản đồ Tìm điểm khác nhau, màn 13 và màn 25 | Đúng, không lỗi JS |
