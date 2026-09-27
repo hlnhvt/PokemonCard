@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { createMiner, stepMiner, fire, blast, nextLevel, hookDir, makeItems, minerResult, LEVELS, ORIGIN, ITEM_KINDS } from './goldminer';
 import { createArchery, stepArchery, shoot, rivalAim, targetAt, sway, ringScore, totals, ROUNDS, WIND_PUSH, FLIGHT_TIME } from './archery';
-import { createRedLight, stepRedLight, playerOf, redLightResult, TRACK, GRACE } from './redlight';
+import { createRedLight, stepRedLight, playerOf, redLightResult, TRACK, GRACE, DURATIONS } from './redlight';
 import { seeded } from '../../test/seeded';
 
 const DT = 1 / 60;
@@ -255,6 +255,10 @@ describe('red light, green light', () => {
     expect(fakeThenFake).toBe(0);
     expect(outs).toBeGreaterThan(0);
     expect(TRACK).toBeGreaterThanOrEqual(1800);
+    // The 50 s race: half the track and half the time
+    const short = createRedLight({ random: seeded(9), duration: 50 });
+    expect([short.track, short.limit]).toEqual([DURATIONS[50].track, 50]);
+    expect(short.track).toBeLessThan(TRACK * 0.55);
   });
 
   it('RL-03 a child letting go 0.15 s after the turn usually wins; one who never stops is caught', () => {

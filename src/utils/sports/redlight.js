@@ -2,12 +2,14 @@
 // sings with its back turned. When it turns round (red light) anyone still moving is out.
 // First over the line wins. Pure rules; `random` is injectable for tests.
 
-export const TRACK = 1900; // distance from the start line to the finish line
+export const TRACK = 1900; // distance from the start line to the finish line (100 s race)
 export const RUN_SPEED = 118; // the child's Pokemon, per second
 export const GRACE = 0.28; // seconds after the doll faces you before moving counts
 export const TURN_TIME = 0.55; // the doll turning round at the start (warning); quicker later
 export const MIN_TURN_TIME = 0.36;
 export const TIME_LIMIT = 100;
+// Race lengths the child can choose: time limit and track length
+export const DURATIONS = { 50: { limit: 50, track: 950 }, 100: { limit: TIME_LIMIT, track: TRACK } };
 export const RIVALS = 5;
 export const FAKE_CHANCE = 0.22; // the doll pretends to turn, then looks away again
 export const SURPRISE_CHANCE = 0.22; // a very short song: the doll turns almost at once
@@ -22,7 +24,8 @@ const greenTime = (random, clock, afterFake = false) => {
 const redTime = (random) => 1.3 + random() * 1.7;
 export const turnTime = (clock) => TURN_TIME - (TURN_TIME - MIN_TURN_TIME) * pace(clock);
 
-export function createRedLight({ random = Math.random, rivals = RIVALS } = {}) {
+export function createRedLight({ random = Math.random, rivals = RIVALS, duration = 100 } = {}) {
+  const d = DURATIONS[duration] || DURATIONS[100];
   const runners = [{ id: 'player', lane: Math.floor(rivals / 2), y: 0, speed: RUN_SPEED, moving: false, out: false, place: 0 }];
   for (let i = 0; i < rivals; i++) {
     runners.push({ id: `cpu${i}`, lane: i < Math.floor(rivals / 2) ? i : i + 1, y: 0, speed: 100 + random() * 16, moving: false, out: false, place: 0, react: 0, wait: 0 });
@@ -30,6 +33,8 @@ export function createRedLight({ random = Math.random, rivals = RIVALS } = {}) {
   return {
     random,
     clock: -3, // 3, 2, 1 countdown
+    track: d.track,
+    limit: d.limit,
     light: 'green', // green | turning | red | fake (pretends to turn, then back to green)
     turnMax: TURN_TIME,
     fakes: 0,
@@ -105,7 +110,7 @@ export function stepRedLight(s, dt, running) {
       else if (s.random() < dt * 0.25) c.wait = 0.2 + s.random() * 0.4;
       c.moving = c.wait <= 0;
     }
-    if (c.moving) c.y = Math.min(TRACK, c.y + c.speed * dt);
+    if (c.moving) c.y = Math.min(s.track, c.y + c.speed * dt);
 
     // Caught moving while the doll looks
     if (s.light === 'red' && s.redFor > GRACE && c.moving) {
@@ -119,7 +124,7 @@ export function stepRedLight(s, dt, running) {
       }
       continue;
     }
-    if (c.y >= TRACK && !c.place) {
+    if (c.y >= s.track && !c.place) {
       s.finished += 1;
       c.place = s.finished;
       s.events.push({ type: 'finish', id: c.id, place: c.place });
@@ -130,7 +135,7 @@ export function stepRedLight(s, dt, running) {
       }
     }
   }
-  if (s.clock >= TIME_LIMIT) {
+  if (s.clock >= s.limit) {
     s.status = 'timeout';
     s.events.push({ type: 'end', status: 'timeout' });
   }

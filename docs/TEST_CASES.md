@@ -1386,3 +1386,92 @@ Mục mới "🎪 Hội chợ Pokémon" nằm trong tab Trò chơi và bảng ch
 |---|---|---|---|---|
 | Test engine + giao diện của 10 trò mới | P1 | AUTO | Luật, mô phỏng cân bằng, chơi hết trò qua giao diện, vàng 1 lần; Xổ số trứng trừ vé và lưu album | Đạt (627 test toàn dự án) |
 | UI-32 | P1 | MANUAL (Chrome 390×780) | Mở 10 trò mới | Đúng, không lỗi JS |
+
+---
+
+## 45. Đèn xanh đèn đỏ chọn 50 / 100 giây; nhớ Pokémon chơi cùng (2026-09-27)
+
+- **Đèn xanh đèn đỏ:** khi vào trò, bé chọn thời gian trước (lựa chọn được nhớ trong `pokescan_redlight_duration`).
+  - **50 giây:** đường đua ngắn 950.
+  - **100 giây:** đường đua dài 1900, như trước.
+  - Chơi lại thì quay về bước chọn thời gian. Bộ đếm 3-2-1 chỉ bắt đầu sau khi chọn.
+- **Pokémon chơi cùng:** Pokémon đang chọn ở tab Trò chơi được lưu trong `pokescan_play_with`. Tải lại trang vẫn giữ Pokémon đó, trừ khi thẻ đã bị xóa khỏi bộ sưu tập.
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| RL-03 | P1 | AUTO | Đua 50 giây: đường 950, giới hạn 50 giây | Đạt |
+| NG3-03, NG3-04, NG3-05 | P1 | AUTO | Chọn 100 giây / 50 giây (được nhớ) rồi đua; chạy lúc đèn đỏ thì thua | Đạt |
+| GH-06 | P1 | AUTO | Chọn Mew, tải lại tab Trò chơi: Mew vẫn được chọn | Đạt |
+| UI-33 | P1 | MANUAL (Chrome) | Chọn Gengar, tải lại trang: vẫn là Gengar; bảng chọn 50 / 100 giây, đồng hồ 50 giây | Đúng, không lỗi JS |
+
+---
+
+## 46. Hành trình Huấn luyện viên: game nhập vai kiểu Diablo 2 (2026-09-27)
+
+Banner mới trong tab Trò chơi. Game chơi màn ngang và tự xoay khi cầm điện thoại dọc. Code nằm ở `src/utils/quest/*` và `src/components/quest/*`.
+
+**Bắt đầu:**
+- Màn menu có 2 lựa chọn:
+  - "Tiếp tục hành trình": hiện chương, khu vực và đội hiện tại.
+  - "Hành trình mới": hỏi lại trước khi xóa bản lưu cũ.
+- Lập đội 5 Pokémon bằng bộ lập đội chung (quét thẻ / mượn / Pokémon đã quét), nút "Bắt đầu hành trình".
+- Bộ lập đội nhận thêm tùy chọn `nextLabel`, mặc định vẫn là "Chọn sàn đấu".
+
+**Thế giới:** 6 chương, mỗi chương 5 khu vực (làng, 2 vùng hoang dã, hang ngầm, hang Boss).
+
+| Chương | Boss |
+|---|---|
+| Rừng Viridian | Snorlax |
+| Hang Mt. Moon | Onix |
+| Tháp Ma Lavender | Gengar |
+| Đảo Núi lửa Cinnabar | Moltres |
+| Hang Băng Seafoam | Articuno |
+| Hang Động Bí Ẩn | Mewtwo |
+
+- Bản đồ tự sinh theo hạt giống của bản lưu, rộng khoảng 3280 × 2160 điểm ảnh.
+- Có đường uốn lượn, khoảng trống, rương đồ, hồ / dung nham theo chủ đề; sương mù che chỗ chưa đi, bản đồ nhỏ, tên khu vực.
+
+**Chiến đấu:**
+- Bé điều khiển huấn luyện viên (cần gạt hoặc WASD). 5 Pokémon đi theo và tự đánh; Pokémon dẫn đầu có chiêu 1, chiêu 2 và ⚡ tuyệt kỹ đồng đội. Chạm ảnh để đổi Pokémon dẫn đầu.
+- Pokémon hoang dã đi theo bầy; có con đầu đàn phát sáng, đội vương miện, máu ×3,2.
+- Boss có vùng đỏ báo trước, nổi giận khi còn dưới 35% máu, gọi thêm quân ở 66% và 33%.
+- Không rung màn hình. Huấn luyện viên không bao giờ bị đánh.
+
+**Lên cấp và tiến hóa:**
+- Cấp 1–50, chia kinh nghiệm cho cả đội.
+- Lên cấp có cột sáng và chữ "LÊN CẤP!".
+- Đủ cấp thì tiến hóa với hiệu ứng: sáng trắng, bóng đổi hình nhanh dần, chớp, "Tiến hóa!".
+- Dữ liệu tiến hóa lấy từ PokeAPI. Nếu không có mạng, hoặc cách tiến hóa không theo cấp (đá, thân thiết...), thì dùng bảng có sẵn khoảng 130 bước.
+
+**Đồ vật:**
+- Đồ dùng: xu, Quả Oran, Thuốc hồi máu, Siêu thuốc, Hồi sinh, Kẹo hiếm (+1 cấp), Đá tiến hóa.
+- Bùa tăng chỉ số: sức mạnh +5%, máu +5%, tốc độ +3%.
+
+**Làng:**
+- Bước vào Trung tâm Pokémon để hồi máu và hồi sinh cả đội. Có cửa hàng dùng vàng hành trình.
+- Bảng hành trình cho đi tới các chương đã mở.
+- Nút "🏠 Về làng" mở cổng dịch chuyển, quay lại đúng chỗ cũ.
+- Cả đội gục thì về làng, chỉ mất tiến độ của khu vực đang đi.
+
+**Vàng của app:** chỉ trả khi vào làng, khi qua chương và khi thoát; tối đa khoảng 150 vàng mỗi giờ chơi.
+
+**Lưu tiến trình:** `pokescan_quest_v1` lưu đội (loài, cấp, kinh nghiệm, dạng tiến hóa), chương đã mở, túi đồ và vàng. Lưu khi đổi khu vực, mỗi 15 giây, sau khi tiến hóa và khi thoát.
+
+**Mô phỏng:**
+- Chương 1 (Charmander, Bulbasaur, Squirtle, Pikachu, Eevee): máy xong trong 4,6–6,7 phút, đạt cấp 16–19, không lần nào cả đội gục.
+- Charmeleon, Ivysaur, Wartortle tiến hóa trong hang ngầm.
+- Đội cấp 15 đứng yên vẫn hạ được Snorlax.
+- [Inference] Bé thật có thể mất khoảng 10–15 phút cho chương 1 (chưa đo).
+- Máy qua cả 6 chương trong khoảng 50–60 phút. Các chương sau khá dễ, làm vậy có chủ ý để hợp với trẻ nhỏ.
+
+**Chưa làm / lưu ý:**
+- Nhân vật luôn được vẽ đè lên trên cây.
+- Quái trong một khu vực hồi lại mỗi lần vào lại khu vực đó.
+- Bảng chỉ số và cấp tiến hóa do agent viết theo trí nhớ, chưa đối chiếu với PokeAPI [Unverified].
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| Test `src/utils/quest` | P1 | AUTO | Sinh bản đồ, đi tới được mọi chỗ, chiến đấu, kinh nghiệm, tiến hóa, đồ, lưu / tải, Boss | Đạt |
+| SIM-01, SIM-02 | P1 | AUTO | Máy chơi hết chương 1: lên cấp, tiến hóa, hạ Snorlax | Đạt |
+| Test `src/components/quest` | P1 | AUTO | Lập đội, vào thế giới, di chuyển, đánh, lên cấp, lưu và tiếp tục | Đạt (659 test toàn dự án) |
+| UI-34 | P1 | MANUAL (Chrome 915×412) | Mở banner, lập đội, Làng Pallet, đi lại | Đúng, không lỗi JS |

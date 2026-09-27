@@ -484,6 +484,29 @@ const GAME_PICS = {
       <path d="M42.5 40.5l4 4" stroke="#1e293b" strokeWidth="3" strokeLinecap="round" />
     </>
   ),
+  quest: (
+    <>
+      <path d="M4 40c6-9 13-11 20-9s13 2 20-6v19H4z" fill="#4ade80" />
+      <path d="M4 44c8-5 16-6 24-3s11 1 16-2v5H4z" fill="#22c55e" />
+      <path d="M10 44c4-6 9-9 14-9" stroke="#d6b27a" strokeWidth="4" strokeLinecap="round" fill="none" />
+      <circle cx="38" cy="10" r="5" fill="#fde047" />
+      <ellipse cx="22" cy="42" rx="8" ry="2" fill="rgba(0,0,0,0.25)" />
+      <rect x="17" y="34" width="4" height="8" rx="1.5" fill="#1e3a8a" />
+      <rect x="23" y="34" width="4" height="8" rx="1.5" fill="#1e3a8a" />
+      <rect x="13" y="23" width="18" height="12" rx="4" fill="#facc15" />
+      <rect x="15" y="22" width="14" height="14" rx="5" fill="#2563eb" />
+      <rect x="21.2" y="22.5" width="1.6" height="13" fill="#ffffff" />
+      <circle cx="22" cy="16" r="7" fill="#fcd9b8" />
+      <circle cx="19.5" cy="16.5" r="1" fill="#1f2937" />
+      <circle cx="24.5" cy="16.5" r="1" fill="#1f2937" />
+      <path d="M20.2 19.4q1.8 1.4 3.6 0" stroke="#9a3412" strokeWidth="0.9" fill="none" strokeLinecap="round" />
+      <path d="M14.5 14a7.5 7.5 0 0 1 15 0z" fill="#ef4444" />
+      <ellipse cx="22" cy="14" rx="8.5" ry="1.8" fill="#b91c1c" />
+      <Ball x={22} y={11} r={2.4} />
+      <Ball x={37} y={30} r={4} />
+      <path d="M40 20l1 2.2 2.3.3-1.7 1.6.4 2.3-2-1.1-2 1.1.4-2.3-1.7-1.6 2.3-.3z" fill="#fde047" />
+    </>
+  ),
   // Big banners
   team: (
     <>

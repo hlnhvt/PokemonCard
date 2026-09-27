@@ -1843,3 +1843,94 @@
 @media (prefers-reduced-motion: reduce) {
   .darts-extra, .watergun-hit, .watergun-card, .watergun-medal, .skeeball-chip { animation: none; }
 }
+
+/* ---------- Hành trình Huấn luyện viên (quest) ---------- */
+@keyframes questAreaBanner {
+  0% { transform: translate(-50%, 12px) scale(0.85); opacity: 0; }
+  12% { transform: translate(-50%, 0) scale(1.04); opacity: 1; }
+  20% { transform: translate(-50%, 0) scale(1); }
+  78% { opacity: 1; }
+  100% { transform: translate(-50%, -10px) scale(1); opacity: 0; }
+}
+.quest-area-banner { animation: questAreaBanner 3s cubic-bezier(0.2, 0.9, 0.3, 1) forwards; transform: translateX(-50%); }
+.quest-boss-title { color: #fecaca; text-shadow: 0 0 18px rgba(239, 68, 68, 0.9); }
+@keyframes questToast {
+  0% { transform: translateY(-8px) scale(0.7); opacity: 0; }
+  12% { transform: translateY(0) scale(1.06); opacity: 1; }
+  20% { transform: scale(1); }
+  85% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-6px); }
+}
+.quest-toast { animation: questToast 2.4s ease-out forwards; }
+@keyframes questPanel {
+  0% { transform: translateX(40px); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+.quest-panel { animation: questPanel 0.25s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+@keyframes questRays { to { transform: rotate(360deg); } }
+.quest-evo-rays {
+  background: repeating-conic-gradient(from 0deg, rgba(255, 255, 255, 0.16) 0deg 9deg, transparent 9deg 18deg);
+  animation: questRays 16s linear infinite;
+  transition: opacity 0.6s;
+}
+@keyframes questGlow {
+  0%, 100% { transform: scale(0.9); opacity: 0.55; }
+  50% { transform: scale(1.08); opacity: 0.9; }
+}
+.quest-evo-glow { background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(186, 230, 253, 0.5) 35%, rgba(255, 255, 255, 0) 70%); animation: questGlow 1.1s ease-in-out infinite; }
+.quest-evo-glow.reveal { background: radial-gradient(circle, rgba(253, 224, 71, 0.7) 0%, rgba(244, 114, 182, 0.35) 40%, rgba(255, 255, 255, 0) 70%); }
+.quest-evo-img { transition: transform 0.08s ease-out, opacity 0.08s ease-out, filter 0.6s; }
+.quest-evo-white { filter: brightness(0) invert(1) drop-shadow(0 0 16px #ffffff) drop-shadow(0 0 30px #bae6fd); }
+.quest-evo-show { transform: scale(1); opacity: 1; }
+.quest-evo-hide { transform: scale(0.55); opacity: 0; }
+@keyframes questEvoPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+.quest-evo-pulse { animation: questEvoPulse 0.5s ease-in-out infinite; }
+@keyframes questEvoReveal {
+  0% { transform: scale(0.6); }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+.quest-evo-reveal { animation: questEvoReveal 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both; filter: drop-shadow(0 0 18px rgba(253, 224, 71, 0.8)); }
+@keyframes questFlash {
+  0% { opacity: 0; }
+  25% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.quest-evo-flash { opacity: 0; }
+.quest-evo-flash.on { animation: questFlash 0.8s ease-out forwards; }
+@keyframes questSparkle {
+  0% { transform: translate(-50%, -50%) rotate(var(--a)) translateY(0) scale(0.3); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translate(-50%, -50%) rotate(var(--a)) translateY(calc(-1 * var(--d))) scale(1.1); opacity: 0; }
+}
+.quest-sparkle { color: #fde047; text-shadow: 0 0 8px #ffffff; animation: questSparkle 1.4s ease-out infinite; }
+@keyframes questBanner {
+  0% { transform: scale(0.4) rotate(-6deg); opacity: 0; }
+  60% { transform: scale(1.15) rotate(2deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+.quest-evo-banner {
+  font-size: 1.15em;
+  background: linear-gradient(90deg, #fde047, #f472b6, #60a5fa, #4ade80, #fde047);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: questBanner 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.4));
+}
+@keyframes questHop {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.quest-menu-hop { animation: questHop 1.4s ease-in-out infinite; }
+.quest-heal-pop { animation: questHop 0.8s ease-in-out 2; }
+.quest-menu-sun { animation: questGlow 3s ease-in-out infinite; }
+.quest-skill { -webkit-tap-highlight-color: transparent; }
+@media (prefers-reduced-motion: reduce) {
+  .quest-area-banner, .quest-toast, .quest-panel, .quest-evo-rays, .quest-evo-glow, .quest-evo-pulse, .quest-evo-reveal, .quest-evo-flash.on, .quest-sparkle, .quest-evo-banner, .quest-menu-hop, .quest-heal-pop, .quest-menu-sun { animation: none; }
+  .quest-evo-img { transition: none; }
+  .quest-sparkle { display: none; }
+}

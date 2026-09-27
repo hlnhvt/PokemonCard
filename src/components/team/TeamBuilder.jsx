@@ -97,7 +97,7 @@ function ScanSuccess({ member, onDone }) {
  * allowScanned (a parent setting): Pokemon scanned before may be picked. When off, every
  * Pokemon must be scanned with the camera now (the scanner's shortcuts to saved cards are refused).
  */
-export function TeamBuilder({ collection = [], allowScanned = false, team, setTeam, onScanned, onNext, random = Math.random, size = TEAM_SIZE }) {
+export function TeamBuilder({ collection = [], allowScanned = false, team, setTeam, onScanned, onNext, random = Math.random, size = TEAM_SIZE, nextLabel = 'Chọn sàn đấu' }) {
   const [scanning, setScanning] = useState(false);
   const [success, setSuccess] = useState(null);
   const [rolling, setRolling] = useState([]); // lent Pokemon still spinning
@@ -323,7 +323,7 @@ export function TeamBuilder({ collection = [], allowScanned = false, team, setTe
         </button>
       ) : (
         <button onClick={onNext} disabled={busy} className="pop-in w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xl font-black shadow-lg flex items-center justify-center gap-2 active:scale-95">
-          Chọn sàn đấu <ArrowRight className="w-6 h-6" />
+          {nextLabel} <ArrowRight className="w-6 h-6" />
         </button>
       )}
 

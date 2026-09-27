@@ -128,6 +128,17 @@ describe('GamesHub', () => {
     expect(screen.getByText('Chạy cùng Mew!', { selector: 'p' })).toBeInTheDocument();
   });
 
+  it('GH-06 the Pokemon to play with is remembered after a reload', () => {
+    localStorage.removeItem('pokescan_play_with');
+    const cards = [makeCard(), makeCard({ id: 'mew', name: 'Mew', pokedexNumber: '151' })];
+    const { unmount } = render(<GamesHub collection={cards} onOpenCollection={vi.fn()} />);
+    fireEvent.click(screen.getByRole('radio', { name: /Mew/ }));
+    unmount();
+    render(<GamesHub collection={cards} onOpenCollection={vi.fn()} />);
+    expect(screen.getByRole('radio', { name: /Mew/ })).toHaveAttribute('aria-checked', 'true');
+    localStorage.removeItem('pokescan_play_with');
+  });
+
   it('GH-03 the quiz stays open to everyone; the catch game link needs a card', () => {
     const onOpenCollection = vi.fn();
     const { unmount } = render(<GamesHub collection={[]} onOpenCollection={onOpenCollection} />);

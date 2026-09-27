@@ -95,9 +95,12 @@ describe('ArcheryGame', () => {
 });
 
 describe('RedLightGame', () => {
-  async function race(policy) {
+  async function race(policy, seconds = 100) {
     const onGold = vi.fn();
     render(<RedLightGame player={PLAYER} onClose={vi.fn()} onGold={onGold} random={seeded(3)} />);
+    expect(screen.queryByTestId('countdown')).toBeNull();
+    fireEvent.click(screen.getByRole('radio', { name: `${seconds} giây` }));
+    expect(localStorage.getItem('pokescan_redlight_duration')).toBe(String(seconds));
     expect(screen.getByTestId('countdown')).toHaveTextContent('3');
     await advance(3200);
     const btn = () => screen.queryByTestId('redlight-run');
@@ -122,5 +125,12 @@ describe('RedLightGame', () => {
     expect(screen.getByTestId('match-result').dataset.result).toBe('lose');
     expect(screen.getByText('Bị phát hiện cử động! 😵')).toBeInTheDocument();
     expect(onGold).toHaveBeenCalledWith(goldForMatch('lose'));
+  }, 90000);
+
+  it('NG3-05 the short race (50 s): half the track, the clock starts at 50', async () => {
+    const onGold = await race((light) => light === 'green', 50);
+    expect(['win', 'draw']).toContain(screen.getByTestId('match-result').dataset.result);
+    expect(onGold).toHaveBeenCalledTimes(1);
+    localStorage.removeItem('pokescan_redlight_duration');
   }, 90000);
 });

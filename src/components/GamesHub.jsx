@@ -14,6 +14,7 @@ import { LeagueGame } from './league/LeagueGame';
 import { MobaGame } from './moba/MobaGame';
 import { GameIcon } from './icons/GameIcons';
 import { BossGame } from './moba/BossGame';
+import { TrainerQuestGame } from './quest/TrainerQuestGame';
 import { rankOf, rankFor, GAME_RANK } from '../utils/pokemonRank';
 import { artworkUrl, getCardMedia } from '../services/pokemonOnlineService';
 import { BERRY_TYPES, BERRIES } from '../utils/friendship';
@@ -28,6 +29,8 @@ const PLAY_GAMES = [
   { id: 'cooking', title: 'Bếp Pokémon', description: 'Nấu món cho khách', icon: '🍳', gradient: 'from-amber-500 to-orange-500' },
   { id: 'shop', title: 'Cửa hàng', description: 'Bán hàng, đếm xu', icon: '🏪', gradient: 'from-sky-500 to-indigo-500' },
 ];
+
+const PLAY_WITH_KEY = 'pokescan_play_with';
 
 const SECTIONS = [
   { id: 'play', title: '🎮 Vui chơi', games: PLAY_GAMES },
@@ -58,7 +61,24 @@ function GameTile({ game, onPlay, locked, needRank }) {
  * first scan the games stay locked (only the silhouette quiz is open).
  */
 export function GamesHub({ collection = [], berries, onBerries, onBattleResult, onOpenCollection, onGold, onOpenShop, onScan, onTeamScan, teamUseScanned = false }) {
-  const [selectedId, setSelectedId] = useState(collection[0]?.id || null);
+  // The Pokemon the child plays with is remembered, so reloading the page keeps it
+  const [selectedId, setSelectedIdState] = useState(() => {
+    try {
+      const saved = localStorage.getItem(PLAY_WITH_KEY);
+      if (saved && collection.some((c) => String(c.id) === saved)) return collection.find((c) => String(c.id) === saved).id;
+    } catch {
+      // ignore
+    }
+    return collection[0]?.id || null;
+  });
+  const setSelectedId = (id) => {
+    setSelectedIdState(id);
+    try {
+      localStorage.setItem(PLAY_WITH_KEY, String(id));
+    } catch {
+      // ignore
+    }
+  };
   const [playing, setPlaying] = useState(null); // { section, id }
   const selected = collection.find((c) => c.id === selectedId) || collection[0] || null;
   const locked = !selected;
@@ -185,6 +205,23 @@ export function GamesHub({ collection = [], berries, onBerries, onBattleResult, 
         </div>
       </button>
 
+      {/* Action RPG: a trainer and 5 Pokemon exploring acts and areas */}
+      <button
+        onClick={() => setPlaying({ section: 'quest', id: 'quest' })}
+        className="relative w-full overflow-hidden rounded-3xl p-4 text-left text-white shadow-2xl bg-gradient-to-r from-emerald-600 via-lime-600 to-amber-600 border-2 border-lime-300/70 active:scale-[0.98] transition-transform"
+        aria-label="Hành trình Huấn luyện viên"
+      >
+        <div className="vs-rays absolute inset-0 opacity-15" />
+        <div className="relative flex items-center gap-3">
+          <GameIcon id="quest" className="w-14 h-14" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xl font-black">Hành trình Huấn luyện viên</p>
+            <p className="text-xs font-bold text-white/90">Dẫn 5 Pokémon phiêu lưu 6 vùng đất, lên cấp, tiến hóa và hạ Boss! (màn ngang)</p>
+          </div>
+          <span className="px-2 py-1 rounded-full bg-amber-300 text-slate-900 text-[11px] font-black shadow">RPG</span>
+        </div>
+      </button>
+
       {/* Boss raid on the arena map */}
       <button
         onClick={() => setPlaying({ section: 'boss', id: 'boss' })}
@@ -232,6 +269,7 @@ export function GamesHub({ collection = [], berries, onBerries, onBattleResult, 
       )}
 
       {playing?.section === 'league' && <LeagueGame collection={collection} allowScanned={teamUseScanned} onScanned={onTeamScan} onGold={onGold} onClose={close} />}
+      {playing?.section === 'quest' && <TrainerQuestGame collection={collection} allowScanned={teamUseScanned} onScanned={onTeamScan} onGold={onGold} onClose={close} />}
       {playing?.section === 'boss' && <BossGame collection={collection} allowScanned={teamUseScanned} onScanned={onTeamScan} onGold={onGold} onClose={close} />}
       {playing?.section === 'moba' && <MobaGame collection={collection} allowScanned={teamUseScanned} onScanned={onTeamScan} onGold={onGold} onClose={close} />}
       {playing?.section === 'team' && <TeamBattle collection={collection} allowScanned={teamUseScanned} onScanned={onTeamScan} onGold={onGold} onClose={close} />}

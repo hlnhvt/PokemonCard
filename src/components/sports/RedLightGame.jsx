@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { TRACK, RIVALS, TIME_LIMIT, createRedLight, stepRedLight, playerOf, redLightResult } from '../../utils/sports/redlight';
+import { RIVALS, DURATIONS, createRedLight, stepRedLight, playerOf, redLightResult } from '../../utils/sports/redlight';
 import { sounds } from '../../utils/soundEffects';
 import { SportsShell, Banner, MatchResult } from './SportsCommon';
 import { useLoop, useLater, useCanvas, pickOpponents, loadImage, drawSprite, burst, updateParticles } from './sportsKit';
@@ -10,7 +10,15 @@ const H = 560;
 const TAU = Math.PI * 2;
 const PLAYER_Y = 450; // where the child's Pokemon stays on screen while the field scrolls
 const FINISH_TOP = 190; // the finish line never goes above this on screen
-const CAM_MAX = TRACK - (PLAYER_Y - FINISH_TOP);
+const camMax = (track) => track - (PLAYER_Y - FINISH_TOP);
+const DURATION_KEY = 'pokescan_redlight_duration';
+const readDuration = () => {
+  try {
+    return Number(localStorage.getItem(DURATION_KEY)) === 50 ? 50 : 100;
+  } catch {
+    return 100;
+  }
+};
 const DOLL = { x: 180, y: 96, r: 46 };
 const LANE_W = 50;
 const laneX = (lane) => 30 + LANE_W / 2 + lane * LANE_W;
@@ -21,7 +29,7 @@ const LIGHT_UI = {
   red: { text: 'ĐÈN ĐỎ – ĐỨNG IM!', cls: 'from-rose-500 to-red-700', icon: '🔴' },
 };
 
-function drawField(ctx, cam, light, t) {
+function drawField(ctx, cam, light, t, track) {
   // Pastel walls with painted clouds (left and right), sand in the middle
   const wall = ctx.createLinearGradient(0, 0, 0, H);
   wall.addColorStop(0, '#f9a8d4');
@@ -65,7 +73,7 @@ function drawField(ctx, cam, light, t) {
     }
   }
   // Start and finish lines
-  for (const [dist, finish] of [[0, false], [TRACK, true]]) {
+  for (const [dist, finish] of [[0, false], [track, true]]) {
     const y = PLAYER_Y - (dist - cam);
     if (y < -30 || y > H + 30) continue;
     if (finish) {
@@ -176,7 +184,7 @@ function drawDoll(ctx, face, flip, light, t) {
 
 const snapshot = (s) => {
   const p = playerOf(s);
-  return { light: s.light, status: s.status, count: s.clock < 0 ? Math.ceil(-s.clock) : 0, progress: p.y / TRACK, place: p.place, left: Math.max(0, Math.ceil(TIME_LIMIT - Math.max(0, s.clock))), out: s.runners.filter((c) => c.out).length };
+  return { light: s.light, status: s.status, count: s.clock < 0 ? Math.ceil(-s.clock) : 0, progress: p.y / s.track, place: p.place, left: Math.max(0, Math.ceil(s.limit - Math.max(0, s.clock))), out: s.runners.filter((c) => c.out).length };
 };
 
 /**
@@ -188,13 +196,14 @@ export function RedLightGame({ player, onClose, onBerries, onGold, random = Math
   const canvasRef = useRef(null);
   const getCtx = useCanvas(canvasRef, W, H);
   const [rivals, setRivals] = useState(() => pickOpponents(player.name, RIVALS, random));
-  const [first] = useState(() => createRedLight({ random }));
+  const [duration, setDuration] = useState(readDuration);
+  const [first] = useState(() => createRedLight({ random, duration }));
   const game = useRef(first);
   const fx = useRef({ particles: [], beams: [], notes: [], flip: 0, time: 0, turned: 0 });
   const running = useRef(false);
   const [holding, setHolding] = useState(false);
   const [ui, setUi] = useState(() => snapshot(first));
-  const [phase, setPhase] = useState('play'); // play | done
+  const [phase, setPhase] = useState('pick'); // pick | play | done
   const [banner, setBanner] = useState(null);
   const later = useLater();
   const images = { player: loadImage(player.image) };
@@ -245,7 +254,7 @@ export function RedLightGame({ player, onClose, onBerries, onGold, random = Math
         if (e.light === 'red') sounds.playWhoosh();
       } else if (e.type === 'out') {
         const c = s.runners.find((r) => r.id === e.id);
-        const cy = PLAYER_Y - (c.y - Math.min(CAM_MAX, playerOf(s).y));
+        const cy = PLAYER_Y - (c.y - Math.min(camMax(s.track), playerOf(s).y));
         v.beams.push({ x: laneX(c.lane), y: cy - 20, life: 0.6, max: 0.6 });
         burst(v.particles, laneX(c.lane), cy - 20, { count: 22, colors: ['#ef4444', '#fca5a5', '#ffffff'], speed: 170, gravity: 120 });
         sounds.playPop();
@@ -288,9 +297,9 @@ export function RedLightGame({ player, onClose, onBerries, onGold, random = Math
     const ctx = getCtx();
     if (!ctx) return;
     const p = playerOf(s);
-    const cam = Math.min(CAM_MAX, p.y);
+    const cam = Math.min(camMax(s.track), p.y);
     ctx.clearRect(0, 0, W, H);
-    drawField(ctx, cam, s.light, v.time);
+    drawField(ctx, cam, s.light, v.time, s.track);
     // Laser sweep while watching
     if (s.light === 'red') {
       const sweep = Math.sin(v.time * 1.8) * 140;
@@ -396,22 +405,35 @@ export function RedLightGame({ player, onClose, onBerries, onGold, random = Math
     ctx.roundRect(W - 16, 170, 8, 300, 4);
     ctx.fill();
     for (const c of s.runners) {
-      const py = 470 - (c.y / TRACK) * 300;
+      const py = 470 - (c.y / s.track) * 300;
       ctx.fillStyle = c.out ? '#64748b' : c.id === 'player' ? '#38bdf8' : '#f43f5e';
       ctx.beginPath();
       ctx.arc(W - 12, py, c.id === 'player' ? 6 : 4, 0, TAU);
       ctx.fill();
     }
-  }, phase !== 'done');
+  }, phase === 'play');
+
+  const begin = (d) => {
+    setDuration(d);
+    try {
+      localStorage.setItem(DURATION_KEY, String(d));
+    } catch {
+      // ignore
+    }
+    game.current = createRedLight({ random, duration: d });
+    fx.current = { particles: [], beams: [], notes: [], flip: 0, time: 0, turned: 0 };
+    setUi(snapshot(game.current));
+    setPhase('play');
+  };
 
   const replay = () => {
-    game.current = createRedLight({ random });
+    game.current = createRedLight({ random, duration });
     fx.current = { particles: [], beams: [], notes: [], flip: 0, time: 0, turned: 0 };
     setRivals(pickOpponents(player.name, RIVALS, random));
     running.current = false;
     setHolding(false);
     setBanner(null);
-    setPhase('play');
+    setPhase('pick');
     setUi(snapshot(game.current));
   };
 
@@ -441,7 +463,30 @@ export function RedLightGame({ player, onClose, onBerries, onGold, random = Math
         {ui.count === 0 && phase === 'play' && (
           <span className="absolute left-2 top-12 px-2 py-1 rounded-full bg-black/50 text-white text-xs font-black tabular-nums pointer-events-none">⏱ {ui.left}s</span>
         )}
-        {ui.count > 0 && (
+        {phase === 'pick' && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/45 p-6" data-testid="redlight-pick">
+            <div className="pop-in w-full max-w-xs rounded-3xl bg-white p-5 text-center shadow-2xl space-y-3">
+              <p className="text-2xl font-black text-rose-600">🦑 Chọn thời gian</p>
+              <p className="text-sm font-bold text-slate-600">Đường đua ngắn hay dài?</p>
+              <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Thời gian">
+                {Object.keys(DURATIONS).map((d) => (
+                  <button
+                    key={d}
+                    role="radio"
+                    aria-checked={Number(d) === duration}
+                    aria-label={`${d} giây`}
+                    onClick={() => begin(Number(d))}
+                    className={`py-4 rounded-2xl text-white font-black shadow-lg active:scale-95 bg-gradient-to-b ${Number(d) === 50 ? 'from-emerald-400 to-teal-600' : 'from-pink-500 to-rose-600'} ${Number(d) === duration ? 'ring-4 ring-amber-300' : ''}`}
+                  >
+                    <span className="block text-3xl">{d}s</span>
+                    <span className="block text-xs">{Number(d) === 50 ? 'Đường ngắn' : 'Đường dài'}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+        {phase === 'play' && ui.count > 0 && (
           <>
             <div key={ui.count} className="count-pop absolute left-1/2 top-[40%] text-8xl font-black text-white sport-banner pointer-events-none" data-testid="countdown">
               {ui.count}
