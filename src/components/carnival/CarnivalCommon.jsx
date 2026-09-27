@@ -148,7 +148,10 @@ export function Countdown({ onDone, text = 'BẮT ĐẦU!' }) {
   }, [n]);
   return (
     <button type="button" onClick={() => done.current()} className="absolute inset-0 z-30 flex items-center justify-center bg-black/30" aria-label="Bắt đầu" data-testid="carnival-countdown">
-      <span key={n} className="count-pop text-8xl font-black text-white sport-banner">{n > 0 ? n : text}</span>
+      {/* count-pop centres itself with translate(-50%, -50%), so it needs a left/top 50% anchor */}
+      <span key={n} className={`count-pop absolute left-1/2 top-1/2 whitespace-nowrap font-black text-white sport-banner ${n > 0 ? 'text-8xl' : 'text-5xl sm:text-6xl'}`}>
+        {n > 0 ? n : text}
+      </span>
     </button>
   );
 }

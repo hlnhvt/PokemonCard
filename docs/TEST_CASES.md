@@ -1303,3 +1303,15 @@ Mục mới "🎪 Hội chợ Pokémon" nằm trong tab Trò chơi và bảng ch
 | CVU-00, CVU-01 | P1 | AUTO | Hội chợ mở cho mọi hạng; chơi hết Đập Diglett, trả vé và vàng 1 lần | Đạt |
 | 9 bộ test engine + 9 bộ test giao diện (ringtoss, psyduck, cans, claw, cups, fishing, ponyta, hammer, wheel) | P1 | AUTO | Luật, mô phỏng cân bằng, chơi hết trò qua giao diện, vàng 1 lần; Vòng quay trừ vé và trả đúng quà | Đạt (564 test toàn dự án) |
 | UI-29 | P1 | MANUAL (Chrome) | Mục Hội chợ và 10 trò trên Chrome | Đúng, không lỗi JS |
+
+---
+
+## 42. Hội chợ: đếm ngược 3-2-1 căn giữa trên điện thoại (2026-09-27)
+
+- **Nguyên nhân:** hiệu ứng `count-pop` tự dời chữ bằng `translate(-50%, -50%)`, tức là nó cần được đặt ở `left/top 50%`. Trong khung Hội chợ, chữ lại được căn giữa bằng flex, nên bị dời thêm nửa kích thước về góc trên bên trái. Trên điện thoại, chữ "BẮT ĐẦU!" cỡ lớn còn bị tràn khỏi màn hình.
+- **Cách sửa:** đặt chữ ở `absolute left-1/2 top-1/2` và không cho xuống dòng. "BẮT ĐẦU!" dùng cỡ chữ nhỏ hơn số đếm. Sửa một chỗ trong `Countdown` (`CarnivalCommon.jsx`), áp dụng cho cả 10 trò.
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| UI-30 | P1 | MANUAL (Chrome 375×740) | Mở Câu cá Magikarp: số 3 và chữ "BẮT ĐẦU!" nằm giữa màn hình, không tràn | Đúng |
+| Test giao diện Hội chợ (10 file, 17 test) | P1 | AUTO | Vẫn đạt | Đạt |
