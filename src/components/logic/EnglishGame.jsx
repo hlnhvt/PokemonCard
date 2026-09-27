@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { Volume2, ArrowRight } from 'lucide-react';
+import { Volume2, ArrowRight } from '../icons/PokeIcons';
 import { makeEnglishLesson, englishStars, sayWord } from '../../utils/logic/english';
 import { goldForStars } from '../../utils/gold';
 import { sounds } from '../../utils/soundEffects';

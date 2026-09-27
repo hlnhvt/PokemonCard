@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw } from '../icons/PokeIcons';
 import { sounds } from '../../utils/soundEffects';
 import { ArenaBackdrop } from './ArenaBackdrop';
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import confetti from 'canvas-confetti';
-import { X, Swords, RotateCcw, Clock } from 'lucide-react';
+import { X, Swords, RotateCcw, Clock } from '../icons/PokeIcons';
 import { OPPONENT_POOL } from '../../utils/battle/opponentPool';
 import { TYPE_COLORS, TYPE_VI } from '../../utils/battle/typeChart';
 import { pickOpponentTeam } from '../../utils/team/teamBattle';

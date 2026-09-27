@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Camera, BookOpen, Gamepad2, Volume2, VolumeX, Moon, Sun, Waves, Settings } from 'lucide-react';
+import { Camera, BookOpen, Gamepad2, Volume2, VolumeX, Moon, Sun, Waves, Settings } from './icons/PokeIcons';
 import { THEMES } from '../utils/theme';
 import { PokeballIcon } from './PokeballIcon';
 
-const THEME_ICONS = { dark: Moon, light: Sun, ocean: Waves };
+const THEME_ICONS = { dark: Moon, light: Sun, ocean: Waves, pokedex: BookOpen };
 // Preview colours in the theme menu
 const THEME_SWATCH = {
   dark: 'bg-slate-950',

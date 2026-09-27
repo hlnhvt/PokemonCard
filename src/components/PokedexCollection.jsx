@@ -6,7 +6,7 @@ import {
   Trash2,
   Play,
   Plus
-} from 'lucide-react';
+} from './icons/PokeIcons';
 import { toggleCardFavorite, removeCardFromPokedex, clearPokedex } from '../utils/storage';
 import { levelFor } from '../utils/friendship';
 

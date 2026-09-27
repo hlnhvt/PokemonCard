@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { HelpCircle, Lightbulb, RotateCcw, Star, Trophy, ArrowRight } from 'lucide-react';
+import { HelpCircle, Lightbulb, RotateCcw, Star, Trophy, ArrowRight } from './icons/PokeIcons';
 import { playCry } from '../utils/cries';
 import { sounds } from '../utils/soundEffects';
 import { GOLD_REWARDS } from '../utils/gold';

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { Sparkles } from 'lucide-react';
+import { Sparkles } from './icons/PokeIcons';
 import { playCry } from '../utils/cries';
 import { sounds } from '../utils/soundEffects';
 

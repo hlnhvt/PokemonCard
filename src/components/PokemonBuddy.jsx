@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { Volume2, Music, Sparkles, Heart, Gamepad2 } from 'lucide-react';
+import { Volume2, Music, Sparkles, Heart, Gamepad2 } from './icons/PokeIcons';
 import { getCardMedia } from '../services/pokemonOnlineService';
 import { playCry } from '../utils/cries';
 import { sounds } from '../utils/soundEffects';

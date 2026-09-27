@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Lightbulb, Lock, Map as MapIcon, RotateCcw } from 'lucide-react';
+import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Lightbulb, Lock, Map as MapIcon, RotateCcw } from '../icons/PokeIcons';
 import { MAZE_LEVELS, MAZE_WORLDS, createMazeLevel, slide, shortestPath, mazeStars, swipeDirection, cellAt } from '../../utils/logic/maze';
 import { getProgress, recordStars, isUnlocked, goldForLevel, totalStars } from '../../utils/progress';
 import { sounds } from '../../utils/soundEffects';

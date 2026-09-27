@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, ChevronRight, Lock } from 'lucide-react';
+import { X, ChevronRight, Lock } from './icons/PokeIcons';
 import { rankFor } from '../utils/pokemonRank';
+import { GameIcon } from './icons/GameIcons';
 
 const GROUP_TITLES = { play: '🎮 Vui chơi', sport: '🏆 Thi đấu thể thao', logic: '🧠 Trò chơi trí tuệ' };
 
@@ -89,7 +90,7 @@ export function GamePicker({ pokemonName, image, games, onClose, rank }) {
                     className={`relative w-full flex items-center gap-3 p-3 rounded-2xl text-left text-white shadow-lg bg-gradient-to-r ${game.gradient} active:scale-[0.97] transition-transform ${rank && game.needRank > rank.level ? 'grayscale opacity-60' : ''}`}
                   >
                     <span className="flex items-center justify-center w-14 h-14 rounded-2xl bg-white/20 text-3xl shrink-0" aria-hidden="true">
-                      {game.icon}
+                      <GameIcon id={game.id} fallback={game.icon} className="w-11 h-11" />
                     </span>
                     <span className="flex-1 min-w-0">
                       <span className="flex items-center gap-2">

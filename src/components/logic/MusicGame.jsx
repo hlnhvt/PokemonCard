@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { Music, ArrowLeft, Lock } from 'lucide-react';
+import { Music, ArrowLeft, Lock } from '../icons/PokeIcons';
 import { NOTES, SONGS, MUSIC_TIERS, startSong, pressNote, noteTimes, musicStars } from '../../utils/logic/music';
 import { getProgress, recordStars, isUnlocked, goldForLevel, totalStars } from '../../utils/progress';
 import { sounds } from '../../utils/soundEffects';

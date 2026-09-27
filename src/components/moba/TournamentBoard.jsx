@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import confetti from 'canvas-confetti';
-import { Swords, RotateCcw } from 'lucide-react';
+import { Swords, RotateCcw } from '../icons/PokeIcons';
 import { ARENA_DIFFICULTY } from '../../utils/moba/engine';
 import { ARENA_MODES, MEDALS, currentMatch, medalOf, tournamentTitle } from '../../utils/moba/tournament';
 import { GoldReward } from '../kidgames/Common';

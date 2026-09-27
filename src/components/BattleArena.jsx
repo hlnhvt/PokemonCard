@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import confetti from 'canvas-confetti';
-import { X, Swords, Zap, RotateCcw, Trophy, Heart } from 'lucide-react';
+import { X, Swords, Zap, RotateCcw, Trophy, Heart } from './icons/PokeIcons';
 import { fetchBattlePokemon } from '../services/battleData';
 import {
   createFighter,

@@ -1,6 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { X, Star, RotateCcw } from 'lucide-react';
+import { X, Star, RotateCcw } from '../icons/PokeIcons';
 import { BerryIcon } from '../BerryIcon';
 
 /** Full-screen frame shared by the kids games: title, round dots and a close button. */

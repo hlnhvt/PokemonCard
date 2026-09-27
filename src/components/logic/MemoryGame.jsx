@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { Heart } from 'lucide-react';
+import { Heart } from '../icons/PokeIcons';
 import { createMemoryGame, tapCard, nextRound, memoryStars, MAX_LENGTH, START_LENGTH, HEARTS } from '../../utils/logic/memory';
 import { NOTES } from '../../utils/logic/music';
 import { POPULAR_POKEMON } from '../../utils/guessGame';

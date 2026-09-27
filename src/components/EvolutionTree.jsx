@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { GitBranch, Sparkles, ChevronRight } from 'lucide-react';
+import { GitBranch, Sparkles, ChevronRight } from './icons/PokeIcons';
 import { fetchEvolutionChain } from '../services/pokemonOnlineService';
 import { FRIENDSHIP_TO_EVOLVE } from '../utils/friendship';
 

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { SkipForward, Sparkles, Zap, ExternalLink, ArrowRight } from 'lucide-react';
+import { SkipForward, Sparkles, Zap, ExternalLink, ArrowRight } from './icons/PokeIcons';
 import { sounds } from '../utils/soundEffects';
 import { playCry } from '../utils/cries';
 import { getCardMedia } from '../services/pokemonOnlineService';

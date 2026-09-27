@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import confetti from 'canvas-confetti';
-import { X, ShoppingBag } from 'lucide-react';
+import { X, ShoppingBag } from './icons/PokeIcons';
 import { CATEGORIES, itemsIn } from '../utils/shopItems';
 import { canBuyMore } from '../utils/inventory';
 import { artworkUrl } from '../services/pokemonOnlineService';

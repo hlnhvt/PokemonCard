@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import confetti from 'canvas-confetti';
-import { X, Swords, RotateCcw, Users } from 'lucide-react';
+import { X, Swords, RotateCcw, Users } from '../icons/PokeIcons';
 import { LEAGUE, GYMS, createLeague, recordGym, goldForGym, arenaForGym, aceOf } from '../../utils/league';
 import { TYPE_VI } from '../../utils/battle/typeChart';
 import { artworkUrl } from '../../services/pokemonOnlineService';

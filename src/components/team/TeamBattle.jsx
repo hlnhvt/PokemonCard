@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+import { X } from '../icons/PokeIcons';
 import { ARENAS, arenaById } from '../../utils/team/arenas';
 import { goldForTeam } from '../../utils/gold';
 import { PokeballIcon } from '../PokeballIcon';

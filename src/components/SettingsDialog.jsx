@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Settings } from 'lucide-react';
+import { X, Settings } from './icons/PokeIcons';
 
 function Toggle({ checked, onChange, label, description }) {
   return (

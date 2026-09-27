@@ -1,7 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import confetti from 'canvas-confetti';
-import { X, RotateCcw } from 'lucide-react';
+import { X, RotateCcw } from '../icons/PokeIcons';
 import { BerryIcon } from '../BerryIcon';
 import { MATCH_REWARDS, RESULT_TEXT } from '../../utils/sports/common';
 import { sounds } from '../../utils/soundEffects';

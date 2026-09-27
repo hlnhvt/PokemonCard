@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import confetti from 'canvas-confetti';
-import { X, Camera, Dice5, ArrowRight } from 'lucide-react';
+import { X, Camera, Dice5, ArrowRight } from '../icons/PokeIcons';
 import { TEAM_SIZE, borrowPokemon } from '../../utils/team/teamBattle';
 import { getSavedTeams, saveTeam, deleteSavedTeam, teamFromSaved, savableCards } from '../../utils/savedTeams';
 import { OPPONENT_POOL } from '../../utils/battle/opponentPool';

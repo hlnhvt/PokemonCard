@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { Lightbulb, Lock } from 'lucide-react';
+import { Lightbulb, Lock } from '../icons/PokeIcons';
 import { VIEW, HORIZON, LEVELS, TIERS, CHANGE_TEXT, createSpot, tapAt, giveHint as hintOf, levelOpen } from '../../utils/logic/spot';
 import { getProgress, recordStars, goldForLevel, totalStars } from '../../utils/progress';
 import { sounds } from '../../utils/soundEffects';

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Zap, Heart } from 'lucide-react';
+import { Zap, Heart } from '../icons/PokeIcons';
 import { teamTurn, teamCombo, canUseTeamCombo, sendIn, alivePlayers, beatsCurrent, mvpIndex, continueWith, switchPlayer, difficultyOf } from '../../utils/team/teamBattle';
 import { COMBO_MAX } from '../../utils/battle/engine';
 import { effectiveness, effectivenessLabel, TYPE_COLORS, TYPE_VI } from '../../utils/battle/typeChart';

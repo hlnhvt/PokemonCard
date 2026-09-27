@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Target, Lock } from 'lucide-react';
+import { Target, Lock } from './icons/PokeIcons';
 import { GuessGame } from './GuessGame';
 import { RunnerGame } from './RunnerGame';
 import { BattleArena } from './BattleArena';
@@ -11,6 +11,7 @@ import { PokeballIcon } from './PokeballIcon';
 import { TeamBattle } from './team/TeamBattle';
 import { LeagueGame } from './league/LeagueGame';
 import { MobaGame } from './moba/MobaGame';
+import { GameIcon } from './icons/GameIcons';
 import { BossGame } from './moba/BossGame';
 import { rankOf, rankFor, GAME_RANK } from '../utils/pokemonRank';
 import { artworkUrl, getCardMedia } from '../services/pokemonOnlineService';
@@ -41,7 +42,7 @@ function GameTile({ game, onPlay, locked, needRank }) {
       aria-label={locked ? `${game.title} (${needRank ? `cần hạng ${needRank.name}` : 'cần quét thẻ'})` : game.title}
       className={`relative rounded-2xl p-3 flex flex-col items-center gap-0.5 text-center text-white bg-gradient-to-br ${game.gradient} shadow-lg active:scale-95 transition-transform ${locked ? 'grayscale opacity-50' : ''}`}
     >
-      <span className="text-4xl" aria-hidden="true">{game.icon}</span>
+      <GameIcon id={game.id} fallback={game.icon} className="w-11 h-11" />
       <span className="text-sm font-black leading-tight">{game.title}</span>
       <span className="text-[11px] font-semibold text-white/85 leading-tight">{game.description}</span>
       {locked && <Lock className="absolute top-2 right-2 w-4 h-4" aria-hidden="true" />}
@@ -92,7 +93,7 @@ export function GamesHub({ collection = [], berries, onBerries, onBattleResult, 
               </span>
             )}
             <button onClick={onOpenShop} className="px-3 py-1.5 rounded-full bg-amber-400/20 border border-amber-400/50 text-amber-200 text-sm font-black active:scale-95">
-              🎁 Tiệm quà
+              <GameIcon id="gift" className="w-6 h-6" /> Tiệm quà
             </button>
           </div>
           <div className="flex gap-2 overflow-x-auto pb-1" role="radiogroup" aria-label="Chọn Pokémon để chơi">
@@ -136,7 +137,7 @@ export function GamesHub({ collection = [], berries, onBerries, onBattleResult, 
       >
         <div className="vs-rays absolute inset-0 opacity-20" />
         <div className="relative flex items-center gap-3">
-          <span className="text-5xl drop-shadow" aria-hidden="true">🏆</span>
+          <GameIcon id="team" className="w-14 h-14" />
           <div className="flex-1 min-w-0">
             <p className="text-xl font-black">Đấu đội 5 vs 5</p>
             <p className="text-xs font-bold text-white/90">Quét thẻ lập đội, chọn sàn đấu, giành cúp vô địch!</p>
@@ -156,7 +157,7 @@ export function GamesHub({ collection = [], berries, onBerries, onBattleResult, 
       >
         <div className="vs-rays absolute inset-0 opacity-15" />
         <div className="relative flex items-center gap-3">
-          <span className="text-5xl drop-shadow" aria-hidden="true">🏅</span>
+          <GameIcon id="league" className="w-14 h-14" />
           <div className="flex-1 min-w-0">
             <p className="text-xl font-black">Giải đấu Liên minh</p>
             <p className="text-xs font-bold text-white/90">Đội 5 Pokémon chinh phục 8 nhà thi đấu và Nhà Vô địch!</p>
@@ -173,7 +174,7 @@ export function GamesHub({ collection = [], berries, onBerries, onBattleResult, 
       >
         <div className="vs-rays absolute inset-0 opacity-15" />
         <div className="relative flex items-center gap-3">
-          <span className="text-5xl drop-shadow" aria-hidden="true">🗺️</span>
+          <GameIcon id="moba" className="w-14 h-14" />
           <div className="flex-1 min-w-0">
             <p className="text-xl font-black">Đấu trường Pokémon</p>
             <p className="text-xs font-bold text-white/90">1 vs 1, 3 vs 3 hoặc 5 vs 5 trên bản đồ, điều khiển Pokémon, tung chiêu liên hoàn! (màn ngang)</p>
@@ -190,7 +191,7 @@ export function GamesHub({ collection = [], berries, onBerries, onBattleResult, 
       >
         <div className="vs-rays absolute inset-0 opacity-15" />
         <div className="relative flex items-center gap-3">
-          <span className="text-5xl drop-shadow" aria-hidden="true">👑</span>
+          <GameIcon id="boss" className="w-14 h-14" />
           <div className="flex-1 min-w-0">
             <p className="text-xl font-black">Săn Boss</p>
             <p className="text-xs font-bold text-white/90">Cả đội 5 Pokémon hợp sức hạ một Boss khổng lồ! Né vùng đỏ nhé. (màn ngang)</p>

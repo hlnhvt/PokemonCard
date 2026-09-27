@@ -13,7 +13,7 @@ import {
   Flame,
   Award,
   Search
-} from 'lucide-react';
+} from './icons/PokeIcons';
 import { sounds } from '../utils/soundEffects';
 import { playCry } from '../utils/cries';
 import { PokemonBuddy } from './PokemonBuddy';

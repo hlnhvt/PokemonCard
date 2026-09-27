@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import confetti from 'canvas-confetti';
-import { X, RotateCcw, Star } from 'lucide-react';
+import { X, RotateCcw, Star } from './icons/PokeIcons';
 import {
   BALLS_PER_ROUND,
   FLIGHT_MS,

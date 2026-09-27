@@ -1,5 +1,5 @@
 import React from 'react';
-import { Swords, ArrowLeft } from 'lucide-react';
+import { Swords, ArrowLeft } from '../icons/PokeIcons';
 import { ARENAS } from '../../utils/team/arenas';
 import { TYPE_COLORS, TYPE_VI } from '../../utils/battle/typeChart';
 import { ArenaBackdrop } from './ArenaBackdrop';

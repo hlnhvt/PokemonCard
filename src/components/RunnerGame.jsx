@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, RotateCcw, Star, Heart, ArrowDown, Hand } from 'lucide-react';
+import { X, RotateCcw, Star, Heart, ArrowDown, Hand } from './icons/PokeIcons';
 import {
   WORLD,
   SPEED,

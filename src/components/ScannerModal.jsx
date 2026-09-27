@@ -14,7 +14,7 @@ import {
   Search,
   History,
   Image as ImageIcon,
-} from 'lucide-react';
+} from './icons/PokeIcons';
 import { recognizeCardWithOCR } from '../utils/cardRecognizer';
 import { mapRectToVideoFrame } from '../utils/cardImage';
 import { findBestPokemonNameFromText, fetchPokemonOnline, getAllPokemonNames, artworkUrl } from '../services/pokemonOnlineService';

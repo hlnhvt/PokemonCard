@@ -1179,3 +1179,27 @@ Cả 3 trò nằm trong nhóm "🏆 Thi đấu thể thao" (tab Trò chơi và t
 | NG2-02 | P1 | AUTO | Bản đồ 35 màn (màn 2 khóa, màn 13 mở); chơi màn 1 xong thì lưu sao, vàng 1 lần, màn 2 mở | Đạt |
 | NG2-03 | P1 | AUTO | Bản đồ 34 màn, 4 tốc độ, chọn Siêu tốc (được nhớ, dùng trong bài), xong bài lưu sao | Đạt |
 | UI-26 | P1 | MANUAL (Chrome) | Bản đồ Nhảy theo nhạc, màn hợp âm tốc độ Nhanh, bản đồ Tìm điểm khác nhau, màn 13 và màn 25 | Đúng, không lỗi JS |
+
+---
+
+## 38. Bộ icon mang đặc trưng Pokémon (2026-09-27)
+
+- **Icon giao diện** (`src/components/icons/PokeIcons.jsx`): 57 icon vẽ SVG thay toàn bộ thư viện lucide ở 33 file.
+  - Giữ nguyên tên và cách dùng như lucide, nên mỗi file chỉ đổi dòng import. Không còn file nào dùng `lucide-react`.
+  - Đặc trưng Pokémon theo từng icon:
+    - Pokédex cho Bộ sưu tập, camera có ống kính Pokéball, tay cầm có nút Pokéball.
+    - Đá Mặt Trăng / Đá Mặt Trời / Đá Nước cho các chủ đề tối / sáng / đại dương; chủ đề Pokédex dùng icon Pokédex.
+    - Tia sét hình đuôi Pikachu, ngọn lửa đuôi Charmander, lấp lánh Shiny.
+    - Tim sơn màu Pokéball, huy hiệu nhà thi đấu, túi Poké Mart, bản đồ thị trấn có ghim Pokéball.
+    - Điện thoại Rotom, bóng bí ẩn "?" (cho mượn ngẫu nhiên), cây tiến hóa, hai Pokéball va nhau (chiến đấu), ba Pokéball (đội).
+    - Ổ khóa, bóng đèn, đồng hồ, bánh răng, loa, nốt nhạc, kính lúp... đều gắn Pokéball.
+- **Icon trò chơi** (`src/components/icons/GameIcons.jsx`): hình SVG riêng cho 21 trò chơi, 4 banner lớn và nút Tiệm quà, thay cho emoji.
+  - Trò nào không có hình riêng thì vẫn dùng emoji cũ.
+  - Hiện ở tab Trò chơi và bảng chọn trò của từng Pokémon.
+- **Chưa đổi:** emoji nằm trong nội dung chữ (hạng 🥇🥈, độ khó 🙂😤🔥, tiêu đề mục, lời nhắn, tên màn).
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| AUTO (toàn bộ) | P1 | AUTO | 509 test vẫn đạt sau khi đổi icon (GH-04 đổi sang tìm chữ "Tiệm quà") | Đạt |
+| ICON-01 | P1 | AUTO (script) | Mọi icon được import từ PokeIcons đều có export (57/57); không còn import `lucide-react` | Đạt |
+| UI-27 | P1 | MANUAL (Chrome) | Thanh trên cùng, tab Trò chơi (banner, ô trò chơi), trang chi tiết Pokémon hiển thị icon mới | Đúng, không lỗi JS |

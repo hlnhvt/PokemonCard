@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { Check } from 'lucide-react';
+import { Check } from '../icons/PokeIcons';
 import {
   INGREDIENTS,
   STIR_PER_TAP,
