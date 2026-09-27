@@ -4,6 +4,8 @@ import { ITEMS, SHOP, RARITY, MAX_CHARMS } from '../../utils/quest/items';
 import { ACTS } from '../../utils/quest/world';
 import { artworkUrl } from '../../services/pokemonOnlineService';
 import { itemIcon } from './questUi';
+import { BADGES } from '../../utils/quest/experts';
+import { EXPERTS_PER_ACT } from '../../utils/quest/world';
 
 
 function Panel({ title, onClose, children, testId, wide = false }) {
@@ -134,8 +136,17 @@ export function CenterPanel({ hud, onClose }) {
 export function BoardPanel({ hud, onTravel, onClose }) {
   return (
     <Panel title="🗺️ Bảng hành trình" onClose={onClose} testId="quest-board" wide>
+      {hud.badges?.length > 0 && (
+        <div className="flex flex-wrap gap-1" data-testid="board-badges">
+          {hud.badges.map((b) => (
+            <span key={b} className="pop-in px-2 py-1 rounded-full text-xs font-black text-slate-900 shadow" style={{ background: BADGES[b].color }}>
+              {BADGES[b].icon} {BADGES[b].name}
+            </span>
+          ))}
+        </div>
+      )}
       <p className="text-xs font-bold text-white/80">
-        Đã hạ <span className="text-amber-300 font-black">{hud.beaten.length}</span>/{ACTS.length} Boss. Hạ Boss cuối mỗi màn để mở màn tiếp theo!
+        Đã hạ <span className="text-amber-300 font-black">{hud.beaten.length}</span>/{ACTS.length} Boss. Hạ Boss cuối mỗi màn để mở màn tiếp theo! Thắng cả {EXPERTS_PER_ACT} chuyên gia của một màn để nhận huy hiệu.
       </p>
       {ACTS.map((a, i) => {
         const done = hud.beaten.includes(i);
@@ -151,6 +162,16 @@ export function BoardPanel({ hud, onTravel, onClose }) {
               <span className="block text-[10px] font-bold text-white/70 truncate">
                 {done ? `Đã hạ ${a.boss.name}` : open ? `Boss: ${a.boss.title}` : 'Chưa mở'} · {a.areas[0].name}
               </span>
+              {open && (
+                <span className="block text-[10px] font-black text-pink-200" data-testid={`board-experts-${i}`}>
+                  ⭐ Chuyên gia {hud.expertsDone?.[i] || 0}/{EXPERTS_PER_ACT}
+                  {hud.badges?.includes(i) && (
+                    <span className="ml-1 px-1.5 rounded-full text-slate-900" style={{ background: BADGES[i].color }}>
+                      {BADGES[i].icon} {BADGES[i].name}
+                    </span>
+                  )}
+                </span>
+              )}
             </span>
             {done ? <CheckCircle className="w-5 h-5 text-emerald-400" /> : !open ? <Lock className="w-5 h-5 text-white/60" /> : null}
             {open && !here && (

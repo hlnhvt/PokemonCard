@@ -1,17 +1,18 @@
 // Drawing of everything that moves in the quest: portals, loot with rarity beams, chests,
-// wild Pokemon (elites glow, the boss has an aura), the team, the trainer (drawn here: cap
-// with a Pokeball logo, backpack), shots and effects. World space; the camera never shakes.
+// wild Pokemon (elites glow, the boss has an aura), the team, the trainer and the experts
+// (questTrainer.js), shots, effects and ambient particles. World space; the camera never shakes.
 import { TYPE_COLORS } from '../../utils/battle/typeChart';
 import { RARITY } from '../../utils/quest/items';
 import { drawSprite, imageReady, loadImage } from '../sports/sportsKit';
 import { drawParticles, drawSkillShot, drawNovasGround, drawNovasTop, drawFlashes, styleBurst, emit, paletteOf } from '../moba/skillFx';
+import { drawTrainer, drawExpert } from './questTrainer';
 
 const TAU = Math.PI * 2;
 export const typeColor = (t) => TYPE_COLORS[t] || '#e5e7eb';
 const PORTAL_COLORS = { next: '#38bdf8', back: '#a3e635', act: '#fbbf24', return: '#c084fc' };
 
 export function createFx() {
-  return { particles: [], rings: [], numbers: [], trails: new Map(), beams: [], novas: [], flashes: [], impacts: [], slashes: [], balls: [], texts: [], flash: {}, lunge: {} };
+  return { particles: [], rings: [], numbers: [], trails: new Map(), beams: [], novas: [], flashes: [], impacts: [], slashes: [], balls: [], texts: [], flash: {}, lunge: {}, throws: [], recalls: [], appear: {}, ambient: [] };
 }
 
 export function burstFx(fx, x, y, color, { count = 14, speed = 180, size = 4, life = 0.6, up = 0 } = {}) {
@@ -40,208 +41,11 @@ export function levelUpFx(fx, x, y, level) {
   fx.texts.push({ x, y: y - 70, text: 'LÊN CẤP!', sub: String(level), life: 1.6, max: 1.6 });
 }
 
-// ---------- the trainer ----------
-
 function rr(ctx, x, y, w, h, r, color) {
   ctx.fillStyle = color;
   ctx.beginPath();
   ctx.roundRect(x, y, w, h, r);
   ctx.fill();
-}
-
-function cap(ctx, face) {
-  // Red cap, white front panel with a Pokeball logo, dark brim towards where the trainer looks
-  ctx.fillStyle = '#ef4444';
-  ctx.beginPath();
-  ctx.arc(0, -33, 12.5, Math.PI, TAU);
-  ctx.fill();
-  ctx.fillRect(-12.5, -34, 25, 3);
-  if (face === 'down') {
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(0, -34, 7.5, Math.PI, TAU);
-    ctx.fill();
-    // Pokeball logo
-    ctx.fillStyle = '#ef4444';
-    ctx.beginPath();
-    ctx.arc(0, -37, 3.6, Math.PI, TAU);
-    ctx.fill();
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(0, -37, 3.6, 0, Math.PI);
-    ctx.fill();
-    ctx.fillStyle = '#1f2937';
-    ctx.fillRect(-3.6, -37.5, 7.2, 1);
-    ctx.beginPath();
-    ctx.arc(0, -37, 1.3, 0, TAU);
-    ctx.fill();
-    ctx.fillStyle = '#b91c1c';
-    ctx.beginPath();
-    ctx.ellipse(0, -31.5, 13, 3.6, 0, 0, Math.PI);
-    ctx.fill();
-  } else if (face === 'up') {
-    ctx.fillStyle = '#b91c1c';
-    ctx.fillRect(-7, -33, 14, 3);
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(0, -45, 2, 0, TAU);
-    ctx.fill();
-  } else {
-    // Side view (drawn facing right)
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(4, -35, 6, Math.PI, TAU);
-    ctx.fill();
-    ctx.fillStyle = '#ef4444';
-    ctx.beginPath();
-    ctx.arc(5, -37, 2.8, Math.PI, TAU);
-    ctx.fill();
-    ctx.fillStyle = '#1f2937';
-    ctx.fillRect(2.2, -37.3, 5.6, 0.9);
-    ctx.fillStyle = '#b91c1c';
-    ctx.beginPath();
-    ctx.ellipse(12, -32.5, 8, 2.8, 0.08, 0, TAU);
-    ctx.fill();
-  }
-}
-
-function backpack(ctx, x, y, w, h) {
-  rr(ctx, x, y, w, h, 5, '#facc15');
-  rr(ctx, x + 2, y + h * 0.45, w - 4, h * 0.4, 3, '#eab308');
-  ctx.fillStyle = '#a16207';
-  ctx.fillRect(x + w / 2 - 1, y + h * 0.45, 2, 3);
-}
-
-/** A cute trainer: feet at (t.x, t.y + 10). face: down / up / left / right. */
-export function drawTrainer(ctx, t, time) {
-  const walking = t.moving;
-  const sw = walking ? Math.sin(t.walk) : 0;
-  const bob = walking ? Math.abs(Math.sin(t.walk)) * 2.2 : Math.sin(time * 2.6) * 0.7;
-  const face = t.face || 'down';
-  ctx.save();
-  ctx.translate(t.x, t.y);
-  ctx.fillStyle = 'rgba(0,0,0,0.3)';
-  ctx.beginPath();
-  ctx.ellipse(0, 10, 14, 5.5, 0, 0, TAU);
-  ctx.fill();
-  // Yellow ring: this is the child
-  ctx.strokeStyle = 'rgba(250,204,21,0.8)';
-  ctx.lineWidth = 2.5;
-  ctx.beginPath();
-  ctx.ellipse(0, 10, 18 + Math.sin(time * 4) * 1.5, 7, 0, 0, TAU);
-  ctx.stroke();
-  ctx.translate(0, -bob);
-  const side = face === 'left' || face === 'right';
-  if (face === 'left') ctx.scale(-1, 1);
-  const skin = '#fcd9b8';
-  // Legs and shoes
-  if (side) {
-    rr(ctx, -5 + sw * 4, -2, 6, 11, 2, '#1e3a8a');
-    rr(ctx, -1 - sw * 4, -2, 6, 11, 2, '#1e40af');
-    rr(ctx, -6 + sw * 4, 7, 9, 4, 2, '#ef4444');
-    rr(ctx, -2 - sw * 4, 7, 9, 4, 2, '#dc2626');
-  } else {
-    rr(ctx, -7, -2 + sw * 2, 6, 11, 2, '#1e3a8a');
-    rr(ctx, 1, -2 - sw * 2, 6, 11, 2, '#1e3a8a');
-    rr(ctx, -8, 7 + sw * 2, 8, 4, 2, '#ef4444');
-    rr(ctx, 0, 7 - sw * 2, 8, 4, 2, '#ef4444');
-  }
-  // Backpack behind the body
-  if (face === 'down') {
-    backpack(ctx, -12, -21, 24, 14);
-  } else if (side) backpack(ctx, -15, -21, 10, 17);
-  // Arms behind (side view)
-  if (side) {
-    ctx.save();
-    ctx.translate(-1, -17);
-    ctx.rotate(-sw * 0.6);
-    rr(ctx, -3, 0, 6, 12, 3, '#1d4ed8');
-    ctx.restore();
-  }
-  // Body: blue jacket with a white stripe
-  rr(ctx, -10, -22, 20, 22, 7, '#2563eb');
-  if (!side) {
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(face === 'up' ? -10 : -1, -21, face === 'up' ? 20 : 2, face === 'up' ? 3 : 20);
-  } else {
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(-10, -14, 20, 3);
-  }
-  // Backpack straps (front) or the big backpack (back)
-  if (face === 'down') {
-    ctx.fillStyle = '#ca8a04';
-    ctx.fillRect(-8, -21, 3, 16);
-    ctx.fillRect(5, -21, 3, 16);
-  } else if (face === 'up') backpack(ctx, -11, -22, 22, 19);
-  // Arms
-  if (side) {
-    ctx.save();
-    ctx.translate(1, -17);
-    ctx.rotate(sw * 0.6);
-    rr(ctx, -3, 0, 6, 12, 3, '#2563eb');
-    rr(ctx, -3, 10, 6, 4, 2, skin);
-    ctx.restore();
-  } else {
-    for (const s of [-1, 1]) {
-      ctx.save();
-      ctx.translate(s * 11, -19);
-      ctx.rotate(s * 0.12 + sw * 0.45 * s);
-      rr(ctx, -3, 0, 6, 12, 3, '#2563eb');
-      rr(ctx, -3, 10, 6, 4, 2, skin);
-      ctx.restore();
-    }
-  }
-  // Head
-  ctx.fillStyle = skin;
-  ctx.beginPath();
-  ctx.arc(0, -31, 11, 0, TAU);
-  ctx.fill();
-  ctx.fillStyle = '#3f2a1d';
-  if (face === 'up') {
-    ctx.beginPath();
-    ctx.arc(0, -31, 11, 0, TAU);
-    ctx.fill();
-  } else if (side) {
-    ctx.beginPath();
-    ctx.arc(-4, -31, 9, Math.PI * 0.5, Math.PI * 1.5);
-    ctx.fill();
-    ctx.fillStyle = '#1f2937';
-    ctx.beginPath();
-    ctx.ellipse(6, -29.5, 1.6, 2.4, 0, 0, TAU);
-    ctx.fill();
-    ctx.fillStyle = '#fda4af';
-    ctx.beginPath();
-    ctx.arc(4, -25.5, 2, 0, TAU);
-    ctx.fill();
-  } else {
-    ctx.beginPath();
-    ctx.arc(-9, -30, 3.5, 0, TAU);
-    ctx.arc(9, -30, 3.5, 0, TAU);
-    ctx.fill();
-    ctx.fillStyle = '#1f2937';
-    for (const s of [-1, 1]) {
-      ctx.beginPath();
-      ctx.ellipse(s * 4, -29, 1.7, 2.5, 0, 0, TAU);
-      ctx.fill();
-    }
-    ctx.fillStyle = '#ffffff';
-    ctx.beginPath();
-    ctx.arc(-3.4, -30, 0.7, 0, TAU);
-    ctx.arc(4.6, -30, 0.7, 0, TAU);
-    ctx.fill();
-    ctx.fillStyle = '#fda4af';
-    ctx.beginPath();
-    ctx.arc(-7, -25.5, 1.9, 0, TAU);
-    ctx.arc(7, -25.5, 1.9, 0, TAU);
-    ctx.fill();
-    ctx.strokeStyle = '#9a3412';
-    ctx.lineWidth = 1.1;
-    ctx.beginPath();
-    ctx.arc(0, -26, 2.2, 0.2, Math.PI - 0.2);
-    ctx.stroke();
-  }
-  cap(ctx, face);
-  ctx.restore();
 }
 
 // ---------- loot, chests, portals ----------
@@ -639,6 +443,9 @@ function drawEnemy(ctx, e, fx, time) {
 }
 
 function drawMember(ctx, m, fx, time, isLead) {
+  // Just sent out: hidden while the ball flies, then pops up
+  const ap = fx.appear[`p${m.idx}`];
+  if (ap && ap.delay > 0) return;
   const img = loadImage(m.image);
   const flash = fx.flash[`p${m.idx}`] || 0;
   const bob = m.moving ? Math.abs(Math.sin(time * 13 + m.idx)) * 4 : Math.sin(time * 3 + m.idx) * 1.5;
@@ -656,7 +463,9 @@ function drawMember(ctx, m, fx, time, isLead) {
   ctx.stroke();
   ctx.shadowBlur = 0;
   const lunge = m.lunge > 0 ? Math.sin((m.lunge / 0.18) * Math.PI) * 10 : 0;
-  const size = 56 * (1 + flash * 0.1);
+  const pop = ap ? Math.min(1, ap.t / 0.3) : 1;
+  const grow = pop < 1 ? 0.3 + 0.7 * (1 + 2.2 * (pop - 1) ** 3 + 1.2 * (pop - 1) ** 2) : 1;
+  const size = 56 * (1 + flash * 0.1) * grow;
   drawSpriteLit(ctx, img, m.x + lunge * (m.facing || 1), feet - 26 - bob, size, m.facing < 0, flash, typeColor(m.types[0]));
   hpBar(ctx, m.x, feet - 64 - bob, 38, m.hp / m.maxHp, '#4ade80');
   label(ctx, `${m.level}`, m.x - 27, feet - 57 - bob, '#fde047', 10);
@@ -864,44 +673,273 @@ function drawTexts(ctx, fx, dt) {
 }
 
 /** Everything that moves, in world space (the camera transform is already set). */
-export function drawScene(ctx, state, fx, time, dt, view) {
+// ---------- sending out and recalling ----------
+
+function drawBall(ctx, x, y, r, rot = 0, open = 0) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(0, open, r, 0, Math.PI);
+  ctx.fill();
+  ctx.fillStyle = '#ef4444';
+  ctx.beginPath();
+  ctx.arc(0, -open, r, Math.PI, TAU);
+  ctx.fill();
+  ctx.fillStyle = '#1f2937';
+  ctx.fillRect(-r, -1 - open, r * 2, 2);
+  ctx.beginPath();
+  ctx.arc(0, 0, r * 0.32, 0, TAU);
+  ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(0, 0, r * 0.18, 0, TAU);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawThrows(ctx, fx, dt) {
+  // A Pokeball flies from the trainer and bursts open where the Pokemon appears
+  for (let i = fx.throws.length - 1; i >= 0; i--) {
+    const b = fx.throws[i];
+    b.t += dt;
+    const k = Math.min(1, b.t / b.dur);
+    if (k >= 1) {
+      fx.throws.splice(i, 1);
+      ringFx(fx, b.to.x, b.to.y + 10, '#ffffff', 6, 60, 0.45, 7, true);
+      burstFx(fx, b.to.x, b.to.y - 16, '#fde047', { count: 22, speed: 220, size: 4, life: 0.6 });
+      sparkle(fx, b.to.x, b.to.y - 20, ['#ffffff', '#fde047', '#f87171'], 14, 180);
+      fx.beams.push({ x: b.to.x, y: b.to.y + 10, life: 0.5, max: 0.5, color: '#ffffff', w: 36, h: 120 });
+      continue;
+    }
+    const x = b.from.x + (b.to.x - b.from.x) * k;
+    const y = b.from.y + (b.to.y - 20 - b.from.y) * k - Math.sin(k * Math.PI) * 70;
+    drawBall(ctx, x, y, 8, k * 14);
+  }
+  // Recall: a red beam pulls the Pokemon back into its ball, shrinking in red light
+  for (let i = fx.recalls.length - 1; i >= 0; i--) {
+    const r = fx.recalls[i];
+    r.t += dt;
+    const k = r.t / r.dur;
+    if (k >= 1) {
+      fx.recalls.splice(i, 1);
+      continue;
+    }
+    ctx.save();
+    ctx.globalAlpha = 1 - k * 0.5;
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 7 * (1 - k) + 2;
+    ctx.shadowColor = '#ef4444';
+    ctx.shadowBlur = 14;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(r.to.x, r.to.y);
+    ctx.lineTo(r.from.x, r.from.y - 20);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    const img = loadImage(r.image);
+    const size = 56 * (1 - k);
+    if (size > 2) {
+      drawSprite(ctx, img, r.from.x + (r.to.x - r.from.x) * k * k, r.from.y - 20 + (r.to.y - r.from.y + 20) * k * k, size, { alpha: 1 - k });
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.6 * (1 - k);
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.arc(r.from.x + (r.to.x - r.from.x) * k * k, r.from.y - 20 + (r.to.y - r.from.y + 20) * k * k, size * 0.45, 0, TAU);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+}
+
+// ---------- expert trainers ----------
+
+function drawExpertSpot(ctx, e, time, near) {
+  // A glowing Pokeball circle on the ground
+  const r = 62;
+  const glow = e.beaten ? '#94a3b8' : '#fbbf24';
+  ctx.save();
+  ctx.globalAlpha = 0.9;
+  const g = ctx.createRadialGradient(e.x, e.y + 10, 10, e.x, e.y + 10, r * 1.3);
+  g.addColorStop(0, `${glow}55`);
+  g.addColorStop(1, `${glow}00`);
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.ellipse(e.x, e.y + 10, r * 1.3, r * 0.7, 0, 0, TAU);
+  ctx.fill();
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = e.beaten ? 'rgba(203,213,225,0.7)' : '#ef4444';
+  ctx.beginPath();
+  ctx.ellipse(e.x, e.y + 10, r, r * 0.5, 0, Math.PI, TAU);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+  ctx.beginPath();
+  ctx.ellipse(e.x, e.y + 10, r, r * 0.5, 0, 0, Math.PI);
+  ctx.stroke();
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = 'rgba(15,23,42,0.7)';
+  ctx.beginPath();
+  ctx.moveTo(e.x - r, e.y + 10);
+  ctx.lineTo(e.x + r, e.y + 10);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(e.x, e.y + 10, 12, 6, 0, 0, TAU);
+  ctx.stroke();
+  // Sparkles turning round the circle
+  if (!e.beaten) {
+    ctx.fillStyle = '#fde047';
+    for (let k = 0; k < 4; k++) {
+      const a = time * 1.5 + (k * TAU) / 4;
+      ctx.beginPath();
+      ctx.arc(e.x + Math.cos(a) * r, e.y + 10 + Math.sin(a) * r * 0.5, 2.6, 0, TAU);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+  if (near && !e.beaten) {
+    const s = 1 + Math.sin(time * 8) * 0.08;
+    ctx.save();
+    ctx.translate(e.x + 16, e.y - 70);
+    ctx.scale(s, s);
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.roundRect(-11, -16, 22, 26, 8);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-4, 9);
+    ctx.lineTo(-8, 16);
+    ctx.lineTo(3, 9);
+    ctx.fill();
+    ctx.fillStyle = '#ef4444';
+    ctx.font = '900 20px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('!', 0, 5);
+    ctx.restore();
+  }
+  const title = e.beaten ? `✓ ${e.title}` : e.title;
+  label(ctx, title, e.x, e.y - 50, e.beaten ? '#cbd5e1' : '#fde047', 11);
+}
+
+// ---------- soft ambient particles per theme ----------
+
+const AMBIENT = {
+  forest: { n: 26, make: (x, y) => (Math.random() < 0.6 ? { kind: 'firefly', x, y, vx: 0, vy: 0, c: '#fef08a' } : { kind: 'leaf', x, y, vx: 12, vy: 22, c: Math.random() < 0.5 ? '#86efac' : '#facc15' }) },
+  cave: { n: 22, make: (x, y) => ({ kind: 'dust', x, y, vx: 4, vy: -3, c: '#fde68a' }) },
+  tower: { n: 18, make: (x, y) => ({ kind: 'wisp', x, y, vx: 6, vy: -8, c: '#c4b5fd' }) },
+  volcano: { n: 30, make: (x, y) => ({ kind: 'ember', x, y, vx: 6, vy: -30, c: Math.random() < 0.5 ? '#fb923c' : '#fde047' }) },
+  ice: { n: 40, make: (x, y) => ({ kind: 'snow', x, y, vx: -8, vy: 28, c: '#ffffff' }) },
+  psychic: { n: 24, make: (x, y) => ({ kind: 'sparkle', x, y, vx: 0, vy: -6, c: Math.random() < 0.5 ? '#f0abfc' : '#a5b4fc' }) },
+};
+
+/** Keep ~30 slow particles floating round the camera and draw them (world space). */
+export function drawAmbient(ctx, fx, theme, cam, view, time, dt) {
+  const cfg = AMBIENT[theme] || AMBIENT.forest;
+  const list = fx.ambient;
+  const inside = (p) => p.x > cam.x - 60 && p.x < cam.x + view.w + 60 && p.y > cam.y - 80 && p.y < cam.y + view.h + 80;
+  for (let i = list.length - 1; i >= 0; i--) if (!inside(list[i]) || list[i].life <= 0) list.splice(i, 1);
+  while (list.length < cfg.n) {
+    const p = cfg.make(cam.x + Math.random() * view.w, cam.y + Math.random() * view.h);
+    p.life = 4 + Math.random() * 6;
+    p.max = p.life;
+    p.ph = Math.random() * TAU;
+    p.s = 1 + Math.random() * 1.5;
+    list.push(p);
+  }
+  ctx.save();
+  for (const p of list) {
+    p.life -= dt;
+    p.ph += dt;
+    const fade = Math.min(1, p.life, (p.max - p.life) * 1.5);
+    p.x += (p.vx + Math.sin(p.ph * 1.3) * 10) * dt;
+    p.y += (p.vy + Math.cos(p.ph * 0.9) * 6) * dt;
+    ctx.globalAlpha = Math.max(0, fade) * (p.kind === 'firefly' ? 0.5 + Math.sin(time * 5 + p.ph * 3) * 0.5 : 0.8);
+    ctx.fillStyle = p.c;
+    if (p.kind === 'leaf') {
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.ph * 2);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 4, 2, 0, 0, TAU);
+      ctx.fill();
+      ctx.restore();
+    } else if (p.kind === 'firefly' || p.kind === 'sparkle' || p.kind === 'wisp') {
+      const r = p.kind === 'wisp' ? 7 : 5;
+      const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * p.s);
+      g.addColorStop(0, p.c);
+      g.addColorStop(1, `${p.c}00`);
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r * p.s, 0, TAU);
+      ctx.fill();
+    } else {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.kind === 'snow' ? 1.6 * p.s : 1.2 * p.s, 0, TAU);
+      ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+// ---------- the scene ----------
+
+/**
+ * Everything that moves, in world space (the camera transform is already set). `props` are the
+ * scenery props in view (from questArt.visibleProps): they are depth-sorted with the Pokemon so
+ * the trainer walks behind trees and houses; a see-through trainer is drawn on top when hidden.
+ */
+export function drawScene(ctx, state, fx, time, dt, view, { props = [], drawProp = null, theme = 'forest', near = null } = {}) {
   const { cam, w, h } = view;
   const pad = 200;
   const inView = (o) => o.x > cam.x - pad && o.x < cam.x + w + pad && o.y > cam.y - pad && o.y < cam.y + h + pad;
   const town = state.area.kind === 'town';
   if (town) for (const s of state.area.spots) if (inView(s)) drawSpot(ctx, s, time, state.townSpot === s.id);
   for (const p of state.portals) if (inView(p)) drawPortal(ctx, p, time);
+  for (const e of state.experts) if (inView(e)) drawExpertSpot(ctx, e, time, near === e.id);
   for (const wn of state.telegraphs) drawWarning(ctx, wn, time);
   drawNovasGround(ctx, fx, dt);
   for (const d of state.drops) if (inView(d)) drawDropBeam(ctx, d, time);
 
   const items = [];
-  for (const c of state.chests) if (inView(c)) items.push({ y: c.y, c });
+  for (const p of props) items.push({ y: p.y, prop: p });
+  for (const c of state.chests) if (inView(c)) items.push({ y: c.y + 10, c });
   for (const d of state.drops) if (inView(d)) items.push({ y: d.y, d });
   for (const e of state.enemies) if (inView(e)) items.push({ y: e.y + e.r * 0.7, e });
-  for (const m of state.party) if (!m.fainted) items.push({ y: m.y + 12, m });
-  items.push({ y: state.trainer.y + 10, t: true });
+  for (const e of state.experts) if (inView(e)) items.push({ y: e.y + 10, ex: e });
+  for (const m of state.party) if (m.out && !m.fainted) items.push({ y: m.y + 12, m });
+  const t = state.trainer;
+  items.push({ y: t.y + 10, t: true });
   for (const p of state.projectiles) if (inView(p)) items.push({ y: p.y + 18, p });
   items.sort((a, b) => a.y - b.y);
+  let trainerDrawn = false;
+  let hidden = false;
   for (const it of items) {
-    if (it.c) drawChest(ctx, it.c, time);
+    if (it.prop) {
+      drawProp?.(ctx, it.prop, theme, time);
+      // A tall prop in front of the trainer?
+      if (trainerDrawn && !hidden && it.prop.y - t.y < 150 && Math.abs(it.prop.x - t.x) < (it.prop.kind === 'building' ? it.prop.building.w / 2 + 10 : 48)) hidden = true;
+    } else if (it.c) drawChest(ctx, it.c, time);
     else if (it.d) drawDrop(ctx, it.d, time);
-    else if (it.e) drawEnemy(ctx, it.e, fx, time);
+    else if (it.e) {
+      drawEnemy(ctx, it.e, fx, time);
+      if (trainerDrawn && (it.e.boss || it.e.elite) && Math.abs(it.e.x - t.x) < (it.e.boss ? 90 : 40) && it.e.y - t.y < (it.e.boss ? 130 : 60)) hidden = true;
+    } else if (it.ex) drawExpert(ctx, it.ex.x, it.ex.y, it.ex.look, time);
     else if (it.m) drawMember(ctx, it.m, fx, time, it.m.idx === state.lead);
-    else if (it.t) drawTrainer(ctx, state.trainer, time);
-    else if (it.p) {
+    else if (it.t) {
+      drawTrainer(ctx, t, time);
+      trainerDrawn = true;
+    } else if (it.p) {
       if (it.p.skill === 's1') drawSkillShot(ctx, it.p, fx, time, dt);
       else drawShot(ctx, it.p, fx, time);
     }
   }
-  // The trainer shows through anything big standing in front (a see-through copy on top)
-  const t = state.trainer;
-  if (state.enemies.some((e) => (e.boss || e.elite) && e.y > t.y && Math.abs(e.x - t.x) < (e.boss ? 90 : 40) && e.y - t.y < (e.boss ? 130 : 60))) {
+  if (hidden) {
     ctx.save();
-    ctx.globalAlpha = 0.55;
+    ctx.globalAlpha = 0.5;
     drawTrainer(ctx, t, time);
     ctx.restore();
   }
+  drawThrows(ctx, fx, dt);
   drawNovasTop(ctx, fx, dt);
   drawFlashes(ctx, fx, dt);
   drawEffects(ctx, fx, dt);
@@ -909,16 +947,22 @@ export function drawScene(ctx, state, fx, time, dt, view) {
   drawTexts(ctx, fx, dt);
 }
 
-/** Decay per-entity flashes (called once per frame). */
+/** Decay per-entity flashes and the "coming out of the ball" pops (called once per frame). */
 export function tickFx(fx, dt) {
   for (const k of Object.keys(fx.flash)) {
     fx.flash[k] -= dt * 5;
     if (fx.flash[k] <= 0) delete fx.flash[k];
   }
+  for (const k of Object.keys(fx.appear)) {
+    const a = fx.appear[k];
+    if (a.delay > 0) a.delay -= dt;
+    else a.t += dt;
+    if (a.t > 0.5) delete fx.appear[k];
+  }
 }
 
-/** Minimap (screen space): explored ground, portals, chests, wild Pokemon, the trainer. */
-export function drawMinimap(ctx, state, art, x, y, w, maxH, time) {
+/** Minimap (screen space): the ground (unexplored parts softly tinted), portals, chests, experts, wild Pokemon, the trainer. */
+export function drawMinimap(ctx, state, art, x, y, w, maxH, time, fog = null) {
   const area = state.area;
   let s = w / area.w;
   let h = area.h * s;
@@ -938,7 +982,7 @@ export function drawMinimap(ctx, state, art, x, y, w, maxH, time) {
   ctx.imageSmoothingEnabled = false;
   if (art?.minimap) ctx.drawImage(art.minimap, x, y, w, h);
   ctx.imageSmoothingEnabled = true;
-  if (art?.fog) ctx.drawImage(art.fog, x, y, state.fog.cols * state.fog.cell * s, state.fog.rows * state.fog.cell * s);
+  if (fog) ctx.drawImage(fog, x, y, state.fog.cols * state.fog.cell * s, state.fog.rows * state.fog.cell * s);
   const f = state.fog;
   const seen = (o) => {
     if (!f) return true;
@@ -955,6 +999,20 @@ export function drawMinimap(ctx, state, art, x, y, w, maxH, time) {
     ctx.beginPath();
     ctx.arc(x + p.x * s, y + p.y * s, 3.5 + Math.sin(time * 4) * 0.8, 0, TAU);
     ctx.fill();
+  }
+  for (const e of state.experts) if (seen(e)) {
+    ctx.fillStyle = e.beaten ? '#cbd5e1' : '#f472b6';
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let k = 0; k < 10; k++) {
+      const r = k % 2 ? 2 : 4.5;
+      const a = -Math.PI / 2 + (k * Math.PI) / 5;
+      ctx.lineTo(x + e.x * s + Math.cos(a) * r, y + e.y * s + Math.sin(a) * r);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
   }
   for (const e of state.enemies) if (seen(e)) {
     ctx.fillStyle = e.boss ? '#ef4444' : e.elite ? '#f59e0b' : '#f87171';
@@ -973,4 +1031,4 @@ export function drawMinimap(ctx, state, art, x, y, w, maxH, time) {
   return { w, h };
 }
 
-export { styleBurst };
+export { styleBurst, drawTrainer };

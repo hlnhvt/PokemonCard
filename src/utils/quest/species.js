@@ -31,7 +31,7 @@ const RAW = `
 104:Cubone:ground:320 105:Marowak:ground:425 109:Koffing:poison:340 110:Weezing:poison:490
 111:Rhyhorn:ground/rock:345 112:Rhydon:ground/rock:485 116:Horsea:water:295 117:Seadra:water:440
 120:Staryu:water:340 121:Starmie:water/psychic:520 124:Jynx:ice/psychic:455 126:Magmar:fire:495
-129:Magikarp:water:200 130:Gyarados:water/flying:540 132:Ditto:normal:288 133:Eevee:normal:325 134:Vaporeon:water:525
+129:Magikarp:water:200 130:Gyarados:water/flying:540 131:Lapras:water/ice:535 132:Ditto:normal:288 133:Eevee:normal:325 134:Vaporeon:water:525
 137:Porygon:normal:395 143:Snorlax:normal:540 144:Articuno:ice/flying:580 146:Moltres:fire/flying:580
 147:Dratini:dragon:300 148:Dragonair:dragon:420 149:Dragonite:dragon/flying:600 150:Mewtwo:psychic:680
 152:Chikorita:grass:318 153:Bayleef:grass:405 154:Meganium:grass:525

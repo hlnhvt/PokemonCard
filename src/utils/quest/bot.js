@@ -2,7 +2,7 @@
 // picks up loot, opens chests, clears every pack, heals with the bag, goes to town when the
 // team is tired, and fights the boss while keeping the trainer at a safe distance.
 import { findPath } from './world';
-import { leadOf, quickHeal, applyItem, buyItem, goToTown, ULT_MAX } from './engine';
+import { leadOf, quickHeal, applyItem, buyItem, goToTown, switchLead, fighters, closeExpert, ULT_MAX } from './engine';
 
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
@@ -39,6 +39,8 @@ export function botStep(state, bot) {
   const t = state.trainer;
   const area = state.area;
   const input = { move: { x: 0, y: 0 }, cast: null };
+  // The bot does not take the expert battles (they are separate games): "Để sau"
+  if (state.pendingExpert) closeExpert(state);
   // Stuck against something: plan again
   if (bot.lastPos && dist(bot.lastPos, t) < 0.5 && bot.wanted) bot.stuckT += 1 / 30;
   else bot.stuckT = 0;
@@ -68,13 +70,21 @@ export function botStep(state, bot) {
   }
   bot.bought = 0;
 
+  // Tired Pokemon go back to their balls to rest, a fresh one comes out
+  const low = fighters(state).find((m) => m.hp / m.maxHp < 0.35);
+  const fresh = state.party.filter((m) => !m.out && !m.fainted && m.hp / m.maxHp > 0.7)[0];
+  if (low && fresh && state.time > (bot.swapAt || 0)) {
+    bot.swapAt = state.time + 1;
+    if (low.idx === state.lead && state.party[state.companion] && !state.party[state.companion].fainted) switchLead(state, state.companion);
+    else switchLead(state, fresh.idx);
+  }
   const lead = leadOf(state);
   const h = teamHealth(state);
   const fainted = state.party.length - h.alive;
   if (fainted >= 2 && state.inventory.revive > 0) applyItem(state, 'revive');
   if (h.ratio < 0.45) quickHeal(state);
   const boss = state.enemies.find((e) => e.boss);
-  if (!boss && (h.alive <= 2 || (h.ratio < 0.3 && !quickHeal(state)))) {
+  if (!boss && (h.alive <= 1 || (h.ratio < 0.3 && !quickHeal(state)))) {
     goToTown(state, 'portal');
     return input;
   }

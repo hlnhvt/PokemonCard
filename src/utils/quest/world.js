@@ -20,79 +20,80 @@ export const THEMES = {
 };
 
 // Area kinds: town (Pokemon Center, shop, board), wild, dungeon, lair (boss arena)
-// levels: [min, max] of wild Pokemon. enemies / elites: Pokedex numbers.
+// levels: [min, max] of wild Pokemon. enemies / elites: Pokedex numbers. power: later acts hit
+// harder (tuned with the bot in quest.sim.test.js).
 export const ACTS = [
   {
-    id: 'viridian', name: 'Rừng Viridian', theme: 'forest', enemies: [10, 13, 16, 19, 11, 14, 43], elites: [17, 15, 12], ranged: [16, 17, 12, 43],
+    id: 'viridian', power: { dmg: 1, hp: 1 }, name: 'Rừng Viridian', theme: 'forest', enemies: [10, 13, 16, 19, 11, 14, 43], elites: [17, 15, 12], ranged: [16, 17, 12, 43],
     areas: [
       { kind: 'town', name: 'Làng Pallet' },
-      { kind: 'wild', name: 'Đồng cỏ Tuyến 1', levels: [2, 4], packs: 13, packSize: [2, 3] },
-      { kind: 'wild', name: 'Bìa rừng Viridian', levels: [4, 7], packs: 15, packSize: [2, 4] },
-      { kind: 'dungeon', name: 'Rừng Sâu Viridian', levels: [7, 10], packs: 16, packSize: [3, 4] },
+      { kind: 'wild', name: 'Đồng cỏ Tuyến 1', levels: [2, 4], packs: 18, packSize: [2, 3] },
+      { kind: 'wild', name: 'Bìa rừng Viridian', levels: [4, 7], packs: 20, packSize: [2, 3] },
+      { kind: 'dungeon', name: 'Rừng Sâu Viridian', levels: [7, 10], packs: 22, packSize: [2, 4] },
       { kind: 'lair', name: 'Hang ổ Snorlax', levels: [9, 10] },
     ],
-    boss: { dex: 143, name: 'Snorlax', title: 'Snorlax Ngủ Say', level: 12, hp: 38, dmg: 0.5, attacks: ['slam', 'charge'], minions: [19, 16] },
+    boss: { dex: 143, name: 'Snorlax', title: 'Snorlax Ngủ Say', level: 12, hp: 26, dmg: 0.5, attacks: ['slam', 'charge'], minions: [19, 16] },
   },
   {
-    id: 'mtmoon', name: 'Hang Mt. Moon', theme: 'cave', enemies: [41, 74, 46, 35, 27, 50], elites: [42, 75, 47], ranged: [41, 42, 35],
+    id: 'mtmoon', power: { dmg: 1.3, hp: 1.1 }, name: 'Hang Mt. Moon', theme: 'cave', enemies: [41, 74, 46, 35, 27, 50], elites: [42, 75, 47], ranged: [41, 42, 35],
     areas: [
       { kind: 'town', name: 'Thành phố Pewter' },
-      { kind: 'wild', name: 'Chân núi Mt. Moon', levels: [11, 14], packs: 11, packSize: [2, 4] },
-      { kind: 'wild', name: 'Đường hầm Đá', levels: [14, 17], packs: 12, packSize: [3, 4] },
-      { kind: 'dungeon', name: 'Hang Pha lê', levels: [17, 20], packs: 13, packSize: [3, 5] },
+      { kind: 'wild', name: 'Chân núi Mt. Moon', levels: [11, 14], packs: 15, packSize: [2, 4] },
+      { kind: 'wild', name: 'Đường hầm Đá', levels: [14, 17], packs: 16, packSize: [3, 4] },
+      { kind: 'dungeon', name: 'Hang Pha lê', levels: [17, 20], packs: 18, packSize: [3, 5] },
       { kind: 'lair', name: 'Hang ổ Onix', levels: [19, 20] },
     ],
-    boss: { dex: 95, name: 'Onix', title: 'Onix Rắn Đá', level: 22, hp: 60, dmg: 0.8, attacks: ['slam', 'meteor', 'charge'], minions: [74, 41] },
+    boss: { dex: 95, name: 'Onix', title: 'Onix Rắn Đá', level: 22, hp: 30, dmg: 0.8, attacks: ['slam', 'meteor', 'charge'], minions: [74, 41] },
   },
   {
-    id: 'lavender', name: 'Tháp Ma Lavender', theme: 'tower', enemies: [92, 93, 200, 104, 96, 41], elites: [93, 97, 105], ranged: [92, 93, 200, 96, 97],
+    id: 'lavender', power: { dmg: 1.55, hp: 1.2 }, name: 'Tháp Ma Lavender', theme: 'tower', enemies: [92, 93, 200, 104, 96, 41], elites: [93, 97, 105], ranged: [92, 93, 200, 96, 97],
     areas: [
       { kind: 'town', name: 'Thị trấn Lavender' },
-      { kind: 'wild', name: 'Vườn Sương Mù', levels: [20, 23], packs: 11, packSize: [3, 4] },
-      { kind: 'wild', name: 'Hành lang Tháp', levels: [23, 26], packs: 12, packSize: [3, 4] },
-      { kind: 'dungeon', name: 'Tầng Ma Ám', levels: [26, 29], packs: 13, packSize: [3, 5] },
+      { kind: 'wild', name: 'Vườn Sương Mù', levels: [20, 23], packs: 15, packSize: [3, 4] },
+      { kind: 'wild', name: 'Hành lang Tháp', levels: [23, 26], packs: 16, packSize: [3, 4] },
+      { kind: 'dungeon', name: 'Tầng Ma Ám', levels: [26, 29], packs: 18, packSize: [3, 5] },
       { kind: 'lair', name: 'Đỉnh Tháp', levels: [28, 29] },
     ],
-    boss: { dex: 94, name: 'Gengar', title: 'Gengar Bóng Đêm', level: 31, hp: 64, dmg: 0.9, attacks: ['ring', 'meteor', 'slam'], minions: [92, 93] },
+    boss: { dex: 94, name: 'Gengar', title: 'Gengar Bóng Đêm', level: 31, hp: 32, dmg: 0.9, attacks: ['ring', 'meteor', 'slam'], minions: [92, 93] },
   },
   {
-    id: 'cinnabar', name: 'Đảo Núi lửa Cinnabar', theme: 'volcano', enemies: [77, 58, 37, 218, 126, 109], elites: [78, 59, 126], ranged: [37, 126, 109, 218],
+    id: 'cinnabar', power: { dmg: 1.75, hp: 1.3 }, name: 'Đảo Núi lửa Cinnabar', theme: 'volcano', enemies: [77, 58, 37, 218, 126, 109], elites: [78, 59, 126], ranged: [37, 126, 109, 218],
     areas: [
       { kind: 'town', name: 'Cảng Cinnabar' },
-      { kind: 'wild', name: 'Bãi đá nóng', levels: [28, 31], packs: 12, packSize: [3, 4] },
-      { kind: 'wild', name: 'Sườn núi lửa', levels: [31, 34], packs: 12, packSize: [3, 5] },
-      { kind: 'dungeon', name: 'Lòng núi lửa', levels: [34, 37], packs: 13, packSize: [3, 5] },
+      { kind: 'wild', name: 'Bãi đá nóng', levels: [28, 31], packs: 16, packSize: [3, 4] },
+      { kind: 'wild', name: 'Sườn núi lửa', levels: [31, 34], packs: 16, packSize: [3, 5] },
+      { kind: 'dungeon', name: 'Lòng núi lửa', levels: [34, 37], packs: 18, packSize: [3, 5] },
       { kind: 'lair', name: 'Miệng núi lửa', levels: [36, 37] },
     ],
-    boss: { dex: 146, name: 'Moltres', title: 'Moltres Chim Lửa', level: 39, hp: 68, dmg: 1, attacks: ['meteor', 'ring', 'charge'], minions: [77, 58] },
+    boss: { dex: 146, name: 'Moltres', title: 'Moltres Chim Lửa', level: 39, hp: 34, dmg: 1, attacks: ['meteor', 'ring', 'charge'], minions: [77, 58] },
   },
   {
-    id: 'seafoam', name: 'Hang Băng Seafoam', theme: 'ice', enemies: [86, 90, 116, 124, 220, 361, 120], elites: [87, 91, 124], ranged: [90, 116, 124, 120, 361],
+    id: 'seafoam', power: { dmg: 1.95, hp: 1.4 }, name: 'Hang Băng Seafoam', theme: 'ice', enemies: [86, 90, 116, 124, 220, 361, 120], elites: [87, 91, 124], ranged: [90, 116, 124, 120, 361],
     areas: [
       { kind: 'town', name: 'Làng chài Seafoam' },
-      { kind: 'wild', name: 'Bờ biển băng', levels: [36, 39], packs: 12, packSize: [3, 4] },
-      { kind: 'wild', name: 'Hang Băng tầng 1', levels: [39, 42], packs: 12, packSize: [3, 5] },
-      { kind: 'dungeon', name: 'Hang Băng sâu', levels: [42, 44], packs: 13, packSize: [3, 5] },
+      { kind: 'wild', name: 'Bờ biển băng', levels: [36, 39], packs: 16, packSize: [3, 4] },
+      { kind: 'wild', name: 'Hang Băng tầng 1', levels: [39, 42], packs: 16, packSize: [3, 5] },
+      { kind: 'dungeon', name: 'Hang Băng sâu', levels: [42, 44], packs: 18, packSize: [3, 5] },
       { kind: 'lair', name: 'Hang ổ Articuno', levels: [43, 44] },
     ],
-    boss: { dex: 144, name: 'Articuno', title: 'Articuno Chim Băng', level: 46, hp: 72, dmg: 1, attacks: ['ring', 'meteor', 'slam'], minions: [86, 361] },
+    boss: { dex: 144, name: 'Articuno', title: 'Articuno Chim Băng', level: 46, hp: 36, dmg: 1, attacks: ['ring', 'meteor', 'slam'], minions: [86, 361] },
   },
   {
-    id: 'cerulean', name: 'Hang Động Bí Ẩn', theme: 'psychic', enemies: [63, 64, 55, 101, 67, 112, 132, 137], elites: [65, 112, 68], ranged: [63, 64, 55, 101, 137],
+    id: 'cerulean', power: { dmg: 2.15, hp: 1.5 }, name: 'Hang Động Bí Ẩn', theme: 'psychic', enemies: [63, 64, 55, 101, 67, 112, 132, 137], elites: [65, 112, 68], ranged: [63, 64, 55, 101, 137],
     areas: [
       { kind: 'town', name: 'Trại Cerulean' },
-      { kind: 'wild', name: 'Lối vào Hang Bí Ẩn', levels: [43, 45], packs: 12, packSize: [3, 5] },
-      { kind: 'wild', name: 'Mê cung Pha lê', levels: [45, 47], packs: 13, packSize: [3, 5] },
-      { kind: 'dungeon', name: 'Vực Tâm Linh', levels: [47, 49], packs: 14, packSize: [3, 5] },
+      { kind: 'wild', name: 'Lối vào Hang Bí Ẩn', levels: [43, 45], packs: 16, packSize: [3, 5] },
+      { kind: 'wild', name: 'Mê cung Pha lê', levels: [45, 47], packs: 18, packSize: [3, 5] },
+      { kind: 'dungeon', name: 'Vực Tâm Linh', levels: [47, 49], packs: 19, packSize: [3, 5] },
       { kind: 'lair', name: 'Phòng của Mewtwo', levels: [48, 49] },
     ],
-    boss: { dex: 150, name: 'Mewtwo', title: 'Mewtwo Huyền Thoại', level: 50, hp: 85, dmg: 1.05, attacks: ['slam', 'meteor', 'charge', 'ring'], minions: [64, 65] },
+    boss: { dex: 150, name: 'Mewtwo', title: 'Mewtwo Huyền Thoại', level: 50, hp: 42, dmg: 1.05, attacks: ['slam', 'meteor', 'charge', 'ring'], minions: [64, 65] },
   },
 ];
 
 export const areaDef = (act, index) => ACTS[act]?.areas[index] || null;
 
-const SIZES = { town: [40, 24], wild: [82, 54], dungeon: [70, 64], lair: [44, 34] };
+const SIZES = { town: [40, 24], wild: [112, 72], dungeon: [96, 86], lair: [46, 36] };
 
 /** Value noise in [0, 1] from a coarse random lattice (smooth blobs). */
 function valueNoise(rnd, W, H, cell) {
@@ -201,7 +202,9 @@ function genTown(area, rnd) {
     grid[y * W + x] = WALL;
   }
   const building = (x0, y0, w, h, id, label) => {
-    for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) grid[y * W + x] = BUILDING;
+    // Houses: the roof leans out over the row north of the walls, nobody stands under it
+    const top = id === 'center' || id === 'shop' || id === 'house' ? y0 - 1 : y0;
+    for (let y = top; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) grid[y * W + x] = BUILDING;
     area.buildings.push({ id, label, x: x0 * TILE, y: y0 * TILE, w: w * TILE, h: h * TILE });
     return { x: (x0 + w / 2) * TILE, y: (y0 + h) * TILE + 34 };
   };
@@ -232,7 +235,67 @@ function genTown(area, rnd) {
   ];
   area.pathWidth = 3.2 * TILE;
   area.exits = [{ to: 1, x: (W - 3.2) * TILE, y: ry, label: '' }];
+  // Street lamps, fences round the gardens, a signpost to the way out
+  const extra = (x, y, kind) => {
+    if (grid[y * W + x] !== FREE) return;
+    grid[y * W + x] = WALL;
+    area.extras.push({ tx: x, ty: y, x: (x + 0.5) * TILE, y: (y + 0.5) * TILE, kind, v: rnd() });
+  };
+  for (const x of [4, 15, 25, 35]) {
+    extra(x, 7, 'lamp');
+    extra(x, 13, 'lamp');
+  }
+  for (let x = mid - 16; x <= mid - 10; x++) extra(x, 19, 'fence');
+  for (let x = mid + 10; x <= mid + 16; x++) extra(x, 19, 'fence');
+  extra(W - 7, 8, 'sign');
+  area.extraAt = new Map(area.extras.map((e) => [e.ty * W + e.tx, e]));
   area.decorations = decorate(area, rnd, 0.1).filter((d) => Math.abs(d.y - ry) > 2 * TILE);
+}
+
+// Free-standing props that block their tile (signposts, lamps, tombstones, crystals...)
+const EXTRAS = {
+  forest: ['sign', 'fence', 'lamp', 'stump', 'fence', 'stump'],
+  cave: ['stalagmite', 'crystalBig', 'lamp', 'stalagmite'],
+  tower: ['tomb', 'tomb', 'candelabra', 'urn', 'tomb'],
+  volcano: ['vent', 'obsidian', 'lamp', 'obsidian'],
+  ice: ['snowman', 'iceSpike', 'lamp', 'iceSpike'],
+  psychic: ['obelisk', 'crystalBig', 'orb', 'obelisk'],
+};
+// How many expert trainers wait in each kind of area (5 per act)
+export const expertsIn = (index, kind) => (kind === 'dungeon' ? 2 : kind === 'wild' ? (index === 1 ? 1 : 2) : 0);
+export const EXPERTS_PER_ACT = 5;
+
+/** Would blocking tile (x, y) cut a way through? (its free neighbours must stay one group) */
+function safeToBlock(grid, W, H, x, y) {
+  const ring = [[-1, -1], [0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0]];
+  const free = ring.map(([dx, dy]) => {
+    const nx = x + dx;
+    const ny = y + dy;
+    return nx >= 0 && ny >= 0 && nx < W && ny < H && grid[ny * W + nx] === FREE;
+  });
+  let runs = 0;
+  for (let k = 0; k < 8; k++) if (free[k] && !free[(k + 7) % 8]) runs += 1;
+  return runs <= 1 && free.some(Boolean) && !free.every(Boolean);
+}
+
+function placeExtras(area, rnd, avoid) {
+  const { W, H, grid } = area;
+  const kinds = EXTRAS[area.theme];
+  const want = Math.round(W * H * 0.0045);
+  area.extras = [];
+  for (let k = 0; k < want * 12 && area.extras.length < want; k++) {
+    const x = int(rnd, 3, W - 4);
+    const y = int(rnd, 3, H - 4);
+    if (grid[y * W + x] !== FREE) continue;
+    const wx = (x + 0.5) * TILE;
+    const wy = (y + 0.5) * TILE;
+    if (avoid.some((a) => Math.hypot(a.x - wx, a.y - wy) < a.r)) continue;
+    if (area.extras.some((e) => Math.abs(e.tx - x) + Math.abs(e.ty - y) < 4)) continue;
+    if (!safeToBlock(grid, W, H, x, y)) continue;
+    grid[y * W + x] = WALL;
+    area.extras.push({ tx: x, ty: y, x: wx, y: wy, kind: kinds[Math.floor(rnd() * kinds.length)], v: rnd() });
+  }
+  area.extraAt = new Map(area.extras.map((e) => [e.ty * W + e.tx, e]));
 }
 
 function genWild(area, rnd, dungeon) {
@@ -250,10 +313,10 @@ function genWild(area, rnd, dungeon) {
       else if (noise2(x, y) > (dungeon ? 0.86 : 0.8) && n < wallAt - 0.12) grid[y * W + x] = LIQUID;
     }
   }
-  // Main path: entrance on the left, exit on the right, winding through waypoints
+  // Main path: entrance on the left, exit on the right, winding up and down through waypoints
   const entry = { x: 4, y: int(rnd, 8, H - 9) };
   const exit = { x: W - 5, y: int(rnd, 8, H - 9) };
-  const n = dungeon ? 6 : 5;
+  const n = dungeon ? 8 : 7;
   const pts = [entry];
   for (let i = 1; i < n; i++) {
     const t = i / n;
@@ -266,19 +329,34 @@ function genWild(area, rnd, dungeon) {
   // Clearings on the way (where packs gather)
   const clearings = [];
   for (let i = 1; i < pts.length - 1; i++) {
-    const r = range(rnd, 4, 5.5);
+    const r = range(rnd, 4, 5.8);
     carve(grid, W, H, pts[i].x, pts[i].y, r);
     clearings.push({ ...pts[i], r, main: true });
   }
   carve(grid, W, H, entry.x + 1, entry.y, 3.2);
   carve(grid, W, H, exit.x - 1, exit.y, 3.2);
+  const nearestOnPath = (p) => path.reduce((a, q) => (Math.hypot(q.x - p.x, q.y - p.y) < Math.hypot(a.x - p.x, a.y - p.y) ? q : a), path[0]);
+  // Expert trainers wait in their own round glades off the path
+  const experts = [];
+  const wantExperts = expertsIn(area.index, area.kind);
+  for (let k = 0; k < 400 && experts.length < wantExperts; k++) {
+    const p = { x: int(rnd, 16, W - 12), y: int(rnd, 7, H - 8) };
+    const near = nearestOnPath(p);
+    const d = Math.hypot(near.x - p.x, near.y - p.y);
+    const band = k < 250 ? [7, 14] : [2, 22];
+    if (d < band[0] || d > band[1] || experts.some((e) => Math.hypot(e.x - p.x, e.y - p.y) < 18)) continue;
+    area.sidePaths.push(carveLine(grid, W, H, near, p, 1.7, rnd, 0.6));
+    carve(grid, W, H, p.x, p.y, 4.4);
+    experts.push(p);
+  }
   // Side paths to little dead-end glades (chests, extra packs)
   const sides = [];
-  for (let k = 0; k < 40 && sides.length < (dungeon ? 5 : 4); k++) {
+  const wantSides = dungeon ? 8 : 7;
+  for (let k = 0; k < 100 && sides.length < wantSides; k++) {
     const p = { x: int(rnd, 8, W - 9), y: int(rnd, 5, H - 6) };
-    const near = path.reduce((a, q) => (Math.hypot(q.x - p.x, q.y - p.y) < Math.hypot(a.x - p.x, a.y - p.y) ? q : a), path[0]);
+    const near = nearestOnPath(p);
     const d = Math.hypot(near.x - p.x, near.y - p.y);
-    if (d < 7 || d > 16 || sides.some((s) => Math.hypot(s.x - p.x, s.y - p.y) < 12)) continue;
+    if (d < 7 || d > 17 || sides.some((sd) => Math.hypot(sd.x - p.x, sd.y - p.y) < 12) || experts.some((e) => Math.hypot(e.x - p.x, e.y - p.y) < 10)) continue;
     const side = carveLine(grid, W, H, near, p, 1.5, rnd, 0.8);
     area.sidePaths.push(side);
     const r = range(rnd, 2.6, 3.6);
@@ -306,32 +384,34 @@ function genWild(area, rnd, dungeon) {
   const seen = flood(grid, W, H, entry.x + 1, entry.y);
   for (let i = 0; i < grid.length; i++) if (grid[i] === FREE && !seen[i]) grid[i] = WALL;
 
-  area.path = [path.map(toWorld), ...area.sidePaths.map((s) => s.map(toWorld))];
+  area.path = [path.map(toWorld), ...area.sidePaths.map((sp) => sp.map(toWorld))];
   area.pathWidth = (dungeon ? 3.2 : 3.8) * TILE;
   area.spawn = toWorld({ x: entry.x + 2, y: entry.y });
   area.exits = [
     { to: area.index - 1, x: (entry.x + 0.2) * TILE, y: (entry.y + 0.5) * TILE },
     { to: area.index + 1, x: (exit.x + 0.8) * TILE, y: (exit.y + 0.5) * TILE },
   ];
+  area.experts = experts.map((p) => toWorld(p));
 
-  // Packs: clearings, glades and spots along the path, never right at the entrance
+  // Packs: clearings, glades and spots along the path, never right at the entrance or an expert
   const spots = [];
   const entryW = toWorld(entry);
   const farEnough = (w, min) => Math.hypot(w.x - entryW.x, w.y - entryW.y) > min;
   for (const c of clearings) spots.push({ ...toWorld(c), r: c.r * TILE * 0.5 });
-  for (const s of sides) spots.push({ ...toWorld(s), r: s.r * TILE * 0.45, glade: true });
-  for (let i = 10; i < path.length; i += 7) if (rnd() < 0.6) spots.push({ ...toWorld(path[i]), r: TILE });
+  for (const sd of sides) spots.push({ ...toWorld(sd), r: sd.r * TILE * 0.45, glade: true });
+  for (let i = 10; i < path.length; i += 6) if (rnd() < 0.65) spots.push({ ...toWorld(path[i]), r: TILE });
   const want = area.def.packs;
   const chosen = [];
   for (let i = spots.length - 1; i > 0; i--) {
     const j = Math.floor(rnd() * (i + 1));
     [spots[i], spots[j]] = [spots[j], spots[i]];
   }
-  for (const s of spots) {
+  for (const sp of spots) {
     if (chosen.length >= want) break;
-    if (!farEnough(s, 14 * TILE)) continue;
-    if (chosen.some((c) => Math.hypot(c.x - s.x, c.y - s.y) < 6 * TILE)) continue;
-    chosen.push(s);
+    if (!farEnough(sp, 14 * TILE)) continue;
+    if (chosen.some((c) => Math.hypot(c.x - sp.x, c.y - sp.y) < 6 * TILE)) continue;
+    if (area.experts.some((e) => Math.hypot(e.x - sp.x, e.y - sp.y) < 9 * TILE)) continue;
+    chosen.push(sp);
   }
   // The very first wild area greets the child with two easy Pokemon close by
   if (area.act === 0 && area.index === 1) {
@@ -339,8 +419,18 @@ function genWild(area, rnd, dungeon) {
     chosen.unshift({ ...toWorld(p), r: TILE * 0.8, welcome: true });
   }
   area.packs = chosen;
-  area.chests = sides.slice(0, dungeon ? 4 : 3).map((s) => toWorld(s));
+  area.chests = sides.slice(0, dungeon ? 6 : 5).map((sd) => toWorld(sd));
   if (area.chests.length < 2 && clearings.length) area.chests.push(toWorld({ x: clearings[clearings.length - 1].x + 2, y: clearings[clearings.length - 1].y }));
+  // Keep the ways, portals and meeting places clear of props
+  const avoid = [
+    ...area.exits.map((e) => ({ ...e, r: 6 * TILE })),
+    { ...area.spawn, r: 6 * TILE },
+    ...area.experts.map((e) => ({ ...e, r: 5.5 * TILE })),
+    ...area.chests.map((c) => ({ ...c, r: 2.5 * TILE })),
+    ...chosen.map((c) => ({ ...c, r: 3 * TILE })),
+    ...path.filter((_, k) => k % 2 === 0).map((q) => ({ ...toWorld(q), r: 2.6 * TILE })),
+  ];
+  placeExtras(area, rnd, avoid);
   area.decorations = decorate(area, rnd, 0.16);
 }
 
@@ -401,6 +491,9 @@ export function generateArea(worldSeed, act, index) {
     buildings: [],
     spots: [],
     sidePaths: [],
+    experts: [],
+    extras: [],
+    extraAt: new Map(),
     packs: [],
     chests: [],
     decorations: [],

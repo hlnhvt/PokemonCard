@@ -1934,3 +1934,14 @@
   .quest-evo-img { transition: none; }
   .quest-sparkle { display: none; }
 }
+
+/* ---------- Hành trình Huấn luyện viên: Pokeballs resting in the team bar ---------- */
+@keyframes questBallIdle {
+  0%, 84%, 100% { transform: translateX(-50%) rotate(0); }
+  88% { transform: translateX(-50%) rotate(-12deg); }
+  94% { transform: translateX(-50%) rotate(10deg); }
+}
+.quest-ball-idle { animation: questBallIdle 3.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .quest-ball-idle { animation: none; }
+}

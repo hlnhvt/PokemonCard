@@ -1,6 +1,8 @@
 // Balance check: a bot plays act 1 with a typical team of starters (quest.sim.test.js).
-// It must level up, evolve at least one starter line and beat the act-1 boss in a
-// reasonable time, without the whole team fainting more than once.
+// Only 2 of the 5 are out at a time (the bot sends a rested one out when one gets tired);
+// the 3 in their balls get a smaller share of experience. The bot must level up, evolve at
+// least one starter line and beat the act-1 boss in a reasonable time, without the whole team
+// fainting more than once. The expert trainers are skipped ("Để sau").
 import { describe, it, expect } from 'vitest';
 import { createQuest, step, applyEvolution } from './engine';
 import { createBot, botStep } from './bot';
@@ -43,7 +45,9 @@ describe('quest balance (bot simulation)', () => {
       expect(t / 60).toBeGreaterThan(3.5);
       expect(t / 60).toBeLessThan(18);
       expect(s.stats.wipes).toBeLessThanOrEqual(1);
-      expect(Math.min(...s.party.map((m) => m.level))).toBeGreaterThanOrEqual(14);
+      // The two out lead the way; the resting ones follow not far behind
+      expect(Math.max(...s.party.map((m) => m.level))).toBeGreaterThanOrEqual(16);
+      expect(Math.min(...s.party.map((m) => m.level))).toBeGreaterThanOrEqual(12);
       expect(log.evolutions.some((e) => STARTERS.has(e.from))).toBe(true);
       // The boss is a real fight but not a long one
       expect((t - log.bossAt) / 60).toBeGreaterThan(0.4);
@@ -58,7 +62,7 @@ describe('quest balance (bot simulation)', () => {
 });
 
 describe('quest boss for young children', () => {
-  it('SIM-02 act 1 boss: a level-15 team wins even when the child only stands and watches', { timeout: 60000 }, () => {
+  it('SIM-02 act 1 boss: a level-15 team (2 out) wins even when the child only stands and watches', { timeout: 60000 }, () => {
     const res = [];
     for (const seed of [1, 2, 3]) {
       const team = TEAM.map((m) => ({ ...m, level: 15 }));

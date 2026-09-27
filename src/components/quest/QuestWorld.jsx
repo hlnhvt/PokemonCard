@@ -3,14 +3,15 @@ import confetti from 'canvas-confetti';
 import { usePortrait, landscapeStyle } from '../moba/landscape';
 import { useLoop, useLater } from '../sports/sportsKit';
 import { castFx, impactFx, novaFx, styleBurst } from '../moba/skillFx';
-import { createQuest, step, hudOf, switchLead, applyItem, quickHeal, buyItem, goToTown, travelTo, applyEvolution, setEvolutionPlan, SKILLS, ULT_MAX } from '../../utils/quest/engine';
+import { createQuest, step, hudOf, switchLead, applyItem, quickHeal, buyItem, goToTown, travelTo, applyEvolution, setEvolutionPlan, closeExpert, expertResult, expertById, SKILLS, ULT_MAX } from '../../utils/quest/engine';
 import { saveQuest } from '../../utils/quest/save';
 import { claimReward, ITEMS, RARITY } from '../../utils/quest/items';
 import { apiPlan } from '../../utils/quest/species';
 import { fetchEvolutionChain } from '../../services/pokemonOnlineService';
 import { sounds } from '../../utils/soundEffects';
-import { createArt, drawGround, drawFog, prewarm } from './questArt';
-import { createFx, drawScene, drawMinimap, tickFx, burstFx, sparkle, numberFx, ringFx, levelUpFx, typeColor } from './questDraw';
+import { createArt, drawGround, prewarm, visibleProps, drawProp, drawWater, drawPlants, drawGlows, fogCanvas } from './questArt';
+import { createFx, drawScene, drawMinimap, drawAmbient, tickFx, burstFx, sparkle, numberFx, ringFx, levelUpFx, typeColor } from './questDraw';
+import { ExpertDialog, ExpertArena, ExpertTeamBattle } from './QuestExpert';
 import { SkillButton, PartyBar, BossBar, LeadInfo } from './QuestHud';
 import { BagPanel, ShopPanel, CenterPanel, BoardPanel } from './QuestPanels';
 import { QuestEvolution } from './QuestEvolution';
@@ -50,6 +51,8 @@ export function QuestWorld({ start, random = Math.random, onGold, onExit }) {
   const [actClear, setActClear] = useState(null);
   const [joyShow, setJoyShow] = useState(null);
   const [goldToast, setGoldToast] = useState(null);
+  // Talking to / battling an expert: { id, phase: 'talk' | 'arena' | 'team', result }
+  const [duel, setDuel] = useState(null);
 
   const refresh = () => setHud(hudOf(stateRef.current));
   const toast = (text, tone = 'gold') => {
@@ -134,6 +137,7 @@ export function QuestWorld({ start, random = Math.random, onGold, onExit }) {
   // Keyboard (desktop)
   useEffect(() => {
     const down = (e) => {
+      if (duel) return; // the battles have their own keys
       if (KEYMOVE[e.code]) {
         input.current.keys.add(e.code);
         e.preventDefault();
@@ -346,6 +350,36 @@ export function QuestWorld({ start, random = Math.random, onGold, onExit }) {
           if (e.auto) toast(`${s.party[e.idx].name} dẫn đầu!`, 'blue');
           changed = true;
           break;
+        case 'sendout':
+          fx.throws.push({ from: { x: e.fromX, y: e.fromY }, to: { x: e.x, y: e.y }, t: 0, dur: 0.38 });
+          fx.appear[`p${e.idx}`] = { delay: 0.38, t: 0 };
+          sounds.playWhoosh();
+          later(() => sounds.playPop(), 380);
+          changed = true;
+          break;
+        case 'recall':
+          fx.recalls.push({ from: { x: e.x, y: e.y }, to: { x: e.toX, y: e.toY }, image: s.party[e.idx].image, t: 0, dur: 0.45 });
+          changed = true;
+          break;
+        case 'expert':
+          sounds.playScanBeep();
+          changed = true;
+          break;
+        case 'expert-win':
+          toast(`🏅 Thắng ${e.name}! +${e.gold} 🪙 · ${itemIcon(e.item)} ${e.itemName}`, 'gold');
+          sparkle(fx, s.trainer.x, s.trainer.y - 30, ['#fde047', '#ffffff', '#f472b6'], 40, 260);
+          sounds.playSuccessFanfare();
+          changed = true;
+          break;
+        case 'badge':
+          setBanner({ id: Math.random(), name: `${e.icon} ${e.name}`, act: 'Nhận huy hiệu!', boss: false, badge: true });
+          try {
+            confetti({ particleCount: 140, spread: 100, origin: { y: 0.4 }, zIndex: 9999 });
+          } catch {
+            // decoration
+          }
+          changed = true;
+          break;
         case 'boss-wake':
           setBanner({ id: Math.random(), name: e.title, act: 'Boss xuất hiện!', boss: true });
           sounds.playEnergySurge();
@@ -418,7 +452,8 @@ export function QuestWorld({ start, random = Math.random, onGold, onExit }) {
     return changed;
   };
 
-  const paused = !!evo || panel === 'bag' || !!actClear;
+  const paused = !!evo || panel === 'bag' || !!actClear || !!duel;
+  const battling = duel?.phase === 'arena' || duel?.phase === 'team';
 
   useLoop((rawDt) => {
     const s = stateRef.current;
@@ -457,6 +492,11 @@ export function QuestWorld({ start, random = Math.random, onGold, onExit }) {
       }
     } else acc.current = 0;
     if (s.events.length && playEvents(s, fx)) changed = true;
+    // Walking up to an expert opens the talk
+    if (s.pendingExpert && !c.duelShown) {
+      c.duelShown = true;
+      setDuel({ id: s.pendingExpert, phase: 'talk', result: null, expert: { ...expertById(s, s.pendingExpert) } });
+    }
     // An evolution waits for its sequence
     if (s.pendingEvolution && !c.evoShown) {
       c.evoShown = true;
@@ -475,6 +515,8 @@ export function QuestWorld({ start, random = Math.random, onGold, onExit }) {
       setHud(hudOf(s));
     }
     tickFx(fx, rawDt);
+    // During a battle the map is hidden: nothing to draw
+    if (battling) return;
 
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext?.('2d');
@@ -515,9 +557,18 @@ export function QuestWorld({ start, random = Math.random, onGold, onExit }) {
     ctx.save();
     ctx.scale(scale, scale);
     ctx.translate(-cam.x, -cam.y);
-    if (art) drawGround(ctx, art, cam, view);
-    drawScene(ctx, s, fx, c.time, paused ? 0 : rawDt, { cam, w: view.w, h: view.h });
-    if (art && area.kind !== 'town' && area.kind !== 'lair') drawFog(ctx, art, s.fog);
+    const dt = paused ? 0 : rawDt;
+    let props = [];
+    if (art) {
+      drawGround(ctx, art, cam, view);
+      drawWater(ctx, art, cam, view, c.time);
+      drawPlants(ctx, art, cam, view, c.time);
+      props = visibleProps(art, cam, view);
+    }
+    const near = s.experts.find((e) => Math.hypot(e.x - s.trainer.x, e.y - s.trainer.y) < 240)?.id || null;
+    drawScene(ctx, s, fx, c.time, dt, { cam, w: view.w, h: view.h }, { props, drawProp, theme: area.theme, near });
+    drawGlows(ctx, props, c.time);
+    drawAmbient(ctx, fx, area.theme, cam, view, c.time, dt);
     ctx.restore();
     // Dungeons are a little darker round the edges (the light follows the trainer)
     if (area.kind === 'dungeon') {
@@ -530,9 +581,33 @@ export function QuestWorld({ start, random = Math.random, onGold, onExit }) {
       ctx.fillRect(0, 0, cw, ch);
     }
     if (art) {
-      drawMinimap(ctx, s, art, cw - 158, 50, 150, 104, c.time);
+      drawMinimap(ctx, s, art, cw - 158, 50, 150, 104, c.time, area.kind === 'town' || area.kind === 'lair' ? null : fogCanvas(art, s.fog));
     }
   }, true);
+
+  // Expert trainers
+  const duelExpert = duel?.expert || null;
+  const startBattle = (phase) => {
+    const s = stateRef.current;
+    const party = s.party.map((m) => ({ ...m }));
+    setDuel((d) => ({ ...d, phase, party, lead: s.lead }));
+  };
+  const endDuel = () => {
+    closeExpert(stateRef.current);
+    clock.current.duelShown = false;
+    setDuel(null);
+    save();
+    refresh();
+  };
+  const battleOver = (won) => {
+    const s = stateRef.current;
+    const reward = expertResult(s, duel.id, won);
+    if (fxRef.current) playEvents(s, fxRef.current);
+    const expert = { ...expertById(s, duel.id) };
+    setDuel((d) => d && { ...d, phase: 'talk', result: { won, reward }, expert });
+    save();
+    refresh();
+  };
 
   const lead = hud.party[hud.lead];
   const inTown = hud.areaKind === 'town';
@@ -668,6 +743,18 @@ export function QuestWorld({ start, random = Math.random, onGold, onExit }) {
           </div>
         )}
 
+        {duel && duelExpert && duel.phase === 'talk' && (
+          <ExpertDialog
+            expert={duelExpert}
+            act={hud.act}
+            result={duel.result}
+            onArena={() => startBattle('arena')}
+            onTeam={() => startBattle('team')}
+            onLater={endDuel}
+            onDone={endDuel}
+          />
+        )}
+
         {evo && (
           <QuestEvolution
             key={evo.id}
@@ -704,6 +791,20 @@ export function QuestWorld({ start, random = Math.random, onGold, onExit }) {
           </div>
         )}
       </div>
+      {/* The battles with an expert cover the whole screen (outside the turned stage) */}
+      {duel && duelExpert && duel.phase === 'arena' && <ExpertArena party={duel.party} lead={duel.lead} expert={duelExpert} act={hud.act} random={random} onEnd={battleOver} />}
+      {duel && duelExpert && duel.phase === 'team' && (
+        <ExpertTeamBattle
+          party={duel.party}
+          lead={duel.lead}
+          expert={duelExpert}
+          act={hud.act}
+          theme={hud.theme}
+          random={random}
+          onEnd={battleOver}
+          onCancel={() => setDuel((d) => ({ ...d, phase: 'talk' }))}
+        />
+      )}
     </div>
   );
 }

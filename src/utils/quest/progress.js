@@ -26,8 +26,8 @@ export function memberStats(m, charms = {}) {
 export function enemyStats(level, power = 320, { elite = false } = {}) {
   const k = 0.9 + (powerFactor(power) - 1) * 0.5;
   return {
-    maxHp: Math.round((60 + level * 40) * k * (elite ? 3.2 : 1)),
-    atk: (3.2 + level * 1.35) * k * (elite ? 1.35 : 1),
+    maxHp: Math.round((32 + level * 21) * k * (elite ? 3 : 1)),
+    atk: (2.8 + level * 1.15) * k * (elite ? 1.3 : 1),
   };
 }
 
@@ -36,14 +36,17 @@ export const xpForKo = (level, { elite = false, boss = false } = {}) => Math.rou
 
 /**
  * Share for one member: much weaker wild Pokemon give less, stronger ones a little more
- * (so a Pokemon behind catches up). The ones who hit it get half as much again.
+ * (so a Pokemon behind catches up). The ones who hit it get half as much again;
+ * the Pokemon resting in their balls get a smaller share.
  */
-export function xpShare(base, memberLevel, enemyLevel, { hit = false, fainted = false } = {}) {
+export function xpShare(base, memberLevel, enemyLevel, { hit = false, fainted = false, benched = false } = {}) {
   const gap = memberLevel - enemyLevel;
   let k = 1;
   if (gap > 3) k = Math.max(0.2, 1 - 0.14 * (gap - 3));
   else if (gap < 0) k = Math.min(1.6, 1 - 0.07 * gap);
   if (hit) k *= 1.5;
   if (fainted) k *= 0.5;
+  // Resting in its Pokeball: a smaller share (it still learns by watching)
+  else if (benched) k *= 0.45;
   return Math.max(1, Math.round(base * k));
 }

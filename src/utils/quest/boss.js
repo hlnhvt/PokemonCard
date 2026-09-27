@@ -10,7 +10,7 @@ import { ACTS, moveCircle, TILE } from './world';
 import { speciesInfo } from './species';
 import { enemyStats } from './progress';
 import { artworkUrl } from '../../services/pokemonOnlineService';
-import { makeEnemy, damageMember, emit, dist } from './combat';
+import { makeEnemy, damageMember, emit, dist, fighters } from './combat';
 
 export const BOSS_R = 50;
 export const ENRAGE_AT = 0.35;
@@ -73,8 +73,8 @@ function begin(state, b, kind, shapes) {
 }
 
 function hitMembers(state, b, test, mult, from) {
-  for (const m of state.party) {
-    if (m.fainted || !test(m)) continue;
+  for (const m of fighters(state)) {
+    if (!test(m)) continue;
     if (from) {
       const d = norm(m.x - from.x, m.y - from.y);
       m.knock = { vx: d.x * 520, vy: d.y * 520, t: 0.2 };
@@ -115,7 +115,7 @@ function release(state, b) {
 
 function choose(state, b, target) {
   const d = dist(b, target);
-  const alive = state.party.filter((m) => !m.fainted);
+  const alive = fighters(state);
   for (const kind of b.attacks) {
     if (b.cds[kind] > 0) continue;
     if (kind === 'slam' && d < BOSS_ATTACKS.slam.range) return begin(state, b, 'slam', [{ shape: 'circle', x: b.x, y: b.y, r: BOSS_ATTACKS.slam.r }]);
@@ -142,7 +142,7 @@ export function stepBoss(state, b, dt) {
     b.woke = true;
     emit(state, { kind: 'boss-wake', name: b.name, title: b.title });
   }
-  const alive = state.party.filter((m) => !m.fainted);
+  const alive = fighters(state);
   if (!alive.length) return;
   // Angry below 35%, helpers at 66% and 33%
   if (!b.angry && b.hp / b.maxHp < ENRAGE_AT) {

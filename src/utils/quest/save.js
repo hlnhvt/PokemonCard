@@ -11,11 +11,15 @@ export function toSave(state) {
     v: SAVE_VERSION,
     seed: state.worldSeed,
     act: state.act,
-    // Boss lairs and dungeons are saved as the area itself; the game starts at its entrance
     area: state.areaIdx,
+    // Where the trainer stood (continue right there)
+    pos: state.area.kind === 'town' ? null : { x: Math.round(state.trainer.x), y: Math.round(state.trainer.y) },
     lead: state.lead,
+    companion: state.companion,
     unlocked: state.unlocked,
     beaten: [...state.beaten],
+    expertsBeaten: [...state.expertsBeaten],
+    badges: [...state.badges],
     gold: Math.floor(state.gold),
     inventory: { ...state.inventory },
     charms: { ...state.charms },
@@ -64,6 +68,7 @@ export function saveQuest(state, storage = globalThis.localStorage) {
     // A journey saved while everyone had fainted continues healed in town
     if (state.wipe) {
       data.area = 0;
+      data.pos = null;
       for (const m of data.party) {
         m.fainted = false;
         m.hpFrac = 1;

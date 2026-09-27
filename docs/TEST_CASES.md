@@ -1475,3 +1475,31 @@ Banner mới trong tab Trò chơi. Game chơi màn ngang và tự xoay khi cầm
 | SIM-01, SIM-02 | P1 | AUTO | Máy chơi hết chương 1: lên cấp, tiến hóa, hạ Snorlax | Đạt |
 | Test `src/components/quest` | P1 | AUTO | Lập đội, vào thế giới, di chuyển, đánh, lên cấp, lưu và tiếp tục | Đạt (659 test toàn dự án) |
 | UI-34 | P1 | MANUAL (Chrome 915×412) | Mở banner, lập đội, Làng Pallet, đi lại | Đúng, không lỗi JS |
+
+---
+
+## 47. Hành trình Huấn luyện viên (vòng 2) (2026-09-27)
+
+- **Chỉ 2 Pokémon đi cùng** trên bản đồ (dẫn đầu + bạn đồng hành). 3 Pokémon còn lại nằm trong Pokéball trên thanh ảnh; chạm để tung ra, có hiệu ứng ném bóng và tia thu về màu đỏ.
+  - Pokémon trong bóng tự hồi máu và nhận ×0,45 kinh nghiệm.
+  - Pokémon ngoài bản đồ bị gục thì được thay bằng Pokémon khỏe nhất.
+- **Đồ họa mới:**
+  - Huấn luyện viên kiểu anime, đi 4 hướng, có chớp mắt.
+  - 30 chuyên gia vẽ ghép từ 12 kiểu mũ và đạo cụ.
+  - Cây, đá, nhà, đèn, hàng rào, bia mộ, pha lê... Nước có sóng bọt, dung nham phát sáng, hạt bay theo chủ đề.
+  - Nhân vật đi khuất sau cây và nhà (sắp xếp theo độ sâu).
+- **Bản đồ rộng ×1,8:** vùng hoang dã 112×72 ô, hang 96×86 ô.
+- **Chuyên gia:** 5 người mỗi vùng, 30 người tổng cộng.
+  - Đội 4–5 Pokémon theo chủ đề vùng, cấp ≥ cấp trung bình của đội bé.
+  - Hộp thoại mời thi đấu: ⚔️ Đấu trường (2 phút, bản đồ Liên đoàn), 🎴 Đấu đội 5 vs 5, hoặc Để sau.
+  - Thắng lần đầu: kinh nghiệm, vàng, đồ. Thắng đủ 5 chuyên gia một vùng được huy hiệu. Thua không bị phạt.
+- **Bỏ sương đen** trên màn hình chính; chỉ bản đồ nhỏ tô xám nhạt chỗ chưa đi.
+- **Sửa lỗi:** huấn luyện viên đứng được dưới phần mái nhà nhô ra, nên trông như đang đứng trên mái. Nay phần đất dưới mái của Trung tâm Pokémon, cửa hàng và nhà dân bị chặn.
+- **Mô phỏng chương 1:** 5,6–7 phút, 0 lần gục; 2 Pokémon ngoài bản đồ lên cấp 17–19, Pokémon trong bóng cấp 14–15; Charmeleon và Ivysaur tiến hóa.
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| QO-01..03 | P1 | AUTO | Chỉ 2 ra ngoài; đổi / tung ra / thu về; thay khi gục; chia kinh nghiệm | Đạt |
+| QX-01..02 | P1 | AUTO | Số chuyên gia và đội hình; tạm dừng khi mở hộp thoại; thưởng khi thắng / thua; huy hiệu; lưu | Đạt |
+| QUI-08..10 | P1 | AUTO | Hộp thoại chuyên gia; bắt đầu Đấu trường rồi thoát không mất gì; Đấu đội 5 vs 5 tải hai đội; huy hiệu trên bảng | Đạt (667 test toàn dự án) |
+| UI-35 | P1 | MANUAL (Chrome 915×412) | Làng Pallet: 2 Pokémon đi cùng, 3 bóng trên thanh ảnh, đồ họa mới, đi phía trên nhà không bị đè lên mái | Đúng, không lỗi JS |

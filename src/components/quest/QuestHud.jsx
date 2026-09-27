@@ -36,12 +36,17 @@ export function SkillButton({ label, name, cd = 0, max = 0, ready, big, onPress,
   );
 }
 
-/** The five Pokemon at the top left: level, HP, experience; tap one to make it the lead. */
+/**
+ * The five Pokemon at the top left. The two out with the trainer show big (the lead with a
+ * gold frame); the three resting in their Pokeballs show as balls with their HP. Tap one to
+ * make it the lead (a Pokemon in its ball is sent out).
+ */
 export function PartyBar({ party, lead, onPick }) {
   return (
     <div className="flex gap-1.5" data-testid="quest-party">
       {party.map((m, i) => {
         const isLead = i === lead;
+        const out = m.out && !m.fainted;
         return (
           <button
             key={m.key}
@@ -50,17 +55,27 @@ export function PartyBar({ party, lead, onPick }) {
               e.stopPropagation();
               onPick(i);
             }}
-            aria-label={`Chọn ${m.name} dẫn đầu`}
+            aria-label={out ? (isLead ? `${m.name} dẫn đầu` : `Chọn ${m.name} dẫn đầu`) : `Thả ${m.name} ra`}
             aria-pressed={isLead}
             data-testid={`quest-member-${i}`}
             data-level={m.level}
             data-xp={m.xp}
             data-fainted={m.fainted}
-            className={`relative w-[52px] h-[60px] rounded-xl border-2 bg-slate-900/80 overflow-hidden transition-transform ${isLead ? 'border-amber-300 scale-105 shadow-[0_0_12px_rgba(252,211,77,0.9)]' : 'border-sky-400/50'}`}
+            data-out={out}
+            className={`relative w-[52px] h-[60px] rounded-xl border-2 overflow-hidden transition-transform ${isLead ? 'border-amber-300 scale-105 shadow-[0_0_12px_rgba(252,211,77,0.9)] bg-slate-900/85' : out ? 'border-sky-400 bg-slate-900/85' : 'border-white/25 bg-slate-950/70'}`}
           >
-            <img src={m.image} alt="" className={`absolute left-0.5 right-0.5 top-0 h-[44px] w-[calc(100%-4px)] object-contain ${m.fainted ? 'grayscale opacity-30' : ''}`} />
+            {out || m.fainted ? (
+              <img src={m.image} alt="" className={`absolute left-0.5 right-0.5 top-0 h-[44px] w-[calc(100%-4px)] object-contain ${m.fainted ? 'grayscale opacity-30' : ''}`} />
+            ) : (
+              <>
+                <span className="absolute left-1/2 top-1 -translate-x-1/2 w-9 h-9 quest-ball-idle">
+                  <PokeballIcon className="w-9 h-9" />
+                </span>
+                <img src={m.image} alt="" className="absolute right-0 bottom-[12px] w-6 h-6 object-contain drop-shadow" />
+              </>
+            )}
             <span className="absolute left-0.5 top-0.5 px-1 rounded bg-slate-950/80 text-[9px] font-black text-amber-300 leading-tight">{m.level}</span>
-            {m.nextEvo && !m.fainted && <span className="absolute right-0.5 top-0.5 text-[9px] leading-none" title={`Tiến hóa ở cấp ${m.nextEvo.level}`}>✨</span>}
+            {m.nextEvo && !m.fainted && out && <span className="absolute right-0.5 top-0.5 text-[9px] leading-none" title={`Tiến hóa ở cấp ${m.nextEvo.level}`}>✨</span>}
             <span className="absolute inset-x-1 bottom-[9px] h-1.5 rounded-full bg-black/60 overflow-hidden">
               <span className={`block h-full ${m.hpRatio > 0.5 ? 'bg-emerald-400' : m.hpRatio > 0.25 ? 'bg-amber-400' : 'bg-rose-500'}`} style={{ width: `${m.hpRatio * 100}%` }} />
             </span>
@@ -69,7 +84,7 @@ export function PartyBar({ party, lead, onPick }) {
             </span>
             {m.fainted && (
               <span className="absolute inset-0 flex items-center justify-center">
-                <PokeballIcon className="w-7 h-7" />
+                <PokeballIcon className="w-7 h-7 opacity-80" />
               </span>
             )}
           </button>

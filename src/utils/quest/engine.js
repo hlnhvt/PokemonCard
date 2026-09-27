@@ -1,7 +1,8 @@
 // "Hành trình Huấn luyện viên": a top-down action RPG. Pure simulation stepped with a fixed
 // dt; the component draws `state` and plays `state.events` (then empties the list).
-// The child walks the trainer; the 5 Pokemon follow in formation and fight by themselves,
-// the lead Pokemon also has 2 skills and the team ultimate on buttons.
+// The child walks the trainer; of the 5 Pokemon only 2 are out of their balls at a time (the
+// lead and a companion): they follow the trainer and fight by themselves, the lead also has
+// 2 skills and the team ultimate on buttons. Tapping a portrait sends that Pokemon out.
 import { ACTS, areaDef, generateArea, moveCircle, blocksShot, nearestFree, circleBlocked, findPath, shotClear } from './world';
 import { tablePlan, dexOfMember, speciesByName, nextEvolution } from './species';
 import { xpToNext, MAX_LEVEL, START_LEVEL } from './progress';
@@ -9,9 +10,11 @@ import { ITEMS, rollChest, earnReward, earnActClear, HEAL_ORDER, MAX_CHARMS, STA
 import { mulberry32, hashSeed, int } from './rng';
 import { artworkUrl } from '../../services/pokemonOnlineService';
 import { makeBoss, stepBoss, insideWarning } from './boss';
-import { ULT_MAX, MEMBER_R, isRangedType, dist, emit, refreshStats, makeEnemy, alert, damageEnemy, spawnDrop, levelUp, checkEvolution, damageMember } from './combat';
+import { expertsFor, expertReward, BADGES } from './experts';
+import { EXPERTS_PER_ACT } from './world';
+import { ULT_MAX, MEMBER_R, isRangedType, dist, emit, refreshStats, makeEnemy, alert, damageEnemy, spawnDrop, levelUp, grantXp, checkEvolution, damageMember, fighters, syncOut, bestBenched, placeOut } from './combat';
 
-export { ULT_MAX, insideWarning };
+export { ULT_MAX, insideWarning, fighters };
 export const TRAINER_SPEED = 200;
 export const TRAINER_R = 14;
 export const FOG_CELL = 80;
@@ -49,7 +52,7 @@ const MOVES = {
   fairy: ['Ánh trăng', 'Hào quang', 'Tiên Nữ Ban Phước'],
 };
 export const movesOf = (types) => MOVES[types?.[0]] || MOVES.normal;
-const FORMATION = [[-36, 32], [-36, -32], [-78, 50], [-78, -50], [-112, 0]];
+const FORMATION = [[-34, 34], [-34, -34]];
 
 const norm = (x, y) => {
   const l = Math.hypot(x, y) || 1;
@@ -105,6 +108,7 @@ export function createQuest({ team = [], save = null, seed = null, random = Math
     trainer: { x: 0, y: 0, r: TRAINER_R, dir: { x: 1, y: 0 }, face: 'down', moving: false, walk: 0 },
     party: [],
     lead: save?.lead ?? 0,
+    companion: save?.companion ?? -1,
     ult: 0,
     ultRun: null,
     enemies: [],
@@ -120,6 +124,11 @@ export function createQuest({ team = [], save = null, seed = null, random = Math
     gold: save?.gold ?? 0,
     unlocked: save?.unlocked ?? 0,
     beaten: [...(save?.beaten || [])],
+    expertsBeaten: [...(save?.expertsBeaten || [])],
+    badges: [...(save?.badges || [])],
+    experts: [],
+    expertLock: new Set(),
+    pendingExpert: null,
     reward: { earned: 0, paid: 0, playSeconds: 0, ...(save?.reward || {}) },
     stats: { kills: 0, dealt: 0, taken: 0, levels: 0, faints: 0, wipes: 0, ...(save?.stats || {}) },
     memory: {},
@@ -138,10 +147,14 @@ export function createQuest({ team = [], save = null, seed = null, random = Math
   if (save && !save.inventory) state.inventory = { ...STARTING_ITEMS };
   const members = (save?.party || team).slice(0, 5).map(questMember);
   state.party = members.map((p, i) => runtimeMember(state, p, i));
-  if (state.party[state.lead]?.fainted) state.lead = Math.max(0, state.party.findIndex((m) => !m.fainted));
+  if (!state.party[state.lead] || state.party[state.lead].fainted) state.lead = Math.max(0, state.party.findIndex((m) => !m.fainted));
+  const comp = state.party[state.companion];
+  if (!comp || comp.fainted || state.companion === state.lead) state.companion = state.party.findIndex((m) => !m.fainted && m.idx !== state.lead);
+  syncOut(state);
   const act = Math.min(ACTS.length - 1, Math.max(0, save?.act ?? 0));
   const idx = save?.area ?? 0;
-  enterArea(state, act, areaDef(act, idx) ? idx : 0, 'load');
+  if (save?.pos && areaDef(act, idx)?.kind !== 'town') state.returnTo = { act, area: idx, x: save.pos.x, y: save.pos.y };
+  enterArea(state, act, areaDef(act, idx) ? idx : 0, save?.pos ? 'return' : 'load');
   return state;
 }
 
@@ -192,7 +205,7 @@ function makeFog(state) {
 
 function placeParty(state) {
   const t = state.trainer;
-  state.party.forEach((m, i) => {
+  [state.party[state.lead], state.party[state.companion]].filter(Boolean).forEach((m, i) => {
     const slot = FORMATION[i];
     const p = nearestFree(state.area, t.x + slot[0] * t.dir.x - slot[1] * t.dir.y, t.y + slot[0] * t.dir.y + slot[1] * t.dir.x, m.r);
     m.x = p.x;
@@ -252,6 +265,10 @@ export function enterArea(state, act, index, via = 'forward') {
     spawnPacks(state);
   }
   state.chests = area.chests.map((c, i) => ({ id: state.nextId++, idx: i, x: c.x, y: c.y, opened: mem.opened.includes(i) }));
+  const avg = state.party.reduce((a, m) => a + m.level, 0) / Math.max(1, state.party.length);
+  state.experts = expertsFor(area, avg, state.expertsBeaten);
+  state.pendingExpert = null;
+  state.expertLock = new Set(state.experts.filter((e) => dist(e, state.trainer) < 90).map((e) => e.id));
   // Do not walk straight back through the portal we came out of
   state.portalLock = new Set(state.portals.filter((q) => dist(q, state.trainer) < 150).map((q) => q.id));
   placeParty(state);
@@ -277,6 +294,7 @@ export function goToTown(state, reason = 'portal') {
       m.fainted = false;
       m.hp = m.maxHp;
     }
+    fillCompanion(state);
     state.wipe = false;
   } else if (state.area.kind !== 'town') {
     state.returnTo = { act: state.act, area: state.areaIdx, x: state.trainer.x, y: state.trainer.y };
@@ -296,10 +314,36 @@ export function travelTo(state, act) {
 
 // ---------- the child's actions ----------
 
+/** An empty place next to the trainer is taken by the healthiest Pokemon from its ball. */
+function fillCompanion(state, place = false) {
+  const comp = state.party[state.companion];
+  if (comp && !comp.fainted) return;
+  const next = bestBenched(state);
+  state.companion = next ? next.idx : -1;
+  syncOut(state);
+  if (next && place) placeOut(state, next);
+}
+
+/**
+ * Tap on a portrait. The companion becomes the lead (they swap); a Pokemon resting in its ball
+ * is sent out as the new lead, the old lead stays out as companion and the old companion goes
+ * back to its ball (red recall beam).
+ */
 export function switchLead(state, idx) {
   const m = state.party[idx];
   if (!m || m.fainted || idx === state.lead) return false;
+  if (idx === state.companion) {
+    state.companion = state.lead;
+    state.lead = idx;
+    emit(state, { kind: 'lead', idx });
+    return true;
+  }
+  const old = state.party[state.companion];
+  if (old && !old.fainted) emit(state, { kind: 'recall', idx: old.idx, x: old.x, y: old.y, toX: state.trainer.x, toY: state.trainer.y - 20, name: old.name });
+  state.companion = state.lead;
   state.lead = idx;
+  syncOut(state);
+  placeOut(state, m);
   emit(state, { kind: 'lead', idx });
   return true;
 }
@@ -311,6 +355,7 @@ export function healAll(state, frac = 1) {
   }
   const t = state.trainer;
   for (const m of state.party) if (m.hp <= 0) m.hp = 1;
+  fillCompanion(state, true);
   emit(state, { kind: 'heal', x: t.x, y: t.y, full: frac >= 1 });
 }
 
@@ -330,11 +375,9 @@ export function applyItem(state, id) {
     for (const m of down) {
       m.fainted = false;
       m.hp = Math.round(m.maxHp * it.revive);
-      const p = nearestFree(state.area, t.x - t.dir.x * 40, t.y - t.dir.y * 40, m.r);
-      m.x = p.x;
-      m.y = p.y;
-      emit(state, { kind: 'revive', idx: m.idx, x: m.x, y: m.y });
+      emit(state, { kind: 'revive', idx: m.idx, x: t.x, y: t.y });
     }
+    fillCompanion(state, true);
   } else if (id === 'candy') {
     if (!lead || lead.level >= MAX_LEVEL || state.pendingEvolution) return false;
     state.inventory[id] -= 1;
@@ -402,6 +445,47 @@ export function setEvolutionPlan(state, key, plan) {
   return true;
 }
 
+// ---------- expert trainers ----------
+
+export const expertById = (state, id) => state.experts.find((e) => e.id === id) || null;
+
+/** "Để sau" (or after a battle): back to the map. */
+export function closeExpert(state) {
+  state.pendingExpert = null;
+}
+
+/**
+ * The battle with an expert is over. A win (the first time) gives experience to the whole team,
+ * quest gold and an item; beating the 5 experts of an act gives its badge. A loss changes nothing.
+ */
+export function expertResult(state, id, won) {
+  const e = expertById(state, id);
+  if (!e) return null;
+  if (!won || e.beaten) {
+    emit(state, { kind: won ? 'expert-again' : 'expert-lose', id, name: e.title });
+    return null;
+  }
+  e.beaten = true;
+  state.expertsBeaten.push(id);
+  const r = expertReward(e, state.act);
+  state.gold += r.gold;
+  earnReward(state.reward, r.gold);
+  const it = ITEMS[r.item];
+  if (it.charm) {
+    state.charms[it.charm] = Math.min(MAX_CHARMS, (state.charms[it.charm] || 0) + 1);
+    for (const m of state.party) refreshStats(state, m);
+  } else state.inventory[r.item] = (state.inventory[r.item] || 0) + 1;
+  for (const m of state.party) grantXp(state, m, r.xp);
+  emit(state, { kind: 'expert-win', id, name: e.title, gold: r.gold, item: r.item, itemName: it.name, xp: r.xp });
+  const act = state.act;
+  const count = state.expertsBeaten.filter((x) => x.startsWith(`${act}-`)).length;
+  if (count >= EXPERTS_PER_ACT && !state.badges.includes(act)) {
+    state.badges.push(act);
+    emit(state, { kind: 'badge', act, name: BADGES[act].name, icon: BADGES[act].icon });
+  }
+  return r;
+}
+
 // ---------- simulation ----------
 
 function moveTrainer(state, input, dt) {
@@ -430,6 +514,20 @@ function moveTrainer(state, input, dt) {
 
 function interact(state) {
   const t = state.trainer;
+  // Expert trainers: walking up to one opens the dialog (once until the trainer walks away)
+  for (const e of state.experts) {
+    const d = dist(e, t);
+    if (state.expertLock.has(e.id)) {
+      if (d > 170) state.expertLock.delete(e.id);
+      continue;
+    }
+    if (d < 78) {
+      state.expertLock.add(e.id);
+      state.pendingExpert = e.id;
+      emit(state, { kind: 'expert', id: e.id, name: e.title, beaten: e.beaten });
+      return true;
+    }
+  }
   // Portals
   for (const id of [...state.portalLock]) {
     const p = state.portals.find((q) => q.id === id);
@@ -564,8 +662,8 @@ export function cast(state, what) {
     state.ultRun = { t: 0, pulses: 0, idx: m.idx };
     emit(state, { kind: 'ult', idx: m.idx, x: m.x, y: m.y, type: m.types[0], name: movesOf(m.types)[2] });
     // The whole team joins in with a skill shot each
-    for (const o of state.party) {
-      if (o.fainted || o === m) continue;
+    for (const o of fighters(state)) {
+      if (o === m) continue;
       const t = nearestEnemy(state, o, 520);
       if (!t) continue;
       const dir = norm(t.x - o.x, t.y - 18 - o.y);
@@ -633,9 +731,8 @@ function steer(state, ent, goal, speed, dt) {
 
 function formationSlot(state, m) {
   const t = state.trainer;
-  // The lead walks closest; the others fill the slots behind in team order
-  const order = [state.lead, ...state.party.map((p) => p.idx).filter((i) => i !== state.lead)];
-  const s = FORMATION[order.indexOf(m.idx)] || FORMATION[4];
+  // The lead on one side, the companion on the other, both a little behind
+  const s = FORMATION[m.idx === state.lead ? 0 : 1];
   return { x: t.x + s[0] * t.dir.x - s[1] * t.dir.y, y: t.y + s[0] * t.dir.y + s[1] * t.dir.x };
 }
 
@@ -749,7 +846,7 @@ function stepEnemy(state, e, dt) {
     if (e.knock.t <= 0) e.knock = null;
     return;
   }
-  const alive = state.party.filter((m) => !m.fainted);
+  const alive = fighters(state);
   if (e.mode === 'idle') {
     e.wanderT -= dt;
     if (e.wanderT <= 0) {
@@ -871,8 +968,8 @@ function stepProjectiles(state, dt) {
       }
     } else if (!gone) {
       const owner = state.enemies.find((e) => e.id === p.owner) || { atk: 5, types: [p.type] };
-      for (const m of state.party) {
-        if (m.fainted || Math.hypot(m.x - p.x, m.y - 18 - p.y) > m.r + p.r) continue;
+      for (const m of fighters(state)) {
+        if (Math.hypot(m.x - p.x, m.y - 18 - p.y) > m.r + p.r) continue;
         damageMember(state, owner, m, p.mult);
         gone = true;
         break;
@@ -922,7 +1019,7 @@ export function explored(state) {
  * Nothing moves while an evolution is being shown.
  */
 export function step(state, dt, input = {}) {
-  if (state.pendingEvolution) return state;
+  if (state.pendingEvolution || state.pendingExpert) return state;
   if (state.wipe) {
     state.wipeT -= dt;
     if (state.wipeT <= 0) goToTown(state, 'wipe');
@@ -934,7 +1031,7 @@ export function step(state, dt, input = {}) {
   if (interact(state)) return state;
   if (input.cast) cast(state, input.cast);
 
-  for (const m of state.party) if (!m.fainted) stepMember(state, m, dt);
+  for (const m of fighters(state)) stepMember(state, m, dt);
   for (const e of state.enemies) {
     if (e.dead) continue;
     if (e.boss) stepBoss(state, e, dt);
@@ -947,12 +1044,12 @@ export function step(state, dt, input = {}) {
     state.enemies = state.enemies.filter((e) => !e.dead);
     if (boss) bossDown(state, boss);
   }
-  separate(state.area, state.party.filter((m) => !m.fainted), 30);
+  separate(state.area, fighters(state), 30);
   const near = state.enemies.filter((e) => e.mode !== 'idle' || dist(e, state.trainer) < 700);
   separate(state.area, near, 34);
   // Safety: anything stuck inside a wall steps out to the nearest free spot
-  for (const o of [...state.party, ...near]) {
-    if (o.fainted || o.boss || !circleBlocked(state.area, o.x, o.y, o.r - 6)) continue;
+  for (const o of [...fighters(state), ...near]) {
+    if (o.boss || !circleBlocked(state.area, o.x, o.y, o.r - 6)) continue;
     const p = nearestFree(state.area, o.x, o.y, o.r);
     o.x = p.x;
     o.y = p.y;
@@ -981,6 +1078,11 @@ export function step(state, dt, input = {}) {
     const fighting = state.enemies.some((e) => e.mode === 'chase');
     for (const m of state.party) {
       if (m.fainted || m.hp >= m.maxHp) continue;
+      // Resting in the ball heals a little all the time
+      if (!m.out) {
+        m.hp = Math.min(m.maxHp, m.hp + m.maxHp * (town ? 0.06 : 0.03) * state.regenT);
+        continue;
+      }
       if (!town && (fighting || state.time - m.lastHurt < 5)) continue;
       m.hp = Math.min(m.maxHp, m.hp + m.maxHp * (town ? 0.06 : 0.025) * state.regenT);
     }
@@ -1045,12 +1147,17 @@ export function hudOf(state) {
       xpRatio: m.level >= MAX_LEVEL ? 1 : Math.min(1, m.xp / xpToNext(m.level)),
       xp: Math.floor(m.xp),
       fainted: m.fainted,
+      out: !!m.out,
       nextEvo: nextEvolution(m.plan, m.dex),
     })),
+    companion: state.companion,
     inventory: { ...state.inventory },
     charms: { ...state.charms },
     boss: boss ? { name: boss.name, title: boss.title, hpRatio: Math.max(0, boss.hp / boss.maxHp), angry: boss.angry, level: boss.level } : null,
     townSpot: state.townSpot,
+    expert: state.pendingExpert ? { ...expertById(state, state.pendingExpert) } : null,
+    badges: [...state.badges],
+    expertsDone: ACTS.map((_, a) => state.expertsBeaten.filter((x) => x.startsWith(`${a}-`)).length),
     canReturn: !!state.returnTo,
     pendingEvolution: state.pendingEvolution ? { ...state.pendingEvolution } : null,
     wipe: state.wipe,

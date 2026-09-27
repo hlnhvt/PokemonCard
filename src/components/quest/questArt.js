@@ -1,22 +1,36 @@
-// Static art of a quest area: the ground, paths, ponds / lava, decorations, walls (trees,
-// rocks, crystals by theme) and town buildings are painted once into offscreen canvas
-// chunks (lazily, a few per frame ahead of the camera). Also the minimap and the fog canvas.
+// Art of a quest area. The flat ground (grass / stone / snow, paths, shores, ponds and lava,
+// small decorations, the shade under walls and cliff faces) and the props deep inside the
+// forests / rock walls are painted once into offscreen canvas chunks, lazily, a chunk ahead of
+// the camera. Props at the edges (trees, rocks, crystals, lamps, tombstones, houses...) are
+// kept as a list so they can be depth-sorted with the trainer and the Pokemon (walk behind a
+// tree) and sway. Water shimmer, shoreline foam, lava glow and swaying flowers are drawn live.
 import { TILE, THEMES, WALL, LIQUID, BUILDING, FREE } from '../../utils/quest/world';
 import { cellNoise } from '../../utils/quest/rng';
+import { sprite, stamp } from './questSprites';
 
 export const CHUNK = 512;
-const SCALE = 1.25; // offscreen pixels per world unit (sharp on phones, bounded memory)
-const MAX_CHUNKS = 28;
+const SCALE = 1.25; // offscreen pixels per world unit
+const MAX_CHUNKS = 30;
 const TAU = Math.PI * 2;
 
-const WALL_BASE = { tree: '#1d4d22', rock: '#4a3b2c', pillar: '#2b2342', basalt: '#221614', iceberg: '#7fb0d6', crystal: '#1d1a46' };
+const WALL_BASE = { tree: '#1d4d22', rock: '#4a3b2c', pillar: '#241d3a', basalt: '#1d1311', iceberg: '#8fb8d8', crystal: '#1b1845' };
 const LIQUID_COLORS = {
-  pond: { rim: '#3f7d2a', deep: '#1d4ed8', main: '#3b82f6', shine: '#bfdbfe' },
-  water: { rim: '#5b4a37', deep: '#1e3a8a', main: '#2563eb', shine: '#93c5fd' },
-  void: { rim: '#6d28d9', deep: '#05030d', main: '#120a24', shine: '#a78bfa' },
-  lava: { rim: '#3b1b12', deep: '#b91c1c', main: '#f97316', shine: '#fde047' },
-  sea: { rim: '#e0f2fe', deep: '#0c4a6e', main: '#0ea5e9', shine: '#f0f9ff' },
+  pond: { shore: '#e9d8a6', rim: '#3f7d2a', deep: '#1d4ed8', main: '#3b82f6', shine: '#dbeafe' },
+  water: { shore: '#6b5a44', rim: '#4a3b2c', deep: '#1e3a8a', main: '#2563eb', shine: '#bfdbfe' },
+  void: { shore: '#2a2246', rim: '#6d28d9', deep: '#05030d', main: '#150b2b', shine: '#c4b5fd' },
+  lava: { shore: '#2a1714', rim: '#3b1b12', deep: '#b91c1c', main: '#f97316', shine: '#fde047' },
+  sea: { shore: '#f8fbff', rim: '#bae6fd', deep: '#0c4a6e', main: '#0ea5e9', shine: '#ffffff' },
 };
+// Which prop grows on a wall tile, by theme: [kind, share]
+const WALL_PROPS = {
+  forest: [['tree', 0.68], ['pine', 0.24], ['rock', 0.08]],
+  cave: [['rock', 0.78], ['stalagmite', 0.14], ['crystal', 0.08]],
+  tower: [['pillar', 0.86], ['tomb', 0.14]],
+  volcano: [['rock', 0.84], ['obsidian', 0.16]],
+  ice: [['crystal', 0.42], ['pine', 0.38], ['rock', 0.2]],
+  psychic: [['crystal', 0.72], ['rock', 0.16], ['obelisk', 0.12]],
+};
+const GLOWS = { lamp: ['#fde68a', 34, -72], candelabra: ['#c084fc', 30, -52], vent: ['#fb923c', 40, -18], orb: ['#f0abfc', 36, -32], obelisk: ['#e879f9', 30, -36], crystalBig: ['#67e8f9', 44, -40] };
 
 function newCanvas(w, h) {
   if (typeof document === 'undefined') return null;
@@ -24,6 +38,80 @@ function newCanvas(w, h) {
   c.width = Math.max(1, Math.round(w));
   c.height = Math.max(1, Math.round(h));
   return c;
+}
+
+function blob(g, x, y, r, color) {
+  g.fillStyle = color;
+  g.beginPath();
+  g.arc(x, y, r, 0, TAU);
+  g.fill();
+}
+
+const tile = (area, x, y) => (x < 0 || y < 0 || x >= area.W || y >= area.H ? WALL : area.grid[y * area.W + x]);
+
+function wallKind(theme, n) {
+  const list = WALL_PROPS[theme] || WALL_PROPS.forest;
+  let acc = 0;
+  for (const [k, share] of list) {
+    acc += share;
+    if (n < acc) return k;
+  }
+  return list[0][0];
+}
+
+/** Props of the area: [{ x, y, kind, v, scale, sway, baked }] sorted by y. */
+function buildProps(area) {
+  const props = [];
+  const { W, H } = area;
+  const near = (x, y, r) => {
+    for (let j = y - r; j <= y + r; j++) for (let i = x - r; i <= x + r; i++) if (tile(area, i, j) !== WALL) return true;
+    return false;
+  };
+  for (let ty = 0; ty < H; ty++) {
+    for (let tx = 0; tx < W; tx++) {
+      if (area.grid[ty * W + tx] !== WALL) continue;
+      const extra = area.extraAt?.get(ty * W + tx);
+      const n = cellNoise(tx, ty, 11);
+      const v = cellNoise(tx, ty, 12);
+      const kind = extra ? extra.kind : wallKind(area.theme, n);
+      const jitter = extra ? 0 : 1;
+      props.push({
+        x: (tx + 0.5) * TILE + (cellNoise(tx, ty, 13) - 0.5) * 14 * jitter,
+        y: (ty + 0.85) * TILE + (cellNoise(tx, ty, 14) - 0.5) * 6 * jitter,
+        kind,
+        v: extra ? extra.v : v,
+        scale: extra ? 1 : 0.9 + cellNoise(tx, ty, 15) * 0.28,
+        sway: kind === 'tree' || kind === 'pine',
+        phase: n * 20,
+        // Deep inside a forest or a rock wall nobody walks near: painted into the ground
+        baked: !extra && !near(tx, ty, 2),
+      });
+    }
+  }
+  for (const b of area.buildings) props.push({ x: b.x + b.w / 2, y: b.y + b.h, kind: 'building', building: b, v: 0, scale: 1 });
+  props.sort((a, b) => a.y - b.y);
+  return props;
+}
+
+export function drawProp(ctx, p, theme, time = 0) {
+  if (p.kind === 'tree') {
+    const sc = p.scale;
+    const t = sprite('trunk', p.v, theme);
+    const c = sprite('canopy', p.v, theme);
+    const sway = p.baked ? 0 : Math.sin(time * 1.3 + p.phase) * 1.8;
+    drawScaled(ctx, t, p.x, p.y, sc, 0);
+    drawScaled(ctx, c, p.x, p.y, sc, sway);
+    return;
+  }
+  const s = p.kind === 'building' ? sprite('building', 0, theme, { id: p.building.id, w: p.building.w, h: p.building.h, v: p.building.x % 2 }) : sprite(p.kind, p.v, theme);
+  const sway = p.sway && !p.baked ? Math.sin(time * 1.3 + p.phase) * 1.2 : 0;
+  drawScaled(ctx, s, p.x, p.y, p.scale, sway);
+}
+
+function drawScaled(ctx, s, x, y, sc, dx) {
+  if (!s.canvas) return;
+  if (sc === 1) return stamp(ctx, s, x, y, dx);
+  ctx.drawImage(s.canvas, x - s.ax * sc + dx, y - s.ay * sc, s.w * sc, s.h * sc);
 }
 
 /** Art cache for one area. Returns null when canvases are unavailable (tests). */
@@ -48,38 +136,34 @@ export function createArt(area) {
     line.forEach((p, k) => (k ? g.lineTo(p.x / TILE, p.y / TILE) : g.moveTo(p.x / TILE, p.y / TILE)));
     g.stroke();
   });
-  return { area, theme: th, chunks: new Map(), minimap: mini, fog: null, fogVersion: -1, frame: 0 };
+  const props = buildProps(area);
+  // Buckets by chunk for the live parts
+  const buckets = new Map();
+  const put = (map, x, y, item) => {
+    const key = Math.floor(y / CHUNK) * 1000 + Math.floor(x / CHUNK);
+    let list = map.get(key);
+    if (!list) map.set(key, (list = []));
+    list.push(item);
+  };
+  for (const p of props) if (!p.baked) put(buckets, p.x, p.y, p);
+  const water = new Map();
+  for (let ty = 0; ty < area.H; ty++) {
+    for (let tx = 0; tx < area.W; tx++) {
+      if (area.grid[ty * area.W + tx] !== LIQUID) continue;
+      const shore = [[0, -1], [1, 0], [0, 1], [-1, 0]].map(([dx, dy]) => tile(area, tx + dx, ty + dy) !== LIQUID);
+      put(water, (tx + 0.5) * TILE, (ty + 0.5) * TILE, { x: (tx + 0.5) * TILE, y: (ty + 0.5) * TILE, shore, n: cellNoise(tx, ty, 31) });
+    }
+  }
+  const plants = new Map();
+  for (const d of area.decorations) if (d.kind === 'flower' || d.kind === 'grass') put(plants, d.x, d.y, d);
+  return { area, theme: th, themeId: area.theme, chunks: new Map(), minimap: mini, fog: null, fogVersion: -1, frame: 0, props, buckets, water, plants };
 }
 
 // ---------- ground pieces ----------
 
-function blob(g, x, y, r, color) {
-  g.fillStyle = color;
-  g.beginPath();
-  g.arc(x, y, r, 0, TAU);
-  g.fill();
-}
-
 function drawDecoration(g, d, th) {
   const { x, y, v } = d;
   switch (d.kind) {
-    case 'flower': {
-      const c = ['#f472b6', '#facc15', '#ffffff', '#c084fc', '#fb7185'][Math.floor(v * 5)];
-      for (let i = 0; i < 5; i++) blob(g, x + Math.cos((i / 5) * TAU) * 3.2, y + Math.sin((i / 5) * TAU) * 3.2, 2.6, c);
-      blob(g, x, y, 1.9, '#f59e0b');
-      break;
-    }
-    case 'grass':
-      g.strokeStyle = v > 0.5 ? '#3f8f2c' : '#4ea637';
-      g.lineWidth = 2;
-      g.lineCap = 'round';
-      for (let i = -1; i <= 1; i++) {
-        g.beginPath();
-        g.moveTo(x + i * 3, y);
-        g.quadraticCurveTo(x + i * 4, y - 6, x + i * 6, y - 10 + Math.abs(i) * 2);
-        g.stroke();
-      }
-      break;
     case 'mushroom':
       g.fillStyle = '#fef3c7';
       g.fillRect(x - 1.5, y - 4, 3, 5);
@@ -154,7 +238,7 @@ function drawDecoration(g, d, th) {
       }
       break;
     case 'tile':
-      g.strokeStyle = 'rgba(0,0,0,0.18)';
+      g.strokeStyle = 'rgba(0,0,0,0.16)';
       g.lineWidth = 1.5;
       g.strokeRect(Math.floor(x / TILE) * TILE + 2, Math.floor(y / TILE) * TILE + 2, TILE - 4, TILE - 4);
       break;
@@ -167,9 +251,9 @@ function drawDecoration(g, d, th) {
       g.lineWidth = 1.6;
       g.beginPath();
       g.moveTo(x - 9, y - 2);
-      g.lineTo(x - 3, y + 2);
+      g.lineTo(x - 3, y + 2 + v * 3);
       g.lineTo(x + 2, y - 3);
-      g.lineTo(x + 9, y + 1);
+      g.lineTo(x + 9, y + 1 - v * 3);
       g.stroke();
       break;
     case 'snow':
@@ -201,334 +285,36 @@ function drawDecoration(g, d, th) {
 
 function drawLiquid(g, area, x0, y0, x1, y1) {
   const L = LIQUID_COLORS[THEMES[area.theme].liquid];
+  const isL = (tx, ty) => tile(area, tx, ty) === LIQUID;
   const each = (fn) => {
     for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) if (area.grid[ty * area.W + tx] === LIQUID) fn((tx + 0.5) * TILE, (ty + 0.5) * TILE, tx, ty);
   };
-  each((x, y) => blob(g, x, y, TILE * 0.86, L.rim));
-  each((x, y) => blob(g, x, y, TILE * 0.72, L.deep));
-  each((x, y, tx, ty) => blob(g, x + (cellNoise(tx, ty, 3) - 0.5) * 6, y + (cellNoise(tx, ty, 4) - 0.5) * 6, TILE * 0.55, L.main));
-  g.strokeStyle = L.shine;
-  g.lineWidth = 2;
+  // A shore band, then the water filling its tiles, rounded where it meets the land
+  each((x, y) => blob(g, x, y, TILE * 0.95, L.shore));
+  each((x, y) => blob(g, x, y, TILE * 0.8, L.rim));
+  each((x, y, tx, ty) => {
+    const full = isL(tx - 1, ty) && isL(tx + 1, ty) && isL(tx, ty - 1) && isL(tx, ty + 1);
+    g.fillStyle = L.deep;
+    if (full) g.fillRect(x - TILE / 2 - 1, y - TILE / 2 - 1, TILE + 2, TILE + 2);
+    else {
+      g.beginPath();
+      g.arc(x, y, TILE * 0.68, 0, TAU);
+      g.fill();
+      // Fill towards water neighbours so the edge stays smooth
+      if (isL(tx + 1, ty)) g.fillRect(x, y - TILE * 0.68, TILE / 2 + 1, TILE * 1.36);
+      if (isL(tx - 1, ty)) g.fillRect(x - TILE / 2 - 1, y - TILE * 0.68, TILE / 2 + 1, TILE * 1.36);
+      if (isL(tx, ty + 1)) g.fillRect(x - TILE * 0.68, y, TILE * 1.36, TILE / 2 + 1);
+      if (isL(tx, ty - 1)) g.fillRect(x - TILE * 0.68, y - TILE / 2 - 1, TILE * 1.36, TILE / 2 + 1);
+    }
+  });
+  // Lighter middle and soft highlights
   g.globalAlpha = 0.55;
   each((x, y, tx, ty) => {
-    if (cellNoise(tx, ty, 5) > 0.55) return;
-    g.beginPath();
-    g.arc(x, y, TILE * 0.3, 3.6, 4.6);
-    g.stroke();
+    const full = isL(tx - 1, ty) && isL(tx + 1, ty) && isL(tx, ty - 1) && isL(tx, ty + 1);
+    if (!full) return;
+    blob(g, x + (cellNoise(tx, ty, 3) - 0.5) * 10, y + (cellNoise(tx, ty, 4) - 0.5) * 10, TILE * 0.62, L.main);
   });
   g.globalAlpha = 1;
-}
-
-function drawWallProp(g, area, tx, ty) {
-  const th = THEMES[area.theme];
-  const n = cellNoise(tx, ty, 11);
-  const n2 = cellNoise(tx, ty, 12);
-  const x = (tx + 0.5) * TILE + (n - 0.5) * 12;
-  const y = (ty + 0.5) * TILE + (n2 - 0.5) * 10;
-  const r = TILE * (0.62 + n * 0.22);
-  switch (th.wall) {
-    case 'tree': {
-      if (n2 > 0.72) {
-        // Pine
-        g.fillStyle = '#5b3716';
-        g.fillRect(x - 3, y + r * 0.3, 6, r * 0.45);
-        for (let i = 0; i < 3; i++) {
-          const w = r * (1.05 - i * 0.27);
-          const top = y - r * (0.1 + i * 0.42);
-          g.fillStyle = ['#14532d', '#166534', '#1f7a3a'][i];
-          g.beginPath();
-          g.moveTo(x, top - r * 0.62);
-          g.lineTo(x + w, top + r * 0.38);
-          g.lineTo(x - w, top + r * 0.38);
-          g.closePath();
-          g.fill();
-        }
-        break;
-      }
-      g.fillStyle = '#6b3f1d';
-      g.fillRect(x - 4, y, 8, r * 0.55);
-      const parts = [[0, 0, 1], [-0.42, 0.18, 0.68], [0.42, 0.18, 0.68], [0, -0.38, 0.7]];
-      for (const [dx, dy, s] of parts) {
-        const cx = x + dx * r;
-        const cy = y + dy * r - r * 0.25;
-        const grd = g.createRadialGradient(cx - r * 0.25, cy - r * 0.3, 2, cx, cy, r * s);
-        grd.addColorStop(0, n > 0.5 ? '#6ee05a' : '#4ade80');
-        grd.addColorStop(1, '#166534');
-        g.fillStyle = grd;
-        g.beginPath();
-        g.arc(cx, cy, r * s, 0, TAU);
-        g.fill();
-      }
-      if (n > 0.7) {
-        g.fillStyle = n2 > 0.4 ? '#ef4444' : '#f472b6';
-        for (let i = 0; i < 3; i++) blob(g, x + Math.cos(i * 2.1 + n * 9) * r * 0.5, y - r * 0.3 + Math.sin(i * 2.1 + n * 9) * r * 0.35, 3, g.fillStyle);
-      }
-      break;
-    }
-    case 'rock':
-    case 'basalt': {
-      const lava = th.wall === 'basalt';
-      const grd = g.createRadialGradient(x - r * 0.3, y - r * 0.45, 2, x, y, r * 1.1);
-      grd.addColorStop(0, lava ? '#6b5a55' : '#d6c7b0');
-      grd.addColorStop(0.6, lava ? '#3a2c28' : '#8f7a62');
-      grd.addColorStop(1, lava ? '#1a1110' : '#4a3b2c');
-      g.fillStyle = grd;
-      g.beginPath();
-      for (let i = 0; i < 8; i++) {
-        const a = (i / 8) * TAU;
-        const rr = r * (0.8 + cellNoise(tx + i, ty, 13) * 0.3);
-        g.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr * 0.85 - r * 0.15);
-      }
-      g.closePath();
-      g.fill();
-      if (lava && n > 0.62) {
-        // A glowing crack, different on every rock
-        const a = cellNoise(tx, ty, 14) * TAU;
-        g.strokeStyle = 'rgba(251,146,60,0.9)';
-        g.lineWidth = 1.8;
-        g.shadowColor = '#f97316';
-        g.shadowBlur = 6;
-        g.beginPath();
-        g.moveTo(x + Math.cos(a) * r * 0.55, y - r * 0.15 + Math.sin(a) * r * 0.4);
-        g.lineTo(x + Math.cos(a + 2) * r * 0.12, y - r * 0.2 + Math.sin(a + 2) * r * 0.12);
-        g.lineTo(x + Math.cos(a + 3.3) * r * 0.5, y - r * 0.15 + Math.sin(a + 3.3) * r * 0.35);
-        g.stroke();
-        g.shadowBlur = 0;
-      } else if (!lava && n > 0.8) {
-        g.fillStyle = '#7dd3fc';
-        g.beginPath();
-        g.moveTo(x - 4, y - r * 0.2);
-        g.lineTo(x, y - r * 0.9);
-        g.lineTo(x + 4, y - r * 0.2);
-        g.fill();
-      }
-      break;
-    }
-    case 'pillar': {
-      // Old stone columns of the tower; some carry a purple ghost flame
-      const w = r * 0.62;
-      g.fillStyle = '#2e2547';
-      g.fillRect(x - w - 4, y + r * 0.2, (w + 4) * 2, r * 0.4);
-      const sg = g.createLinearGradient(x - w, 0, x + w, 0);
-      sg.addColorStop(0, '#3d3360');
-      sg.addColorStop(0.45, '#6b5d96');
-      sg.addColorStop(1, '#2f2750');
-      g.fillStyle = sg;
-      g.fillRect(x - w, y - r * 0.95, w * 2, r * 1.2);
-      g.strokeStyle = 'rgba(20,14,36,0.45)';
-      g.lineWidth = 1.2;
-      for (let k = 1; k < 3; k++) {
-        g.beginPath();
-        g.moveTo(x - w, y - r * 0.95 + k * r * 0.4);
-        g.lineTo(x + w, y - r * 0.95 + k * r * 0.4);
-        g.stroke();
-      }
-      g.fillStyle = '#7c6fae';
-      g.fillRect(x - w - 5, y - r * 1.05, (w + 5) * 2, r * 0.22);
-      if (n > 0.72) {
-        const fg = g.createRadialGradient(x, y - r * 1.3, 1, x, y - r * 1.3, r * 0.8);
-        fg.addColorStop(0, 'rgba(233,213,255,0.95)');
-        fg.addColorStop(0.4, 'rgba(192,132,252,0.6)');
-        fg.addColorStop(1, 'rgba(192,132,252,0)');
-        g.fillStyle = fg;
-        g.beginPath();
-        g.arc(x, y - r * 1.3, r * 0.8, 0, TAU);
-        g.fill();
-        g.fillStyle = '#e9d5ff';
-        g.beginPath();
-        g.moveTo(x, y - r * 1.75);
-        g.quadraticCurveTo(x + r * 0.25, y - r * 1.25, x, y - r * 1.08);
-        g.quadraticCurveTo(x - r * 0.25, y - r * 1.25, x, y - r * 1.75);
-        g.fill();
-      }
-      break;
-    }
-    case 'iceberg': {
-      if (n2 > 0.7) {
-        // Snowy pine
-        for (let i = 0; i < 3; i++) {
-          const w = r * (1 - i * 0.27);
-          const top = y - r * (0.1 + i * 0.42);
-          g.fillStyle = ['#14532d', '#166534', '#1f7a3a'][i];
-          g.beginPath();
-          g.moveTo(x, top - r * 0.6);
-          g.lineTo(x + w, top + r * 0.36);
-          g.lineTo(x - w, top + r * 0.36);
-          g.closePath();
-          g.fill();
-          g.fillStyle = '#ffffff';
-          g.beginPath();
-          g.moveTo(x, top - r * 0.6);
-          g.lineTo(x + w * 0.45, top - r * 0.1);
-          g.lineTo(x - w * 0.45, top - r * 0.1);
-          g.closePath();
-          g.fill();
-        }
-        break;
-      }
-      for (let i = -1; i <= 1; i++) {
-        const h = r * (1.1 + (1 - Math.abs(i)) * 0.5) * (0.8 + n * 0.4);
-        const grd = g.createLinearGradient(x + i * r * 0.4, y - h, x + i * r * 0.4, y);
-        grd.addColorStop(0, '#ffffff');
-        grd.addColorStop(1, '#7dd3fc');
-        g.fillStyle = grd;
-        g.beginPath();
-        g.moveTo(x + i * r * 0.45 - r * 0.35, y + r * 0.3);
-        g.lineTo(x + i * r * 0.5, y - h);
-        g.lineTo(x + i * r * 0.45 + r * 0.35, y + r * 0.3);
-        g.closePath();
-        g.fill();
-      }
-      break;
-    }
-    default: {
-      // Psychic crystals
-      for (let i = -1; i <= 1; i++) {
-        const h = r * (1 + (1 - Math.abs(i)) * 0.6) * (0.8 + n * 0.4);
-        const grd = g.createLinearGradient(x, y - h, x, y);
-        grd.addColorStop(0, '#f5d0fe');
-        grd.addColorStop(0.5, '#a78bfa');
-        grd.addColorStop(1, '#4c1d95');
-        g.fillStyle = grd;
-        g.beginPath();
-        g.moveTo(x + i * r * 0.42 - r * 0.28, y + r * 0.3);
-        g.lineTo(x + i * r * 0.55, y - h);
-        g.lineTo(x + i * r * 0.42 + r * 0.28, y + r * 0.3);
-        g.closePath();
-        g.fill();
-      }
-    }
-  }
-}
-
-function roofed(g, b, roof, roofDark, wall, sign) {
-  const { x, y, w, h } = b;
-  g.fillStyle = 'rgba(0,0,0,0.25)';
-  g.fillRect(x + 8, y + h - 6, w, 14);
-  g.fillStyle = wall;
-  g.fillRect(x, y + h * 0.35, w, h * 0.65);
-  // Roof
-  g.fillStyle = roof;
-  g.beginPath();
-  g.moveTo(x - 10, y + h * 0.42);
-  g.lineTo(x + w * 0.12, y - h * 0.1);
-  g.lineTo(x + w * 0.88, y - h * 0.1);
-  g.lineTo(x + w + 10, y + h * 0.42);
-  g.closePath();
-  g.fill();
-  g.fillStyle = roofDark;
-  g.fillRect(x - 10, y + h * 0.38, w + 20, 8);
-  // Door and windows
-  g.fillStyle = '#7dd3fc';
-  g.fillRect(x + w / 2 - 16, y + h - 34, 32, 34);
-  g.fillStyle = 'rgba(255,255,255,0.6)';
-  g.fillRect(x + w / 2 - 1, y + h - 34, 2, 34);
-  g.fillStyle = '#bae6fd';
-  g.fillRect(x + 16, y + h * 0.52, 30, 22);
-  g.fillRect(x + w - 46, y + h * 0.52, 30, 22);
-  if (sign) sign(x + w / 2, y + h * 0.18);
-}
-
-function drawBuilding(g, b) {
-  if (b.id === 'center') {
-    roofed(g, b, '#ef4444', '#b91c1c', '#fff7ed', (cx, cy) => {
-      g.fillStyle = '#ffffff';
-      g.beginPath();
-      g.arc(cx, cy, 20, 0, TAU);
-      g.fill();
-      g.fillStyle = '#ef4444';
-      g.beginPath();
-      g.arc(cx, cy, 20, Math.PI, TAU);
-      g.fill();
-      g.fillStyle = '#1f2937';
-      g.fillRect(cx - 20, cy - 2.5, 40, 5);
-      g.beginPath();
-      g.arc(cx, cy, 7, 0, TAU);
-      g.fill();
-      g.fillStyle = '#ffffff';
-      g.beginPath();
-      g.arc(cx, cy, 4, 0, TAU);
-      g.fill();
-    });
-  } else if (b.id === 'shop') {
-    roofed(g, b, '#3b82f6', '#1d4ed8', '#f8fafc', (cx, cy) => {
-      g.fillStyle = '#1d4ed8';
-      g.beginPath();
-      g.roundRect(cx - 40, cy - 14, 80, 28, 8);
-      g.fill();
-      g.fillStyle = '#ffffff';
-      g.font = '900 15px system-ui, sans-serif';
-      g.textAlign = 'center';
-      g.textBaseline = 'middle';
-      g.fillText('SHOP', cx, cy + 1);
-    });
-  } else if (b.id === 'house') {
-    roofed(g, b, '#f97316', '#c2410c', '#fef3c7', null);
-  } else if (b.id === 'board') {
-    const { x, y, w, h } = b;
-    g.fillStyle = 'rgba(0,0,0,0.25)';
-    g.fillRect(x + 6, y + h - 8, w, 10);
-    g.fillStyle = '#78350f';
-    g.fillRect(x + 12, y + 20, 8, h - 20);
-    g.fillRect(x + w - 20, y + 20, 8, h - 20);
-    g.fillStyle = '#b45309';
-    g.beginPath();
-    g.roundRect(x - 4, y - 6, w + 8, 50, 6);
-    g.fill();
-    g.fillStyle = '#92400e';
-    g.fillRect(x - 4, y - 6, w + 8, 6);
-    g.fillStyle = '#fef3c7';
-    for (let i = 0; i < 3; i++) g.fillRect(x + 8 + i * 36, y + 4, 26, 30);
-    for (let i = 0; i < 3; i++) blob(g, x + 21 + i * 36, y + 6, 3, '#ef4444');
-    g.strokeStyle = 'rgba(120,53,15,0.5)';
-    g.lineWidth = 1.5;
-    for (let i = 0; i < 3; i++) for (let l = 0; l < 3; l++) {
-      g.beginPath();
-      g.moveTo(x + 12 + i * 36, y + 14 + l * 7);
-      g.lineTo(x + 30 + i * 36, y + 14 + l * 7);
-      g.stroke();
-    }
-  } else if (b.id === 'fountain') {
-    const cx = b.x + b.w / 2;
-    const cy = b.y + b.h / 2;
-    g.fillStyle = 'rgba(0,0,0,0.22)';
-    g.beginPath();
-    g.ellipse(cx + 6, cy + 14, b.w * 0.66, b.w * 0.36, 0, 0, TAU);
-    g.fill();
-    // Stone rim (eight sides), water with ripples, a spout in the middle
-    g.fillStyle = '#94a3b8';
-    g.beginPath();
-    for (let i = 0; i < 8; i++) g.lineTo(cx + Math.cos((i / 8) * TAU + 0.39) * b.w * 0.66, cy + Math.sin((i / 8) * TAU + 0.39) * b.w * 0.5);
-    g.closePath();
-    g.fill();
-    g.fillStyle = '#cbd5e1';
-    g.beginPath();
-    for (let i = 0; i < 8; i++) g.lineTo(cx + Math.cos((i / 8) * TAU + 0.39) * b.w * 0.6, cy - 4 + Math.sin((i / 8) * TAU + 0.39) * b.w * 0.44);
-    g.closePath();
-    g.fill();
-    const wg = g.createRadialGradient(cx - 8, cy - 10, 4, cx, cy - 4, b.w * 0.5);
-    wg.addColorStop(0, '#bae6fd');
-    wg.addColorStop(1, '#2563eb');
-    g.fillStyle = wg;
-    g.beginPath();
-    g.ellipse(cx, cy - 4, b.w * 0.5, b.w * 0.34, 0, 0, TAU);
-    g.fill();
-    g.strokeStyle = 'rgba(255,255,255,0.55)';
-    g.lineWidth = 2;
-    for (const r of [0.2, 0.34]) {
-      g.beginPath();
-      g.ellipse(cx, cy - 4, b.w * r, b.w * r * 0.65, 0, 0, TAU);
-      g.stroke();
-    }
-    g.fillStyle = '#e2e8f0';
-    g.fillRect(cx - 5, cy - 30, 10, 26);
-    g.fillStyle = '#bfdbfe';
-    g.beginPath();
-    g.ellipse(cx, cy - 34, 12, 7, 0, 0, TAU);
-    g.fill();
-    g.fillStyle = '#ffffff';
-    for (const dx of [-9, 0, 9]) blob(g, cx + dx, cy - 38, 3, '#ffffff');
-  }
 }
 
 function renderChunk(art, cx, cy) {
@@ -546,76 +332,122 @@ function renderChunk(art, cx, cy) {
   const y0 = Math.max(0, Math.floor(oy / TILE) - 2);
   const x1 = Math.min(area.W - 1, Math.ceil((ox + CHUNK) / TILE) + 2);
   const y1 = Math.min(area.H - 1, Math.ceil((oy + CHUNK) / TILE) + 3);
-  // Soft mottled ground
+  // Soft mottled ground with light patches
   for (let ty = y0; ty <= y1; ty++) {
     for (let tx = x0; tx <= x1; tx++) {
       const n = cellNoise(tx, ty, 1);
       const x = (tx + cellNoise(tx, ty, 2)) * TILE;
       const y = (ty + cellNoise(tx, ty, 6)) * TILE;
-      if (n < 0.28) blob(g, x, y, TILE * 0.8, th.ground2);
-      else if (n > 0.86) blob(g, x, y, TILE * 0.55, th.ground3);
+      if (n < 0.3) blob(g, x, y, TILE * 0.85, th.ground2);
+      else if (n > 0.84) {
+        const grd = g.createRadialGradient(x, y, 2, x, y, TILE * 0.7);
+        grd.addColorStop(0, th.ground3);
+        grd.addColorStop(1, `${th.ground3}00`);
+        g.fillStyle = grd;
+        g.fillRect(x - TILE, y - TILE, TILE * 2, TILE * 2);
+      }
     }
   }
-  // Paths
+  // Tiny grass strokes / grain
+  g.strokeStyle = 'rgba(0,0,0,0.08)';
+  g.lineWidth = 1.2;
+  for (let ty = y0; ty <= y1; ty++) {
+    for (let tx = x0; tx <= x1; tx++) {
+      if (cellNoise(tx, ty, 41) > 0.45) continue;
+      const x = (tx + cellNoise(tx, ty, 42)) * TILE;
+      const y = (ty + cellNoise(tx, ty, 43)) * TILE;
+      g.beginPath();
+      g.moveTo(x, y);
+      g.lineTo(x - 2, y - 5);
+      g.moveTo(x + 3, y);
+      g.lineTo(x + 4, y - 6);
+      g.stroke();
+    }
+  }
+  // Paths: an edge, the path, a lighter middle, then pebbles
   g.lineCap = 'round';
   g.lineJoin = 'round';
   area.path.forEach((line, i) => {
     const w = area.pathWidth * (i ? 0.62 : 1);
-    for (const [ww, col] of [[w + 10, th.pathEdge], [w, th.path]]) {
+    for (const [ww, col] of [[w + 12, th.pathEdge], [w, th.path]]) {
       g.strokeStyle = col;
       g.lineWidth = ww;
       g.beginPath();
       line.forEach((p, k) => (k ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y)));
       g.stroke();
     }
-    g.globalAlpha = 0.25;
+    g.globalAlpha = 0.22;
     g.strokeStyle = '#ffffff';
-    g.lineWidth = w * 0.35;
+    g.lineWidth = w * 0.4;
     g.beginPath();
     line.forEach((p, k) => (k ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y)));
     g.stroke();
     g.globalAlpha = 1;
   });
-  // Pebbles on the path
-  for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) if (cellNoise(tx, ty, 21) > 0.93) blob(g, (tx + 0.5) * TILE, (ty + 0.5) * TILE, 2, 'rgba(0,0,0,0.08)');
+  for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) if (cellNoise(tx, ty, 21) > 0.9) blob(g, (tx + cellNoise(tx, ty, 22)) * TILE, (ty + cellNoise(tx, ty, 23)) * TILE, 2.2, 'rgba(0,0,0,0.1)');
   drawLiquid(g, area, x0, y0, x1, y1);
-  for (const d of area.decorations) if (d.x > ox - 30 && d.x < ox + CHUNK + 30 && d.y > oy - 30 && d.y < oy + CHUNK + 30) drawDecoration(g, d, th);
-  // Walls: a dark mass first, then one prop per tile from back to front
+  for (const d of area.decorations) if (d.kind !== 'flower' && d.kind !== 'grass' && d.x > ox - 30 && d.x < ox + CHUNK + 30 && d.y > oy - 30 && d.y < oy + CHUNK + 30) drawDecoration(g, d, th);
+  // Under the walls: a dark mass; rock themes get a cliff face along the south edge
+  const cliff = th.wall !== 'tree';
   g.fillStyle = WALL_BASE[th.wall];
   for (let ty = y0; ty <= y1; ty++) {
     for (let tx = x0; tx <= x1; tx++) {
-      if (area.grid[ty * area.W + tx] !== WALL) continue;
+      if (area.grid[ty * area.W + tx] !== WALL || area.extraAt?.has(ty * area.W + tx)) continue;
       g.beginPath();
-      g.arc((tx + 0.5) * TILE, (ty + 0.5) * TILE, TILE * 0.66, 0, TAU);
+      g.arc((tx + 0.5) * TILE, (ty + 0.5) * TILE, TILE * 0.7, 0, TAU);
       g.fill();
     }
   }
-  for (let ty = y0; ty <= y1; ty++) {
-    for (let tx = x0; tx <= x1; tx++) {
-      if (area.grid[ty * area.W + tx] === WALL) {
-        g.fillStyle = 'rgba(0,0,0,0.2)';
-        g.beginPath();
-        g.ellipse((tx + 0.5) * TILE + 6, (ty + 0.9) * TILE, TILE * 0.6, TILE * 0.25, 0, 0, TAU);
-        g.fill();
-        drawWallProp(g, area, tx, ty);
+  if (cliff) {
+    for (let ty = y0; ty <= y1; ty++) {
+      for (let tx = x0; tx <= x1; tx++) {
+        if (area.grid[ty * area.W + tx] !== WALL || area.extraAt?.has(ty * area.W + tx) || tile(area, tx, ty + 1) === WALL) continue;
+        const x = tx * TILE;
+        const y = (ty + 0.55) * TILE;
+        const grd = g.createLinearGradient(0, y, 0, y + TILE * 0.55);
+        grd.addColorStop(0, 'rgba(0,0,0,0.05)');
+        grd.addColorStop(1, 'rgba(0,0,0,0.45)');
+        g.fillStyle = grd;
+        g.fillRect(x - 2, y, TILE + 4, TILE * 0.55);
+        g.fillStyle = 'rgba(255,255,255,0.12)';
+        g.fillRect(x - 2, y, TILE + 4, 2);
       }
     }
   }
-  for (const b of area.buildings) if (b.x < ox + CHUNK + 60 && b.x + b.w > ox - 60 && b.y < oy + CHUNK + 60 && b.y + b.h > oy - 60) drawBuilding(g, b);
+  // Soft shadows under the props, then the props deep in the walls
+  g.fillStyle = 'rgba(0,0,0,0.18)';
+  for (const p of art.props) {
+    if (p.x < ox - 80 || p.x > ox + CHUNK + 80 || p.y < oy - 20 || p.y > oy + CHUNK + 150) continue;
+    if (p.kind !== 'building') {
+      g.beginPath();
+      g.ellipse(p.x + 6, p.y - 2, 22 * p.scale, 8 * p.scale, 0, 0, TAU);
+      g.fill();
+    }
+  }
+  for (const p of art.props) {
+    if (!p.baked || p.x < ox - 80 || p.x > ox + CHUNK + 80 || p.y < oy - 20 || p.y > oy + CHUNK + 150) continue;
+    drawProp(g, p, art.themeId);
+  }
   return c;
 }
+
+const visibleChunks = (art, cam, view, margin = 0) => {
+  const { area } = art;
+  return {
+    cx0: Math.max(0, Math.floor(cam.x / CHUNK) - margin),
+    cy0: Math.max(0, Math.floor(cam.y / CHUNK) - margin),
+    cx1: Math.min(Math.ceil(area.w / CHUNK) - 1, Math.floor((cam.x + view.w) / CHUNK) + margin),
+    cy1: Math.min(Math.ceil(area.h / CHUNK) - 1, Math.floor((cam.y + view.h) / CHUNK) + margin),
+  };
+};
 
 /**
  * Draw the ground under the camera. Chunks inside the view that are missing are painted now;
  * one chunk around the view is painted ahead each frame so walking never waits.
  */
 export function drawGround(ctx, art, cam, view) {
-  const { area } = art;
   art.frame += 1;
-  const cx0 = Math.max(0, Math.floor(cam.x / CHUNK));
-  const cy0 = Math.max(0, Math.floor(cam.y / CHUNK));
-  const cx1 = Math.min(Math.ceil(area.w / CHUNK) - 1, Math.floor((cam.x + view.w) / CHUNK));
-  const cy1 = Math.min(Math.ceil(area.h / CHUNK) - 1, Math.floor((cam.y + view.h) / CHUNK));
+  const { cx0, cy0, cx1, cy1 } = visibleChunks(art, cam, view);
   for (let cy = cy0; cy <= cy1; cy++) {
     for (let cx = cx0; cx <= cx1; cx++) {
       const key = cy * 1000 + cx;
@@ -628,7 +460,7 @@ export function drawGround(ctx, art, cam, view) {
       if (c.canvas) ctx.drawImage(c.canvas, cx * CHUNK, cy * CHUNK, CHUNK, CHUNK);
     }
   }
-  // Paint one more chunk ahead
+  const { area } = art;
   outer: for (let cy = cy0 - 1; cy <= cy1 + 1; cy++) {
     for (let cx = cx0 - 1; cx <= cx1 + 1; cx++) {
       if (cx < 0 || cy < 0 || cx * CHUNK >= area.w || cy * CHUNK >= area.h) continue;
@@ -650,28 +482,182 @@ export function prewarm(art, x, y, w = 1100, h = 700) {
   drawGround({ drawImage() {} }, art, { x: x - w / 2, y: y - h / 2 }, { w, h });
 }
 
-/** Fog of war: one pixel per fog cell, drawn scaled up (smoothing gives soft edges). */
-export function drawFog(ctx, art, fog) {
-  if (!fog) return;
+function eachInView(map, art, cam, view, margin, fn) {
+  const { cx0, cy0, cx1, cy1 } = visibleChunks(art, cam, view, margin);
+  for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) {
+    const list = map.get(cy * 1000 + cx);
+    if (list) for (const it of list) fn(it);
+  }
+}
+
+/** Props standing in view (for depth sorting): tall ones below the view are included too. */
+export function visibleProps(art, cam, view) {
+  const out = [];
+  const x0 = cam.x - 70;
+  const x1 = cam.x + view.w + 70;
+  const y0 = cam.y - 10;
+  const y1 = cam.y + view.h + 260;
+  eachInView(art.buckets, art, cam, { w: view.w, h: view.h + 260 }, 1, (p) => {
+    if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1) out.push(p);
+  });
+  return out;
+}
+
+/** Live water: moving shimmer, foam along the shore, glowing bubbling lava. */
+export function drawWater(ctx, art, cam, view, time) {
+  const kind = art.theme.liquid;
+  const L = LIQUID_COLORS[kind];
+  const x0 = cam.x - 60;
+  const x1 = cam.x + view.w + 60;
+  const y0 = cam.y - 60;
+  const y1 = cam.y + view.h + 60;
+  ctx.save();
+  eachInView(art.water, art, cam, view, 0, (w) => {
+    if (w.x < x0 || w.x > x1 || w.y < y0 || w.y > y1) return;
+    const ph = time * 1.6 + w.n * 12;
+    if (kind === 'lava') {
+      const a = 0.25 + Math.sin(ph) * 0.15;
+      ctx.globalAlpha = a;
+      ctx.fillStyle = L.shine;
+      ctx.beginPath();
+      ctx.arc(w.x, w.y, TILE * 0.45, 0, TAU);
+      ctx.fill();
+      const b = (time * 0.7 + w.n * 5) % 1;
+      if (w.n > 0.6) {
+        ctx.globalAlpha = 1 - b;
+        ctx.strokeStyle = '#fde68a';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(w.x + (w.n - 0.8) * 30, w.y + (0.5 - w.n) * 20, 3 + b * 7, 0, TAU);
+        ctx.stroke();
+      }
+    } else {
+      // Shimmer: a light streak drifting across
+      ctx.globalAlpha = 0.25 + Math.sin(ph) * 0.2;
+      ctx.strokeStyle = L.shine;
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      const dx = Math.sin(ph * 0.7) * 8;
+      ctx.beginPath();
+      ctx.moveTo(w.x - 9 + dx, w.y - 4 + w.n * 8);
+      ctx.lineTo(w.x + 5 + dx, w.y - 4 + w.n * 8);
+      ctx.stroke();
+      if (kind === 'sea' && w.n > 0.8) {
+        ctx.globalAlpha = Math.max(0, Math.sin(time * 4 + w.n * 30));
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(w.x + 8, w.y - 6, 2, 0, TAU);
+        ctx.fill();
+      }
+    }
+    // Foam (or a glow for lava) running along the shore: a wavy line on each land side
+    const sides = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+    ctx.strokeStyle = kind === 'lava' ? '#fdba74' : kind === 'void' ? '#c4b5fd' : '#ffffff';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    for (let k = 0; k < 4; k++) {
+      if (!w.shore[k]) continue;
+      const [sx, sy] = sides[k];
+      const pulse = 0.5 + Math.sin(time * 2.2 + w.n * 9 + k) * 0.5;
+      ctx.globalAlpha = 0.3 + pulse * 0.4;
+      const inset = TILE * (0.38 - pulse * 0.06);
+      const px = -sy;
+      const py = sx;
+      ctx.beginPath();
+      for (let q = 0; q <= 6; q++) {
+        const u = (q / 6 - 0.5) * TILE * 0.9;
+        const wave = Math.sin(time * 3 + q * 1.3 + w.n * 7) * 2;
+        const x = w.x + sx * (inset + wave) + px * u;
+        const y = w.y + sy * (inset + wave) + py * u;
+        if (q) ctx.lineTo(x, y);
+        else ctx.moveTo(x, y);
+      }
+      ctx.stroke();
+    }
+  });
+  ctx.restore();
+}
+
+/** Flowers and grass tufts swaying in the wind. */
+export function drawPlants(ctx, art, cam, view, time) {
+  const x0 = cam.x - 20;
+  const x1 = cam.x + view.w + 20;
+  const y0 = cam.y - 20;
+  const y1 = cam.y + view.h + 20;
+  eachInView(art.plants, art, cam, view, 0, (d) => {
+    if (d.x < x0 || d.x > x1 || d.y < y0 || d.y > y1) return;
+    const sway = Math.sin(time * 2 + d.v * 10 + d.x * 0.01) * 2.2;
+    if (d.kind === 'grass') {
+      ctx.strokeStyle = d.v > 0.5 ? '#3f8f2c' : '#5bb03f';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      for (let i = -1; i <= 1; i++) {
+        ctx.beginPath();
+        ctx.moveTo(d.x + i * 3, d.y);
+        ctx.quadraticCurveTo(d.x + i * 4 + sway * 0.5, d.y - 6, d.x + i * 6 + sway, d.y - 11 + Math.abs(i) * 2);
+        ctx.stroke();
+      }
+    } else {
+      const c = ['#f472b6', '#facc15', '#ffffff', '#c084fc', '#fb7185'][Math.floor(d.v * 5)];
+      ctx.strokeStyle = '#3f8f2c';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(d.x, d.y);
+      ctx.quadraticCurveTo(d.x + sway * 0.4, d.y - 5, d.x + sway, d.y - 9);
+      ctx.stroke();
+      const fx = d.x + sway;
+      const fy = d.y - 10;
+      ctx.fillStyle = c;
+      for (let i = 0; i < 5; i++) {
+        ctx.beginPath();
+        ctx.arc(fx + Math.cos((i / 5) * TAU + time * 0.2) * 3, fy + Math.sin((i / 5) * TAU + time * 0.2) * 3, 2.5, 0, TAU);
+        ctx.fill();
+      }
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.arc(fx, fy, 1.8, 0, TAU);
+      ctx.fill();
+    }
+  });
+}
+
+/** Glows of lamps, candles, vents and big crystals (flickering, added on top). */
+export function drawGlows(ctx, props, time) {
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  for (const p of props) {
+    const gl = GLOWS[p.kind];
+    if (!gl) continue;
+    const [c, r, dy] = gl;
+    const f = 0.75 + Math.sin(time * 7 + p.phase) * 0.12 + Math.sin(time * 13 + p.x) * 0.06;
+    const grd = ctx.createRadialGradient(p.x, p.y + dy, 1, p.x, p.y + dy, r * f);
+    grd.addColorStop(0, `${c}aa`);
+    grd.addColorStop(1, `${c}00`);
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y + dy, r * f, 0, TAU);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/** Exploration for the minimap only: unexplored parts get a soft tint (never black). */
+export function fogCanvas(art, fog) {
+  if (!fog) return null;
   if (!art.fog || art.fog.width !== fog.cols) art.fog = newCanvas(fog.cols, fog.rows);
   const fc = art.fog;
   const g = fc?.getContext?.('2d');
-  if (!g) return;
+  if (!g) return null;
   if (art.fogVersion !== fog.version) {
     art.fogVersion = fog.version;
     const img = g.createImageData(fog.cols, fog.rows);
-    const hex = art.theme.fog;
-    const r = parseInt(hex.slice(1, 3), 16);
-    const gg = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
     for (let i = 0; i < fog.data.length; i++) {
-      img.data[i * 4] = r;
-      img.data[i * 4 + 1] = gg;
-      img.data[i * 4 + 2] = b;
-      img.data[i * 4 + 3] = fog.data[i] ? 0 : 245;
+      img.data[i * 4] = 148;
+      img.data[i * 4 + 1] = 163;
+      img.data[i * 4 + 2] = 184;
+      img.data[i * 4 + 3] = fog.data[i] ? 0 : 150;
     }
     g.putImageData(img, 0, 0);
   }
-  ctx.imageSmoothingEnabled = true;
-  ctx.drawImage(fc, 0, 0, fog.cols * fog.cell, fog.rows * fog.cell);
+  return fc;
 }

@@ -16,6 +16,28 @@ const MELEE_TYPES = new Set(['normal', 'fighting', 'rock', 'ground', 'bug', 'ste
 export const isRangedType = (t) => !MELEE_TYPES.has(t);
 
 export const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+export const OUT_MAX = 2;
+/** The team members walking with the trainer and fighting (the lead and one companion). */
+export const fighters = (state) => state.party.filter((m) => m.out && !m.fainted);
+/** Keep the `out` flags in line with state.lead / state.companion. */
+export function syncOut(state) {
+  for (const m of state.party) m.out = m.idx === state.lead || m.idx === state.companion;
+}
+/** The healthiest Pokemon resting in its ball (to send out next), or null. */
+export function bestBenched(state) {
+  const bench = state.party.filter((m) => !m.out && !m.fainted);
+  return bench.sort((a, b) => b.hp / b.maxHp - a.hp / a.maxHp)[0] || null;
+}
+/** A Pokemon comes out of its ball next to the trainer. */
+export function placeOut(state, m) {
+  const t = state.trainer;
+  const p = nearestFree(state.area, t.x - t.dir.x * 38 + t.dir.y * 30, t.y - t.dir.y * 38 - t.dir.x * 30, m.r);
+  m.x = p.x;
+  m.y = p.y;
+  m.target = null;
+  m.knock = null;
+  emit(state, { kind: 'sendout', idx: m.idx, x: m.x, y: m.y, fromX: t.x, fromY: t.y - 20, name: m.name });
+}
 export const emit = (state, e) => {
   state.events.push(e);
   if (state.events.length > 600) state.events.splice(0, state.events.length - 600);
@@ -53,9 +75,9 @@ export function makeEnemy(state, dex, level, { elite = false, boss = false, x, y
     x: p.x,
     y: p.y,
     r,
-    hp: st.maxHp,
-    maxHp: st.maxHp,
-    atk: st.atk,
+    hp: Math.round(st.maxHp * (act?.power?.hp || 1)),
+    maxHp: Math.round(st.maxHp * (act?.power?.hp || 1)),
+    atk: st.atk * (act?.power?.dmg || 1),
     speed: (isRanged ? 92 : 112) * (elite ? 0.95 : 1),
     ranged: isRanged,
     atkCd: isRanged ? 1.9 : 1.45,
@@ -131,7 +153,7 @@ export function koEnemy(state, e) {
   emit(state, { kind: 'ko', x: e.x, y: e.y, type: e.types[0], elite: e.elite, boss: e.boss, dex: e.dex, name: e.name, id: e.id });
   if (!e.noXp) {
     const base = xpForKo(e.level, e);
-    for (const m of state.party) grantXp(state, m, xpShare(base, m.level, e.level, { hit: e.hitBy.has(m.idx), fainted: m.fainted }));
+    for (const m of state.party) grantXp(state, m, xpShare(base, m.level, e.level, { hit: e.hitBy.has(m.idx), fainted: m.fainted, benched: !m.out }));
     for (const d of rollDrops(e, state.random)) spawnDrop(state, e.x, e.y, d, e.boss ? 2.2 : 1);
   }
 }
@@ -198,10 +220,22 @@ export function faint(state, m) {
     emit(state, { kind: 'wipe' });
     return;
   }
-  if (state.party[state.lead] === m) {
-    state.lead = alive[0].idx;
+  if (!m.out) return;
+  // A rested Pokemon jumps out of its ball to take the place
+  const next = bestBenched(state);
+  if (m.idx === state.lead) {
+    const comp = state.party[state.companion];
+    if (comp && !comp.fainted) {
+      state.lead = comp.idx;
+      state.companion = next ? next.idx : -1;
+    } else {
+      state.lead = next ? next.idx : alive[0].idx;
+      state.companion = -1;
+    }
     emit(state, { kind: 'lead', idx: state.lead, auto: true });
-  }
+  } else state.companion = next ? next.idx : -1;
+  syncOut(state);
+  if (next) placeOut(state, next);
 }
 
 /** Wild Pokemon stats for a level (exported for the boss and minions). */

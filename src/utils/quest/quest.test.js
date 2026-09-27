@@ -3,7 +3,10 @@ import { ACTS, generateArea, findPath, circleBlocked, TILE, FREE } from './world
 import { tablePlan, apiPlan, nextEvolution, dexOfMember, SPECIES, EVOLUTIONS } from './species';
 import { xpToNext, memberStats, MAX_LEVEL } from './progress';
 import { rollDrops, rollChest, claimReward, earnReward, GOLD_PER_HOUR, ITEMS } from './items';
-import { createQuest, step, enterArea, applyEvolution, applyItem, buyItem, goToTown, travelTo, hudOf, switchLead, setEvolutionPlan, questMember } from './engine';
+import { createQuest, step, enterArea, applyEvolution, applyItem, buyItem, goToTown, travelTo, hudOf, switchLead, setEvolutionPlan, questMember, fighters, expertResult, closeExpert } from './engine';
+import { expertsIn, EXPERTS_PER_ACT } from './world';
+import { EXPERT_ROSTER } from './experts';
+import { koEnemy, makeEnemy } from './combat';
 import { grantXp, damageEnemy, damageMember } from './combat';
 import { toSave, loadQuest, saveQuest, SAVE_KEY, clearQuest } from './save';
 import { seeded } from '../../test/seeded';
@@ -45,7 +48,7 @@ describe('quest world generation', () => {
         expect(Array.from(a.grid)).toEqual(Array.from(b.grid));
         expect(a.w).toBeGreaterThan(1500);
         expect(circleBlocked(a, a.spawn.x, a.spawn.y, 12)).toBe(false);
-        const targets = [...a.exits, ...a.packs, ...a.chests, ...(a.bossSpawn ? [a.bossSpawn, a.nextActPortal] : [])];
+        const targets = [...a.exits, ...a.packs, ...a.chests, ...a.experts, ...(a.bossSpawn ? [a.bossSpawn, a.nextActPortal] : [])];
         for (const t of targets) {
           const path = findPath(a, a.spawn, t, 20000);
           expect(path, `${ACTS[act].name}/${a.name} -> ${Math.round(t.x)},${Math.round(t.y)}`).not.toBeNull();
@@ -307,6 +310,109 @@ describe('quest play', () => {
     expect(travelTo(s, 0)).toBe(true);
     expect(s.area.name).toBe('Làng Pallet');
     expect(travelTo(s, 3)).toBe(false);
+  });
+});
+
+describe('quest: two Pokemon out, three resting in their balls', () => {
+  it('QO-01 only the lead and a companion walk and fight; tapping swaps, sends out and recalls', () => {
+    const s = quest();
+    enterArea(s, 0, 1, 'forward');
+    expect(fighters(s).map((m) => m.idx)).toEqual([0, 1]);
+    expect(hudOf(s).party.map((m) => m.out)).toEqual([true, true, false, false, false]);
+    // The companion becomes the lead (a swap, nobody goes back)
+    expect(switchLead(s, 1)).toBe(true);
+    expect([s.lead, s.companion]).toEqual([1, 0]);
+    s.events.length = 0;
+    // A Pokemon from its ball: sent out as the lead, the old companion is recalled
+    expect(switchLead(s, 3)).toBe(true);
+    expect([s.lead, s.companion]).toEqual([3, 1]);
+    expect(s.events.find((e) => e.kind === 'recall')).toMatchObject({ idx: 0 });
+    expect(s.events.find((e) => e.kind === 'sendout')).toMatchObject({ idx: 3 });
+    expect(fighters(s).map((m) => m.idx).sort()).toEqual([1, 3]);
+    // Wild Pokemon only ever target the two out
+    for (let i = 0; i < 30 * 8; i++) step(s, 1 / 30, {});
+    expect(s.party.filter((m) => !m.out).every((m) => m.hp === m.maxHp)).toBe(true);
+  });
+
+  it('QO-02 a fainted Pokemon is replaced by the healthiest one from its ball; resting ones heal', () => {
+    const s = quest();
+    enterArea(s, 0, 1, 'forward');
+    s.party[2].hp = 5;
+    s.party[3].hp = s.party[3].maxHp;
+    const e = s.enemies[0];
+    while (!s.party[0].fainted) damageMember(s, e, s.party[0], 50);
+    expect(s.lead).toBe(1);
+    expect(s.companion).toBe(3);
+    expect(s.events.some((v) => v.kind === 'sendout' && v.idx === 3)).toBe(true);
+    // In its ball, a hurt Pokemon slowly heals
+    const hp = s.party[2].hp;
+    for (let i = 0; i < 30 * 4; i++) step(s, 1 / 30, {});
+    expect(s.party[2].hp).toBeGreaterThan(hp);
+  });
+
+  it('QO-03 experience: full for the two out, a smaller share for those in their balls', () => {
+    const s = quest();
+    enterArea(s, 0, 1, 'forward');
+    s.party.forEach((m) => (m.xp = 0));
+    const e = makeEnemy(s, 16, 5, { x: s.trainer.x, y: s.trainer.y });
+    e.hitBy.add(0);
+    koEnemy(s, e);
+    const xp = s.party.map((m) => m.xp);
+    expect(xp[0]).toBeGreaterThan(xp[1]);
+    expect(xp[1]).toBeGreaterThan(xp[2]);
+    expect(xp[2]).toBeGreaterThan(0);
+    expect(xp[2]).toBe(xp[3]);
+  });
+});
+
+describe('quest expert trainers', () => {
+  it('QX-01 five experts per act (1 + 2 + 2), each with a Vietnamese title and a themed team near the team level', () => {
+    expect(expertsIn(1, 'wild') + expertsIn(2, 'wild') + expertsIn(3, 'dungeon')).toBe(EXPERTS_PER_ACT);
+    expect(EXPERT_ROSTER).toHaveLength(ACTS.length);
+    for (const r of EXPERT_ROSTER) for (const x of r) for (const d of x.team) expect(SPECIES[d], `${x.name} ${d}`).toBeTruthy();
+    const s = quest();
+    enterArea(s, 0, 2, 'forward');
+    expect(s.experts).toHaveLength(2);
+    expect(s.experts[0]).toMatchObject({ id: '0-2-0', title: 'Cô bé dã ngoại Mai' });
+    expect(s.experts[0].team.length).toBeGreaterThanOrEqual(3);
+    expect(s.experts[0].level).toBeGreaterThanOrEqual(7);
+  });
+
+  it('QX-02 walking up opens the talk (the map waits); win gives XP, gold and an item once; 5 wins give the badge', () => {
+    const s = quest();
+    enterArea(s, 0, 1, 'forward');
+    const ex = s.experts[0];
+    s.trainer.x = ex.x - 60;
+    s.trainer.y = ex.y;
+    step(s, 1 / 60, {});
+    expect(s.pendingExpert).toBe(ex.id);
+    const t = s.time;
+    step(s, 1, {});
+    expect(s.time).toBe(t);
+    expect(hudOf(s).expert).toMatchObject({ title: 'Thợ bắt bọ Tuấn' });
+    // A loss: nothing changes
+    const before = { gold: s.gold, xp: s.party.map((m) => m.xp + m.level * 1e4) };
+    expect(expertResult(s, ex.id, false)).toBeNull();
+    expect(s.gold).toBe(before.gold);
+    // A win
+    const r = expertResult(s, ex.id, true);
+    expect(r.gold).toBeGreaterThan(0);
+    expect(s.gold).toBe(before.gold + r.gold);
+    expect(s.party.every((m, i) => m.xp + m.level * 1e4 > before.xp[i])).toBe(true);
+    expect(s.expertsBeaten).toEqual([ex.id]);
+    expect(expertResult(s, ex.id, true)).toBeNull();
+    closeExpert(s);
+    step(s, 1 / 60, {});
+    expect(s.pendingExpert).toBeNull();
+    // The other four of the act
+    s.expertsBeaten.push('0-2-0', '0-2-1', '0-3-0');
+    expect(s.badges).toEqual([]);
+    enterArea(s, 0, 3, 'forward');
+    expertResult(s, '0-3-1', true);
+    expect(s.badges).toEqual([0]);
+    expect(s.events.some((e) => e.kind === 'badge')).toBe(true);
+    expect(toSave(s)).toMatchObject({ badges: [0] });
+    expect(toSave(s).expertsBeaten).toHaveLength(5);
   });
 });
 
