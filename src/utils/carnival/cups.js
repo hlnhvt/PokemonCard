@@ -1,6 +1,7 @@
 // "Đoán cốc" (shell game): a Pokeball is hidden under one cup, the cups swap places along
-// arcs (one over, one under), then the child taps the cup with the ball. 6 rounds, more and
-// faster swaps each round, a 4th cup from round 4. Pure rules; `random` is injectable.
+// arcs (one over, one under), then the child taps the cup with the ball. All cups look the
+// same, so the only way is to follow the moves. 10 rounds, more and faster swaps each round,
+// a 4th cup from round 4 and a 5th from round 8. Pure rules; `random` is injectable.
 import { starsFor } from './tickets';
 
 export const ROUNDS = [
@@ -10,6 +11,10 @@ export const ROUNDS = [
   { cups: 4, swaps: 6, speed: 0.58 },
   { cups: 4, swaps: 8, speed: 0.48 },
   { cups: 4, swaps: 9, speed: 0.4 },
+  { cups: 4, swaps: 10, speed: 0.34 },
+  { cups: 5, swaps: 10, speed: 0.32 },
+  { cups: 5, swaps: 12, speed: 0.28 },
+  { cups: 5, swaps: 14, speed: 0.24 },
 ];
 export const SHOW_TIME = 1.4; // ball visible, its cup up
 export const COVER_TIME = 0.55; // the cup comes down over it
@@ -81,7 +86,7 @@ export function createCups({ random = Math.random } = {}) {
 }
 
 export const ballSlot = (s) => s.order.indexOf(s.ball);
-export const cupsStars = (s) => starsFor(s.score, 45, 100);
+export const cupsStars = (s) => starsFor(s.score, 90, 180);
 
 export function stepCups(s, dt) {
   if (s.status !== 'play') return s;

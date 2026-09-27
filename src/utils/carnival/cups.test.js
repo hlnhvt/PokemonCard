@@ -96,9 +96,13 @@ describe('cups: swaps and the ball', () => {
 
   it('CU-04 rounds get harder, a 4th cup joins; the streak adds a bonus; a tracker gets 3 stars, a guesser fewer', () => {
     const counts = ROUNDS.map((r) => r.swaps);
-    expect(counts[5]).toBeGreaterThan(counts[0]);
-    expect(ROUNDS[5].speed).toBeLessThan(ROUNDS[0].speed);
-    expect(ROUNDS.map((r) => r.cups)).toEqual([3, 3, 3, 4, 4, 4]);
+    expect(ROUNDS).toHaveLength(10);
+    for (let i = 1; i < ROUNDS.length; i++) {
+      expect(ROUNDS[i].swaps).toBeGreaterThanOrEqual(ROUNDS[i - 1].swaps);
+      expect(ROUNDS[i].speed).toBeLessThanOrEqual(ROUNDS[i - 1].speed);
+    }
+    expect(counts[9]).toBeGreaterThan(counts[0]);
+    expect(ROUNDS.map((r) => r.cups)).toEqual([3, 3, 3, 4, 4, 4, 4, 5, 5, 5]);
     const N = 40;
     const sum = { tracker: 0, guesser: 0, tired: 0 };
     const three = { tracker: 0, guesser: 0, tired: 0 };
@@ -109,9 +113,9 @@ describe('cups: swaps and the ball', () => {
       // Follows the slow rounds, loses track when it gets fast
       const tired = play(seed, (s) => (s.speed >= 0.55 ? s.ball : Math.floor(g() * s.n)));
       expect(tracker.status).toBe('done');
-      expect(tracker.n).toBe(4);
-      expect(tracker.correct).toBe(6);
-      expect(tracker.best).toBe(6);
+      expect(tracker.n).toBe(5);
+      expect(tracker.correct).toBe(10);
+      expect(tracker.best).toBe(10);
       for (const [k, s] of Object.entries({ tracker, guesser, tired })) {
         sum[k] += s.score;
         if (cupsStars(s) === 3) three[k]++;
@@ -119,7 +123,7 @@ describe('cups: swaps and the ball', () => {
     }
     const avg = (k) => Math.round(sum[k] / N);
     console.info(`[cups] avg score tracker ${avg('tracker')} (3★ ${three.tracker}/${N}), loses track when fast ${avg('tired')} (3★ ${three.tired}/${N}), guesser ${avg('guesser')} (3★ ${three.guesser}/${N})`);
-    expect(avg('tracker')).toBe(10 + 15 + 20 + 25 + 30 + 30);
+    expect(avg('tracker')).toBe(10 + 15 + 20 + 25 + 30 * 6);
     expect(three.tracker).toBe(N);
     expect(three.tired).toBeLessThan(N / 2);
     expect(avg('tired')).toBeGreaterThan(avg('guesser'));

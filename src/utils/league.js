@@ -19,7 +19,8 @@ export const LEAGUE = [...GYMS, CHAMPION];
 
 export const aceOf = (gym) => gym.team[gym.team.length - 1];
 /** Battle ground of a gym: the one that powers up its type, else the Pokemon stadium. */
-export const arenaForGym = (gym) => ARENAS.find((a) => a.id !== 'stadium' && a.boost.includes(gym.type)) || ARENAS.find((a) => a.id === 'stadium');
+// The Champion always fights on the League battlefield; gyms on a ground of their type, else there too
+export const arenaForGym = (gym) => (gym.id === 'champion' ? null : ARENAS.find((a) => !['stadium', 'league'].includes(a.id) && a.boost.includes(gym.type))) || ARENAS.find((a) => a.id === 'league');
 
 // Gold for each win: gyms get more valuable along the road; the Champion pays the most
 export const goldForGym = (index, difficulty = 'normal') => Math.round((index >= GYMS.length ? 80 : 20 + index * 3) * ({ easy: 0.8, normal: 1, hard: 1.4 }[difficulty] ?? 1));

@@ -72,7 +72,7 @@ const snap = (s) => ({
   t: s.t,
 });
 
-const spacing = (n) => (n >= 4 ? 23.5 : 30);
+const spacing = (n) => (n >= 5 ? 19 : n >= 4 ? 23.5 : 30);
 const slotLeft = (x, n) => 50 + (x - (n - 1) / 2) * spacing(n);
 
 const HINTS = {
@@ -247,7 +247,8 @@ export function CupsGame({ player, onClose, onGold, random = Math.random }) {
           )}
           {/* Cups */}
           {ui.cups.map((c) => {
-            const color = CUP_COLORS[c.id];
+            // Every cup is the same Pokeball-red cup: follow the moves, not a colour
+            const color = CUP_COLORS[0];
             const z = c.arc < 0 ? 1 : c.arc > 0 ? 4 : 3;
             const scale = 1 + c.arc * 0.1;
             const tilt = c.lift * (c.id % 2 ? 8 : -8);
@@ -256,9 +257,9 @@ export function CupsGame({ player, onClose, onGold, random = Math.random }) {
                 key={c.id}
                 type="button"
                 onPointerDown={() => tap(c.id)}
-                aria-label={`Cốc ${color.name}`}
+                aria-label={`Cốc số ${c.x + 1}`}
                 data-cup={c.id}
-                className={`absolute bottom-[54px] w-[78px] h-[92px] touch-none ${picking ? 'cups-pickable' : ''} ${fresh === c.id ? 'cups-new' : ''} ${ui.phase === 'reveal' && c.id === ui.picked && ui.last?.result === 'wrong' ? 'cups-wrong' : ''}`}
+                className={`absolute bottom-[54px] ${n >= 5 ? 'w-[64px] h-[76px]' : 'w-[78px] h-[92px]'} touch-none ${picking ? 'cups-pickable' : ''} ${fresh === c.id ? 'cups-new' : ''} ${ui.phase === 'reveal' && c.id === ui.picked && ui.last?.result === 'wrong' ? 'cups-wrong' : ''}`}
                 style={{
                   left: `${slotLeft(c.x, n)}%`,
                   zIndex: z,

@@ -1315,3 +1315,74 @@ Mục mới "🎪 Hội chợ Pokémon" nằm trong tab Trò chơi và bảng ch
 |---|---|---|---|---|
 | UI-30 | P1 | MANUAL (Chrome 375×740) | Mở Câu cá Magikarp: số 3 và chữ "BẮT ĐẦU!" nằm giữa màn hình, không tràn | Đúng |
 | Test giao diện Hội chợ (10 file, 17 test) | P1 | AUTO | Vẫn đạt | Đạt |
+
+---
+
+## 43. Đoán cốc khó hơn; Sân đấu Liên đoàn kiểu phim hoạt hình (2026-09-27)
+
+**Đoán cốc:**
+- Trước đây mỗi cốc một màu, nên chỉ cần nhớ màu là biết bóng ở đâu. Nay mọi cốc giống hệt nhau (cốc đỏ có Pokéball), bé phải dõi theo từng lần tráo. Nhãn cho trình đọc màn hình theo vị trí: "Cốc số 1..5".
+- 10 vòng (trước là 6):
+  - Vòng 1–3: 3 cốc.
+  - Vòng 4–7: 4 cốc.
+  - Vòng 8–10: 5 cốc (cốc nhỏ lại để vừa màn hình).
+  - Số lần tráo 3 → 14; tốc độ 0,95 → 0,24 giây mỗi lần tráo.
+- Sao: 2★ từ 90 điểm, 3★ từ 180 điểm (tối đa 250).
+- Mô phỏng 40 lượt:
+
+| Cách chơi mô phỏng | Điểm trung bình | Đạt 3★ |
+|---|---|---|
+| Luôn theo dõi được bóng | 250 | 40/40 |
+| Mất dấu khi tráo nhanh | 88 | 0/40 |
+| Đoán bừa | 29 | 0/40 |
+
+**Sân đấu Liên đoàn** (giống sân đấu Liên đoàn Pokémon trong phim hoạt hình):
+- **Đấu đội 5 vs 5 và Giải đấu Liên minh** (`arenas.js` id `league`, sân mặc định):
+  - Mái sân hình vòng cung có cờ bay, hai màn hình lớn có Pokéball xoay, biển "POKÉMON LEAGUE".
+  - Khán đài nhiều tầng có khán giả nhún nhảy, tường sọc đỏ trắng, đèn pha.
+  - Sân cỏ sọc nhìn phối cảnh: viền trắng, vạch giữa sân, Pokéball lớn ở giữa, ô đứng của huấn luyện viên.
+  - Tăng sức mạnh chiêu hệ Thường / Bay / Rồng.
+- **Liên minh:** Nhà Vô địch luôn đấu ở Sân đấu Liên đoàn. Nhà thi đấu nào không có sân hợp hệ cũng đấu ở đây (trước đây là Sân vận động).
+- **Đấu trường và Săn Boss** (bản đồ `league`, đứng đầu danh sách):
+  - Sân cỏ sọc có vạch trắng bao quanh, vạch giữa, ô huấn luyện viên trước hai nhà chính.
+  - Pokéball lớn giữa sân, khán đài có khán giả ở mép trên và dưới.
+  - Vật cản là tượng Pokéball và cúp vàng. 3 đường đi vẫn thông thoáng (đã có test kiểm tra).
+- **Cân bằng:** thứ tự bản đồ thay đổi làm Săn Boss mức Vừa thắng 8/8, nên máu Boss Vừa tăng ×10 → ×11. Mô phỏng lại: 6/8.
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| CU-04 | P1 | AUTO | 10 vòng khó dần, 3 → 4 → 5 cốc; theo dõi tốt được 3★, mất dấu / đoán bừa thì không | Đạt |
+| CUU-01 | P1 | AUTO | Chơi 10 vòng qua giao diện; các cốc cùng một màu; 5 cốc từ vòng 8 | Đạt |
+| AR-01, TT-03 | P1 | AUTO | 8 sân, Sân đấu Liên đoàn đứng đầu và được chọn sẵn | Đạt |
+| LE-01 | P1 | AUTO | Nhà Độc và Nhà Vô địch đấu ở Sân đấu Liên đoàn | Đạt |
+| BM-01, MG-06 | P1 | AUTO | 5 bản đồ, bản đồ Liên đoàn đầu tiên; đối xứng, đường đi thông thoáng | Đạt |
+| UI-31 | P1 | MANUAL (Chrome) | Màn VS và trận 5 vs 5 trên Sân đấu Liên đoàn, Đấu trường bản đồ Liên đoàn, Đoán cốc 3 cốc giống nhau | Đúng, không lỗi JS |
+
+---
+
+## 44. Hội chợ: thêm 10 trò (tổng 20) (2026-09-27)
+
+| Trò | Cách chơi | Mô phỏng cân bằng |
+|---|---|---|
+| 🎈 Ném phi tiêu bóng bay | Vuốt ném 10 phi tiêu vào bảng 20 bóng. Bóng chứa hình Pokémon (10 / 20, bóng vàng Mew / Pikachu 50), phi tiêu thưởng, hoặc Voltorb (−15). Từ lần ném thứ 5 bóng trôi | Cẩn thận 173 (3★ 90%), ẩu 74 |
+| 💦 Súng nước Squirtle | Giữ để phun, kéo để nhắm bia Pokéball chạy qua lại; bóng bay phồng lên, nổ trước là thắng. 3 lượt đua với 3 đối thủ, bia nhanh dần | Nhanh tay thắng 3/3; chậm 0,54/3; phun một chỗ 0/3 |
+| 🎳 Lăn bóng Skee-ball | Vuốt lăn Pokéball lên dốc vào lỗ 10 / 20 / 30 / 50 / 100; 9 bóng; chuỗi lỗ 50+ có thưởng | Đều tay 546 (3★ 97%), vừa 215, ẩu 82 |
+| 👻 Nhà ma Gengar | Ngồi xe goòng, kéo đèn pin soi; chạm ma đã soi sáng để bắt (Gastly 10, Haunter 20, Gengar 50). Chạm nhầm Clefairy / Togepi −30. Có sét lóe làm hiện hết ma. 45 giây | Cẩn thận 668 (3★), chạm cả bạn 368, lơ đãng 194 |
+| 🎢 Tàu lượn siêu tốc | Giữ để lên dốc, thả tay ở khúc cua gấp; gom sao, bay bổng ở đỉnh dốc; góc nhìn nghiêng theo dốc, không rung màn hình | Tốt 550 (3★); giữ suốt 180–200; không giữ 130–160 |
+| ⚖️ Đoán cân nặng Snorlax | Bạn nào nặng / nhẹ hơn, xếp 3 bạn từ nhẹ đến nặng, dùng cân nặng Pokédex thật (36 Pokémon). Cân nghiêng có lò xo, hiện số kg. 10 câu, cặp cân nặng gần nhau dần | Biết rõ 9,9/10 (3★), đoán bừa 4/10 |
+| 🍭 Tiệm kẹo bông | Khách Pokémon gọi màu và cỡ; chọn đường, vẽ vòng tròn quanh máy để quấn kẹo, vòng đo cỡ hóa xanh khi vừa. 6 khách | Tốt 672 (3★), vừa 599, ẩu 369 |
+| 🤸 Bạt nhún Jigglypuff | Chạm lúc 2 vòng gặp nhau để nhún cao; vuốt ← → ↑ để nhào lộn trên không (hạ xuống lúc đang nhào thì choáng). Bầu trời nhiều tầng. 60 giây | Tốt 4286 (3★), vừa 2643, không nhào lộn 1134 (2★) |
+| 🎠 Đu quay tìm Pokémon | Đu quay lên cao thấy thành phố; tìm 5 Pokémon trốn sau mây, ống khói, cây, thuyền... 3 vòng (ngày / hoàng hôn / đêm), ngày càng nhỏ và kín hơn. Gợi ý −20 điểm | Tốt 15/15 (3★), chậm 11,1/15, chạm bừa 410 |
+| 🥚 Xổ số trứng Pokémon | Tốn 1 vé chọn 1 trong 6 trứng, gõ cho nứt dần rồi nở ra Pokémon con (18 loại, 6 loại hiếm, Shiny 3%). Có album sưu tập (`pokescan_egg_collection_v1`). Pokémon mới +10 vàng, trùng +5, Shiny trùng +20 | Đủ album ~92 vé; ~8 vàng mỗi vé ở 20 vé đầu |
+
+- Tất cả chạy đúng trên khổ điện thoại 360–412 px: không tràn màn hình, không lệch tâm.
+- Máy mô phỏng chơi gần như hoàn hảo, nên [Inference] điểm của bé thật sẽ thấp hơn các con số trên.
+- **Có thể cần chỉnh sau khi bé chơi thử:**
+  - Lỗ 50 của Skee-ball hơi hẹp: bán kính `r: 0.12` trong `skeeball.js`.
+  - Bạt nhún: mốc 2★ khá thấp.
+- Cân nặng trong Đoán cân nặng do agent phụ nhập từ trí nhớ về Pokédex, chưa đối chiếu với nguồn dữ liệu [Unverified].
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| Test engine + giao diện của 10 trò mới | P1 | AUTO | Luật, mô phỏng cân bằng, chơi hết trò qua giao diện, vàng 1 lần; Xổ số trứng trừ vé và lưu album | Đạt (627 test toàn dự án) |
+| UI-32 | P1 | MANUAL (Chrome 390×780) | Mở 10 trò mới | Đúng, không lỗi JS |

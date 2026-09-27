@@ -137,13 +137,13 @@ describe('MobaGame', () => {
     localStorage.removeItem('pokescan_moba_mode');
   }, 120000);
 
-  it('MG-06 the setup offers 4 maps; the chosen one is remembered and used for the match', async () => {
+  it('MG-06 the setup offers 5 maps (the League battlefield first); the chosen one is remembered and used for the match', async () => {
     localStorage.removeItem('pokescan_moba_map');
     render(<MobaGame collection={COLLECTION} allowScanned onClose={vi.fn()} random={seeded(6)} />);
     await toSetup();
     const maps = screen.getByRole('radiogroup', { name: 'Bản đồ' });
-    expect(within(maps).getAllByRole('radio')).toHaveLength(4);
-    expect(within(maps).getByRole('radio', { name: 'Rừng xanh' })).toHaveAttribute('aria-checked', 'true');
+    expect(within(maps).getAllByRole('radio')).toHaveLength(5);
+    expect(within(maps).getByRole('radio', { name: 'Sân đấu Liên đoàn' })).toHaveAttribute('aria-checked', 'true');
     fireEvent.click(within(maps).getByRole('radio', { name: 'Núi lửa' }));
     expect(localStorage.getItem('pokescan_moba_map')).toBe('volcano');
     fireEvent.click(screen.getByText('Vào trận!'));

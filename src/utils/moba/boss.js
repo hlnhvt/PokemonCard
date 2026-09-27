@@ -28,7 +28,7 @@ export const bossImage = (b) => artworkUrl(b.dex);
 // Boss HP as a multiple of the whole team's HP, and how hard it hits
 export const DIFFICULTY = {
   easy: { label: 'Dễ', hp: 5, dmg: 0.8, cd: 1.2, icon: '🙂' },
-  normal: { label: 'Vừa', hp: 10, dmg: 1, cd: 1, icon: '😤' },
+  normal: { label: 'Vừa', hp: 11, dmg: 1, cd: 1, icon: '😤' },
   hard: { label: 'Khó', hp: 12.5, dmg: 1.25, cd: 0.85, icon: '🔥' },
 };
 

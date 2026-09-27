@@ -5,6 +5,18 @@ export const ARENA_BOOST = 1.2;
 
 export const ARENAS = [
   {
+    // The battlefield of the Pokemon League in the cartoon: a lined field with a Pokeball in
+    // the middle, trainer boxes, huge stands, big screens and flags all round
+    id: 'league',
+    name: 'Sân đấu Liên đoàn',
+    emoji: '🏆',
+    boost: ['normal', 'flying', 'dragon'],
+    ambient: 'flashes',
+    sky: 'from-sky-500 via-sky-300 to-sky-100',
+    ground: 'from-emerald-500 to-emerald-700',
+    platform: '#f8fafc',
+  },
+  {
     id: 'stadium',
     name: 'Sân vận động Pokémon',
     emoji: '🏟️',

@@ -1476,3 +1476,370 @@
   .fishing-card { animation: none; transform: translateX(-50%); }
   .fishing-now, .fishing-shake { animation: none; }
 }
+
+/* League battlefield: flags waving on the roof, the Pokeball on the big screens turning */
+@keyframes leagueFlag {
+  0%, 100% { transform: skewY(0deg) scaleX(1); }
+  50% { transform: skewY(-8deg) scaleX(0.85); }
+}
+.league-flag { transform-origin: left center; animation: leagueFlag 1.1s ease-in-out infinite; }
+@keyframes leagueScreen {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.15); }
+}
+.league-screen { animation: leagueScreen 3s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .league-flag, .league-screen { animation: none; }
+}
+
+/* Carnival egg lottery: wobbling eggs, taps, cracks, sparkles, the burst and the sticker album */
+@keyframes eggsWobble {
+  0%, 100% { transform: rotate(0deg); }
+  20% { transform: rotate(-5deg); }
+  40% { transform: rotate(4deg); }
+  55% { transform: rotate(-2deg); }
+  65% { transform: rotate(0deg); }
+}
+.eggs-wobble { animation: eggsWobble 2.6s ease-in-out infinite; transform-origin: 50% 92%; }
+.eggs-pick { cursor: pointer; -webkit-tap-highlight-color: transparent; transition: transform 0.15s; }
+.eggs-pick:hover .eggs-wobble { filter: brightness(1.08) drop-shadow(0 0 8px rgba(253, 224, 71, 0.8)); }
+.eggs-pick:active { transform: scale(0.92); }
+@keyframes eggsHitA {
+  0% { transform: rotate(0) scale(1); }
+  18% { transform: rotate(-11deg) scale(1.07, 0.93); }
+  40% { transform: rotate(9deg) scale(0.96, 1.05); }
+  62% { transform: rotate(-5deg) scale(1.02); }
+  82% { transform: rotate(2deg); }
+  100% { transform: rotate(0) scale(1); }
+}
+@keyframes eggsHitB {
+  0% { transform: rotate(0) scale(1); }
+  18% { transform: rotate(11deg) scale(1.07, 0.93); }
+  40% { transform: rotate(-9deg) scale(0.96, 1.05); }
+  62% { transform: rotate(5deg) scale(1.02); }
+  82% { transform: rotate(-2deg); }
+  100% { transform: rotate(0) scale(1); }
+}
+.eggs-hit-a { animation: eggsHitA 0.42s cubic-bezier(0.3, 1.4, 0.5, 1); transform-origin: 50% 90%; }
+.eggs-hit-b { animation: eggsHitB 0.42s cubic-bezier(0.3, 1.4, 0.5, 1); transform-origin: 50% 90%; }
+@keyframes eggsTremble {
+  0%, 100% { transform: translate(0, 0) rotate(0); }
+  25% { transform: translate(-1.5px, 0.5px) rotate(-1.5deg); }
+  50% { transform: translate(1.5px, -0.5px) rotate(1.5deg); }
+  75% { transform: translate(-1px, -0.5px) rotate(-1deg); }
+}
+.eggs-tremble { animation: eggsTremble 0.18s linear infinite; transform-origin: 50% 90%; }
+.eggs-tremble-soft { animation: eggsWobble 1.1s ease-in-out infinite; transform-origin: 50% 92%; }
+@keyframes eggsZoomIn {
+  0% { transform: translateY(70px) scale(0.35); opacity: 0; }
+  55% { transform: translateY(-10px) scale(1.08); opacity: 1; }
+  75% { transform: translateY(0) scale(0.97, 1.03); }
+  100% { transform: translateY(0) scale(1); }
+}
+.eggs-zoom-in { animation: eggsZoomIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both; -webkit-tap-highlight-color: transparent; }
+@keyframes eggsCrackDraw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+.eggs-crack { stroke-dasharray: 1; stroke-dashoffset: 0; animation: eggsCrackDraw 0.28s ease-out both; }
+@keyframes eggsCrackGlow {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+.eggs-crack-glow { animation: eggsCrackDraw 0.28s ease-out both, eggsCrackGlow 0.9s ease-in-out 0.3s infinite; filter: blur(1.5px); }
+@keyframes eggsSpark {
+  0% { transform: translate(0, 0) scale(0.3) rotate(0deg); opacity: 0; }
+  15% { opacity: 1; transform: translate(calc(var(--dx) * 0.2), calc(var(--dy) * 0.2)) scale(1.2) rotate(45deg); }
+  100% { transform: translate(var(--dx), var(--dy)) scale(0) rotate(200deg); opacity: 0; }
+}
+.eggs-spark { animation: eggsSpark 0.85s cubic-bezier(0.2, 0.7, 0.3, 1) both; filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.9)); }
+@keyframes eggsWord {
+  0% { transform: translate(-50%, 0) scale(0.4) rotate(-10deg); opacity: 0; }
+  25% { transform: translate(calc(-50% + var(--dx) * 0.5), -14px) scale(1.25) rotate(6deg); opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--dx)), -46px) scale(0.9) rotate(0); opacity: 0; }
+}
+.eggs-word { animation: eggsWord 0.8s ease-out both; text-shadow: 0 3px 0 #7c2d12, 0 0 10px rgba(0, 0, 0, 0.4); }
+@keyframes eggsPoint {
+  0%, 100% { transform: translate(0, 0) rotate(-10deg); }
+  50% { transform: translate(-10px, -12px) rotate(-18deg) scale(0.9); }
+}
+.eggs-point { animation: eggsPoint 0.8s ease-in-out infinite; }
+@keyframes eggsLamp {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+.eggs-halo { background: radial-gradient(circle, rgba(254, 240, 138, 0.85) 0%, rgba(251, 191, 36, 0.35) 35%, rgba(251, 191, 36, 0) 68%); transition: opacity 0.3s; animation: eggsLamp 1.6s ease-in-out infinite; }
+.eggs-lamp { background: radial-gradient(ellipse at 50% 0%, rgba(254, 243, 199, 0.55) 0%, rgba(254, 243, 199, 0) 70%); animation: eggsLamp 3s ease-in-out infinite; }
+@keyframes eggsFlash {
+  0% { transform: scale(0.2); opacity: 1; }
+  30% { opacity: 1; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+.eggs-flash { background: radial-gradient(circle, #ffffff 0%, rgba(255, 255, 255, 0.9) 25%, rgba(254, 240, 138, 0.5) 45%, rgba(254, 240, 138, 0) 70%); animation: eggsFlash 0.9s ease-out both; z-index: 5; }
+@keyframes eggsShellTop {
+  0% { transform: translate(0, 0) rotate(0); opacity: 1; }
+  25% { transform: translate(-6px, -60px) rotate(-22deg); opacity: 1; }
+  100% { transform: translate(-34px, -150px) rotate(-60deg); opacity: 0; }
+}
+.eggs-shell-top { animation: eggsShellTop 0.9s cubic-bezier(0.2, 0.8, 0.4, 1) both; transform-origin: 30% 60%; z-index: 6; }
+@keyframes eggsShellBottom {
+  0% { transform: scale(1); }
+  15% { transform: scale(1.1, 0.88); }
+  40% { transform: scale(0.96, 1.04); }
+  70% { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(24px) scale(0.9); opacity: 0.2; }
+}
+.eggs-shell-bottom { animation: eggsShellBottom 1.1s ease-out both; transform-origin: 50% 100%; z-index: 4; }
+@keyframes eggsBabyRise {
+  0% { transform: translateY(45%) scale(0.2); opacity: 0; }
+  30% { opacity: 1; }
+  60% { transform: translateY(-14%) scale(1.15); }
+  80% { transform: translateY(-4%) scale(0.96); }
+  100% { transform: translateY(-8%) scale(1); opacity: 1; }
+}
+.eggs-baby-rise { animation: eggsBabyRise 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) 0.12s both; z-index: 3; }
+@keyframes eggsScreenShake {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-7px, 3px); }
+  20% { transform: translate(7px, -3px); }
+  30% { transform: translate(-5px, -2px); }
+  40% { transform: translate(5px, 2px); }
+  55% { transform: translate(-2px, 1px); }
+}
+.eggs-screen-shake { animation: eggsScreenShake 0.55s ease-out; }
+@keyframes eggsCardIn {
+  0% { transform: translateY(60px) scale(0.5); opacity: 0; }
+  60% { transform: translateY(-8px) scale(1.04); opacity: 1; }
+  100% { transform: translateY(0) scale(1); }
+}
+.eggs-card-in { animation: eggsCardIn 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@keyframes eggsCardBounce {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-8px) scale(1.04, 0.97); }
+}
+.eggs-card-bounce { animation: eggsCardBounce 1.4s ease-in-out infinite; }
+@keyframes eggsRays { to { transform: rotate(360deg); } }
+.eggs-rays { background: repeating-conic-gradient(from 0deg, rgba(251, 191, 36, 0.28) 0deg 12deg, rgba(251, 191, 36, 0) 12deg 30deg); -webkit-mask-image: radial-gradient(circle, #000 25%, transparent 68%); mask-image: radial-gradient(circle, #000 25%, transparent 68%); animation: eggsRays 9s linear infinite; }
+.eggs-rays-gold { background: repeating-conic-gradient(from 0deg, rgba(250, 204, 21, 0.55) 0deg 10deg, rgba(250, 204, 21, 0) 10deg 24deg); animation-duration: 5s; }
+@keyframes eggsGoldShift {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+.eggs-shiny-border { background: linear-gradient(90deg, #fde047, #f59e0b, #fff7cc, #facc15, #d97706, #fde047); background-size: 200% 100%; animation: eggsGoldShift 2s linear infinite; box-shadow: 0 0 24px rgba(250, 204, 21, 0.7); }
+@keyframes eggsStamp {
+  0% { transform: scale(3) rotate(-30deg); opacity: 0; }
+  60% { transform: scale(0.9) rotate(-6deg); opacity: 1; }
+  100% { transform: scale(1) rotate(-10deg); opacity: 1; }
+}
+.eggs-stamp { animation: eggsStamp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.35s both; }
+@keyframes eggsSticker {
+  0% { transform: scale(0.6); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.eggs-sticker { animation: eggsSticker 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@keyframes eggsStickerNew {
+  0% { transform: scale(0.2) rotate(-25deg); opacity: 0; }
+  50% { transform: scale(1.25) rotate(6deg); opacity: 1; }
+  70% { transform: scale(0.95) rotate(-3deg); }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+.eggs-sticker.eggs-sticker-new { animation: eggsStickerNew 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both; box-shadow: 0 0 0 3px #fb7185, 0 0 18px rgba(251, 113, 133, 0.8); }
+.eggs-sticker-shiny { box-shadow: 0 0 12px rgba(250, 204, 21, 0.7); }
+@keyframes eggsBokeh {
+  0% { transform: translateY(20px) scale(0.8); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translateY(-110vh) scale(1.2); opacity: 0; }
+}
+.eggs-bokeh { animation: eggsBokeh 8s linear infinite; filter: blur(2px); }
+@media (prefers-reduced-motion: reduce) {
+  .eggs-wobble, .eggs-hit-a, .eggs-hit-b, .eggs-tremble, .eggs-tremble-soft, .eggs-zoom-in, .eggs-crack, .eggs-crack-glow, .eggs-point, .eggs-halo, .eggs-lamp,
+  .eggs-screen-shake, .eggs-card-in, .eggs-card-bounce, .eggs-rays, .eggs-shiny-border, .eggs-stamp, .eggs-sticker, .eggs-sticker.eggs-sticker-new, .eggs-baby-rise { animation: none; }
+  .eggs-spark, .eggs-word, .eggs-bokeh, .eggs-flash, .eggs-shell-top { animation: none; opacity: 0; }
+  .eggs-shell-bottom { animation: none; opacity: 0.3; }
+}
+
+/* Carnival ghost house: the first "drag the light" hint */
+@keyframes ghostHint {
+  0%, 100% { transform: translateX(-50%) translateY(0); opacity: 0.85; }
+  50% { transform: translateX(-50%) translateY(-6px); opacity: 1; }
+}
+.ghost-hint { animation: ghostHint 1.1s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .ghost-hint { animation: none; transform: translateX(-50%); }
+}
+
+/* Carnival coaster: "hold to climb" and the curve warning */
+@keyframes coasterHint {
+  0%, 100% { transform: translateX(-50%) scale(1); }
+  50% { transform: translateX(-50%) scale(1.08); }
+}
+.coaster-hint { animation: coasterHint 0.7s ease-in-out infinite; }
+@keyframes coasterWarn {
+  0%, 100% { transform: translateX(-50%) rotate(-2deg) scale(1); }
+  50% { transform: translateX(-50%) rotate(2deg) scale(1.12); }
+}
+.coaster-warn { animation: coasterWarn 0.32s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .coaster-hint, .coaster-warn { animation: none; transform: translateX(-50%); }
+}
+
+/* Carnival weigh-in: bulbs, floating bubbles, the landing squash, tags, sparks, sleepy Snorlax */
+@keyframes weighBulb {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+.weigh-bulb { animation: weighBulb 0.9s ease-in-out infinite; }
+@keyframes weighBoard {
+  0% { transform: scale(0.6) rotate(-4deg); opacity: 0; }
+  60% { transform: scale(1.06) rotate(1deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); }
+}
+.weigh-board { animation: weighBoard 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@keyframes weighFloat {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-7px) rotate(2deg); }
+}
+.weigh-float { animation: weighFloat 2s ease-in-out infinite; }
+@keyframes weighSquash {
+  0% { transform: scale(1.18, 0.78); }
+  40% { transform: scale(0.92, 1.1); }
+  70% { transform: scale(1.04, 0.97); }
+  100% { transform: scale(1); }
+}
+.weigh-squash { animation: weighSquash 0.45s ease-out; transform-origin: 50% 100%; }
+@keyframes weighTag {
+  0% { transform: scale(0) rotate(-10deg); }
+  70% { transform: scale(1.15) rotate(3deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+.weigh-tag { animation: weighTag 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.weigh-mark { animation: weighTag 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.15s both; }
+@keyframes weighSpark {
+  0% { transform: translate(0, 0) translate(-50%, -50%) scale(1.3); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) translate(-50%, -50%) scale(0.3); opacity: 0; }
+}
+.weigh-spark { animation: weighSpark 0.7s ease-out both; font-size: 16px; line-height: 1; text-shadow: 0 0 6px currentColor; }
+@keyframes weighResult {
+  0% { transform: translateY(12px) scale(0.7); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+.weigh-result { animation: weighResult 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@keyframes weighSnore {
+  0%, 100% { transform: scale(1, 1); }
+  50% { transform: scale(1.05, 0.96); }
+}
+.weigh-snore { animation: weighSnore 2.4s ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes weighZzz {
+  0% { transform: translate(0, 4px) scale(0.6); opacity: 0; }
+  30% { opacity: 1; }
+  100% { transform: translate(10px, -14px) scale(1.1); opacity: 0; }
+}
+.weigh-zzz { animation: weighZzz 2.4s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .weigh-bulb, .weigh-board, .weigh-float, .weigh-squash, .weigh-tag, .weigh-mark, .weigh-spark, .weigh-result, .weigh-snore, .weigh-zzz { animation: none; }
+  .weigh-spark { opacity: 0; }
+}
+
+/* Carnival cotton candy: jars, the served rating card, hearts, the "Xong" glow */
+.candy-jar { -webkit-tap-highlight-color: transparent; }
+@keyframes candyJarOn {
+  0% { transform: translateY(0) scale(1); }
+  35% { transform: translateY(-10px) scale(1.12, 0.92); }
+  60% { transform: translateY(-4px) scale(0.95, 1.06); }
+  100% { transform: translateY(-6px) scale(1); }
+}
+.candy-jar-on { animation: candyJarOn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both; filter: drop-shadow(0 4px 8px rgba(255, 255, 255, 0.7)); }
+@keyframes candyWant {
+  0%, 100% { transform: translateX(-50%) scale(0.7); opacity: 0.5; }
+  50% { transform: translateX(-50%) scale(1.25); opacity: 1; }
+}
+.candy-want { animation: candyWant 1s ease-in-out infinite; }
+@keyframes candyReact {
+  0% { transform: translateX(-50%) translateY(30px) scale(0.3) rotate(-8deg); opacity: 0; }
+  30% { transform: translateX(-50%) translateY(-6px) scale(1.1) rotate(3deg); opacity: 1; }
+  45% { transform: translateX(-50%) translateY(0) scale(0.97) rotate(-1deg); }
+  85% { transform: translateX(-50%) scale(1) rotate(0); opacity: 1; }
+  100% { transform: translateX(-50%) translateY(-16px) scale(0.92); opacity: 0; }
+}
+.candy-react { animation: candyReact 1.75s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@keyframes candyHeart {
+  0% { transform: scale(0); }
+  60% { transform: scale(1.45) rotate(-10deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+.candy-heart { animation: candyHeart 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@keyframes candyReady {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.9); transform: scale(1); }
+  50% { box-shadow: 0 0 0 8px rgba(74, 222, 128, 0); transform: scale(1.06); }
+}
+.candy-ready { animation: candyReady 0.8s ease-in-out infinite; }
+
+/* Carnival trampoline: timing pop, swipe hint arrows */
+@keyframes trampolinePop {
+  0% { transform: translateX(-50%) scale(0.3) rotate(-10deg); opacity: 0; }
+  30% { transform: translateX(-50%) scale(1.25) rotate(4deg); opacity: 1; }
+  50% { transform: translateX(-50%) scale(0.95) rotate(-2deg); }
+  75% { transform: translateX(-50%) scale(1) rotate(0); opacity: 1; }
+  100% { transform: translateX(-50%) translateY(-24px) scale(0.9); opacity: 0; }
+}
+.trampoline-pop { animation: trampolinePop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@keyframes trampolineHint {
+  0% { opacity: 0; transform: translateY(-8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.trampoline-hint { animation: trampolineHint 0.35s ease-out both; }
+@keyframes trampolineArrowL { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-9px); } }
+@keyframes trampolineArrowR { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(9px); } }
+@keyframes trampolineArrowU { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+.trampoline-arrow-l { display: inline-block; animation: trampolineArrowL 0.7s ease-in-out infinite; }
+.trampoline-arrow-r { display: inline-block; animation: trampolineArrowR 0.7s ease-in-out infinite; }
+.trampoline-arrow-u { display: inline-block; animation: trampolineArrowU 0.7s ease-in-out infinite 0.15s; }
+
+/* Carnival ferris wheel: a found Pokemon lands on the list */
+@keyframes ferrisGot {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.3) rotate(-6deg); box-shadow: 0 0 18px 4px rgba(253, 224, 71, 0.9); }
+  60% { transform: scale(0.94) rotate(3deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+.ferris-got { animation: ferrisGot 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.45s both; }
+@media (prefers-reduced-motion: reduce) {
+  .candy-jar-on, .candy-want, .candy-heart, .candy-ready, .trampoline-hint, .trampoline-arrow-l, .trampoline-arrow-r, .trampoline-arrow-u, .ferris-got { animation: none; }
+  .candy-react, .trampoline-pop { animation: none; transform: translateX(-50%); }
+}
+
+/* Carnival darts / water gun / skee-ball: a bonus dart popping into the HUD, the "Trúng rồi!" chip,
+   the race result card, medals and the 50+ chips */
+@keyframes dartsExtra {
+  0% { transform: scale(0) rotate(-40deg); }
+  60% { transform: scale(1.5) rotate(10deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+.darts-extra { animation: dartsExtra 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both; filter: drop-shadow(0 0 4px #4ade80); }
+@keyframes watergunHit {
+  0%, 100% { transform: scale(1) rotate(-2deg); }
+  50% { transform: scale(1.12) rotate(2deg); }
+}
+.watergun-hit { animation: watergunHit 0.35s ease-in-out infinite; }
+@keyframes watergunCard {
+  0% { transform: translateY(40px) scale(0.3) rotate(-10deg); opacity: 0; }
+  50% { transform: translateY(-6px) scale(1.1) rotate(3deg); opacity: 1; }
+  70% { transform: translateY(0) scale(0.97) rotate(-1deg); }
+  100% { transform: translateY(0) scale(1) rotate(0); opacity: 1; }
+}
+.watergun-card { animation: watergunCard 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@keyframes watergunMedal {
+  0% { transform: scale(0) rotate(-180deg); }
+  70% { transform: scale(1.4) rotate(15deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+.watergun-medal { animation: watergunMedal 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@keyframes skeeballChip {
+  0% { transform: scale(0); box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.9); }
+  60% { transform: scale(1.35); box-shadow: 0 0 0 6px rgba(251, 191, 36, 0.35); }
+  100% { transform: scale(1); box-shadow: 0 0 0 10px rgba(251, 191, 36, 0); }
+}
+.skeeball-chip { animation: skeeballChip 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@media (prefers-reduced-motion: reduce) {
+  .darts-extra, .watergun-hit, .watergun-card, .watergun-medal, .skeeball-chip { animation: none; }
+}

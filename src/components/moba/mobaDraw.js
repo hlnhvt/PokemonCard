@@ -185,6 +185,64 @@ function drawLava(ctx, o) {
 
 // Obstacles of the other maps (the forest ones are drawn in drawTree)
 const EXTRA_KINDS = {
+  statue(ctx, o) {
+    // A Pokeball on a stone pedestal
+    ctx.fillStyle = '#94a3b8';
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(o.x - o.r * 0.75, o.y + o.r * 0.1, o.r * 1.5, o.r * 0.7, 4);
+    ctx.fill();
+    ctx.stroke();
+    const r = o.r * 0.62;
+    const y = o.y - o.r * 0.35;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(o.x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath();
+    ctx.arc(o.x, y, r, Math.PI, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#111827';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(o.x, y, r, 0, Math.PI * 2);
+    ctx.moveTo(o.x - r, y);
+    ctx.lineTo(o.x + r, y);
+    ctx.stroke();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(o.x, y, r * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  },
+  trophy(ctx, o) {
+    const r = o.r;
+    ctx.fillStyle = '#78350f';
+    ctx.fillRect(o.x - r * 0.55, o.y + r * 0.35, r * 1.1, r * 0.35);
+    const g = ctx.createLinearGradient(o.x - r, 0, o.x + r, 0);
+    g.addColorStop(0, '#b45309');
+    g.addColorStop(0.5, '#fde047');
+    g.addColorStop(1, '#b45309');
+    ctx.fillStyle = g;
+    ctx.strokeStyle = '#92400e';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(o.x - r * 0.7, o.y - r * 0.8);
+    ctx.lineTo(o.x + r * 0.7, o.y - r * 0.8);
+    ctx.quadraticCurveTo(o.x + r * 0.65, o.y, o.x + r * 0.15, o.y + r * 0.1);
+    ctx.lineTo(o.x + r * 0.15, o.y + r * 0.35);
+    ctx.lineTo(o.x - r * 0.15, o.y + r * 0.35);
+    ctx.lineTo(o.x - r * 0.15, o.y + r * 0.1);
+    ctx.quadraticCurveTo(o.x - r * 0.65, o.y, o.x - r * 0.7, o.y - r * 0.8);
+    ctx.fill();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(o.x - r * 0.75, o.y - r * 0.5, r * 0.25, Math.PI * 0.5, Math.PI * 1.5);
+    ctx.arc(o.x + r * 0.75, o.y - r * 0.5, r * 0.25, -Math.PI * 0.5, Math.PI * 0.5);
+    ctx.stroke();
+  },
   cactus(ctx, o) {
     const h = o.r * 1.5;
     ctx.fillStyle = '#15803d';
@@ -284,6 +342,60 @@ const EXTRA_KINDS = {
   },
 };
 
+/** The League battlefield: mown stripes, white lines, a big Pokeball centre, stands at the edges. */
+function drawLeagueField(ctx) {
+  const W = WORLD.w;
+  const H = WORLD.h;
+  for (let x = 0; x < W; x += 80) {
+    ctx.fillStyle = (x / 80) % 2 ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
+    ctx.fillRect(x, 0, 80, H);
+  }
+  ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+  ctx.lineWidth = 8;
+  ctx.strokeRect(38, 38, W - 76, H - 76);
+  ctx.beginPath();
+  ctx.moveTo(CENTER.x, 38);
+  ctx.lineTo(CENTER.x, H - 38);
+  ctx.stroke();
+  // Trainer boxes in front of both bases
+  for (const x of [230, W - 230]) {
+    ctx.strokeRect(x - 45, CENTER.y - 90, 90, 180);
+  }
+  // Big Pokeball in the middle
+  ctx.save();
+  ctx.globalAlpha = 0.55;
+  ctx.fillStyle = '#ef4444';
+  ctx.beginPath();
+  ctx.arc(CENTER.x, CENTER.y, 150, Math.PI, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(CENTER.x, CENTER.y, 150, 0, Math.PI);
+  ctx.fill();
+  ctx.restore();
+  ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+  ctx.lineWidth = 8;
+  ctx.beginPath();
+  ctx.arc(CENTER.x, CENTER.y, 150, 0, Math.PI * 2);
+  ctx.stroke();
+  // Stands with fans along the top and bottom edges
+  const colors = ['#f43f5e', '#facc15', '#38bdf8', '#34d399', '#ffffff', '#a78bfa', '#fb923c'];
+  for (const [y0, dir] of [[0, 1], [H, -1]]) {
+    ctx.fillStyle = '#334155';
+    ctx.fillRect(0, dir > 0 ? 0 : H - 30, W, 30);
+    ctx.fillStyle = '#dc2626';
+    ctx.fillRect(0, dir > 0 ? 28 : H - 32, W, 4);
+    for (let row = 0; row < 3; row++) {
+      for (let x = 8 + row * 6; x < W; x += 13) {
+        ctx.fillStyle = colors[(Math.floor(x / 13) * 3 + row * 5) % colors.length];
+        ctx.beginPath();
+        ctx.arc(x, y0 + dir * (6 + row * 8), 3.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+}
+
 /** Paint the static map once (the chosen map). Returns an offscreen canvas of WORLD * MAP_SCALE. */
 export function renderMap() {
   const T = currentMap.theme;
@@ -320,6 +432,8 @@ export function renderMap() {
     ctx.lineTo(x + 3, y - 7);
     ctx.stroke();
   }
+
+  if (T.field) drawLeagueField(ctx);
 
   // The three lanes
   for (const y of LANES_Y) {

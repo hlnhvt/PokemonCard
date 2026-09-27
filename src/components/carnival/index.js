@@ -8,6 +8,16 @@ import { FishingGame } from './FishingGame';
 import { PonytaGame } from './PonytaGame';
 import { HammerGame } from './HammerGame';
 import { WheelGame } from './WheelGame';
+import { EggLotteryGame } from './EggLotteryGame';
+import { DartsGame } from './DartsGame';
+import { WaterGunGame } from './WaterGunGame';
+import { SkeeBallGame } from './SkeeBallGame';
+import { GhostHouseGame } from './GhostHouseGame';
+import { CoasterGame } from './CoasterGame';
+import { WeighGame } from './WeighGame';
+import { CottonCandyGame } from './CottonCandyGame';
+import { TrampolineGame } from './TrampolineGame';
+import { FerrisGame } from './FerrisGame';
 
 /** Carnival games ("Hội chợ Pokémon"): listed in the Games tab and the game picker. */
 export const CARNIVAL_GAMES = [
@@ -21,6 +31,16 @@ export const CARNIVAL_GAMES = [
   { id: 'ponyta', title: 'Đua ngựa Ponyta', description: 'Chạm đúng nhịp để Ponyta phi nước đại!', icon: '🐴', gradient: 'from-orange-400 to-red-600', Component: PonytaGame },
   { id: 'hammer', title: 'Búa sức mạnh Machop', description: 'Đập thật mạnh, rung chuông DING!', icon: '💪', gradient: 'from-rose-500 to-purple-700', Component: HammerGame },
   { id: 'wheel', title: 'Vòng quay may mắn', description: 'Dùng vé quay trúng vàng, quả mọng!', icon: '🎡', gradient: 'from-fuchsia-500 to-amber-500', Component: WheelGame },
+  { id: 'eggs', title: 'Xổ số trứng Pokémon', description: 'Dùng vé chọn trứng, gõ cho nở ra Pokémon con!', icon: '🥚', gradient: 'from-amber-400 to-pink-500', Component: EggLotteryGame },
+  { id: 'darts', title: 'Ném phi tiêu bóng bay', description: 'Vuốt lên ném phi tiêu, nổ bóng tìm Pokémon hiếm!', icon: '🎈', gradient: 'from-fuchsia-500 to-indigo-700', Component: DartsGame },
+  { id: 'watergun', title: 'Súng nước Squirtle', description: 'Giữ để phun nước trúng bia, bơm bóng nổ trước!', icon: '💦', gradient: 'from-sky-400 to-blue-700', Component: WaterGunGame },
+  { id: 'skeeball', title: 'Lăn bóng Skee-ball', description: 'Vuốt lăn Pokéball vào lỗ 50, 100!', icon: '🎳', gradient: 'from-amber-400 to-rose-600', Component: SkeeBallGame },
+  { id: 'ghosthouse', title: 'Nhà ma Gengar', description: 'Soi đèn tìm ma, đừng chạm nhầm bạn!', icon: '👻', gradient: 'from-violet-600 to-indigo-900', Component: GhostHouseGame },
+  { id: 'coaster', title: 'Tàu lượn siêu tốc', description: 'Giữ để leo dốc, thả tay ở khúc cua!', icon: '🎢', gradient: 'from-sky-400 to-orange-500', Component: CoasterGame },
+  { id: 'weigh', title: 'Đoán cân nặng Snorlax', description: 'Bạn nào nặng hơn? Lên cân xem nào!', icon: '⚖️', gradient: 'from-fuchsia-500 to-rose-700', Component: WeighGame },
+  { id: 'candy', title: 'Tiệm kẹo bông', description: 'Vẽ vòng tròn quấn kẹo bông đúng màu, đúng cỡ!', icon: '🍭', gradient: 'from-pink-400 to-violet-500', Component: CottonCandyGame },
+  { id: 'trampoline', title: 'Bạt nhún Jigglypuff', description: 'Chạm đúng lúc nhún thật cao, vuốt để nhào lộn!', icon: '🤸', gradient: 'from-sky-400 to-pink-500', Component: TrampolineGame },
+  { id: 'ferris', title: 'Đu quay tìm Pokémon', description: 'Ngồi đu quay, tìm các bạn Pokémon đang trốn!', icon: '🎠', gradient: 'from-amber-400 to-indigo-600', Component: FerrisGame },
 ];
 
 export const findCarnivalGame = (id) => CARNIVAL_GAMES.find((g) => g.id === id) || null;

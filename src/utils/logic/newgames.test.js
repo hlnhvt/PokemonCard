@@ -105,7 +105,8 @@ describe('league', () => {
     }
     expect(arenaForGym(GYMS[6]).id).toBe('volcano');
     expect(arenaForGym(GYMS[1]).id).toBe('ocean');
-    expect(arenaForGym(GYMS[4]).id).toBe('stadium');
+    expect(arenaForGym(GYMS[4]).id).toBe('league');
+    expect(arenaForGym(LEAGUE[8]).id).toBe('league');
   });
 
   it('LE-02 a loss stays at the gym; wins collect badges until champion', () => {

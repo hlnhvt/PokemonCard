@@ -44,8 +44,66 @@ function Ambient({ kind }) {
 }
 
 /** Scenery drawn behind the fighters for each ground. */
+/** The Pokemon League battlefield, like in the cartoon. */
+function LeagueField() {
+  const crowd = ['#f43f5e', '#facc15', '#38bdf8', '#34d399', '#f8fafc', '#a78bfa', '#fb923c'];
+  return (
+    <>
+      {/* Stadium roof ring and the sky opening */}
+      <span className="absolute inset-x-[-10%] top-[-18%] h-[34%] rounded-[50%] bg-gradient-to-b from-slate-300 to-slate-500 border-b-8 border-red-500" />
+      {/* Flags on the roof */}
+      {Array.from({ length: 7 }).map((_, i) => (
+        <span key={i} className="absolute top-[3%] flex flex-col items-start" style={{ left: `${8 + i * 14}%` }}>
+          <span className="league-flag block w-5 h-3 rounded-sm" style={{ background: crowd[i % crowd.length], animationDelay: `${-i * 0.3}s` }} />
+          <span className="block w-0.5 h-5 bg-slate-600" />
+        </span>
+      ))}
+      {/* Two giant screens showing a Pokeball */}
+      {['left-[4%]', 'right-[4%]'].map((pos) => (
+        <span key={pos} className={`absolute ${pos} top-[11%] w-[22%] h-[13%] rounded-md bg-slate-950 border-2 border-slate-400 flex items-center justify-center shadow-[0_0_18px_rgba(56,189,248,0.6)]`}>
+          <span className="league-screen w-6 h-6 rounded-full border-2 border-slate-900 bg-[linear-gradient(to_bottom,#ef4444_0_46%,#111827_46%_54%,#ffffff_54%)]" />
+        </span>
+      ))}
+      <span className="absolute left-1/2 -translate-x-1/2 top-[12%] px-2 py-0.5 rounded bg-red-600 border-2 border-yellow-300 text-[9px] font-black text-yellow-100 whitespace-nowrap shadow">POKÉMON LEAGUE</span>
+      {/* Tiered stands full of fans waving */}
+      <div className="absolute inset-x-0 top-[25%] h-[24%] bg-gradient-to-b from-sky-900 via-slate-700 to-slate-800">
+        {Array.from({ length: 5 }).map((_, row) => (
+          <div key={row} className="flex justify-around" style={{ marginTop: row ? 1 : 4, paddingInline: `${row * 2}%` }}>
+            {Array.from({ length: 20 - row }).map((_, i) => (
+              <span key={i} className="sport-bob block w-2 h-2.5 rounded-t-full" style={{ background: crowd[(i * 3 + row * 5) % crowd.length], animationDelay: `${-((i * 0.29 + row * 0.41) % 1.4)}s` }} />
+            ))}
+          </div>
+        ))}
+      </div>
+      {/* Wall with the League stripes */}
+      <span className="absolute inset-x-0 top-[48%] h-[3%] bg-[repeating-linear-gradient(90deg,#dc2626_0_18px,#ffffff_18px_36px)] border-y-2 border-slate-800" />
+      {/* Floodlights */}
+      {['left-[1%]', 'right-[1%]'].map((pos) => (
+        <span key={pos} className={`absolute ${pos} top-[20%] w-3 h-3 rounded-full bg-yellow-50 shadow-[0_0_28px_12px_rgba(255,255,230,0.8)]`} />
+      ))}
+      {/* The field in perspective: white border, half-way line, the Pokeball centre and trainer boxes */}
+      <div className="absolute inset-x-0 bottom-0 top-[51%] overflow-hidden bg-emerald-700" style={{ perspective: '260px', perspectiveOrigin: '50% 0%' }}>
+        <div className="absolute inset-x-[-30%] top-0 h-[260%] origin-top" style={{ transform: 'rotateX(55deg)' }}>
+          <div className="absolute inset-0 bg-[repeating-linear-gradient(0deg,#16a34a_0_26px,#15803d_26px_52px)]" />
+          <div className="absolute inset-[6%] border-[5px] border-white/90 rounded-sm" />
+          <div className="absolute inset-x-[6%] top-1/2 h-[5px] -translate-y-1/2 bg-white/90" />
+          <div className="absolute left-1/2 top-1/2 w-[34%] aspect-square -translate-x-1/2 -translate-y-1/2 rounded-full border-[5px] border-white/90 overflow-hidden">
+            <span className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(239,68,68,0.85)_0_46%,rgba(17,24,39,0.9)_46%_54%,rgba(255,255,255,0.85)_54%)]" />
+            <span className="absolute left-1/2 top-1/2 w-[30%] aspect-square -translate-x-1/2 -translate-y-1/2 rounded-full bg-white border-[5px] border-slate-900" />
+          </div>
+          {['top-[8%]', 'bottom-[8%]'].map((pos) => (
+            <div key={pos} className={`absolute left-1/2 ${pos} w-[18%] h-[9%] -translate-x-1/2 border-[4px] border-white/90`} />
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
 function Scenery({ arena }) {
   switch (arena.id) {
+    case 'league':
+      return <LeagueField />;
     case 'stadium':
       return (
         <>
@@ -154,7 +212,8 @@ export function ArenaBackdrop({ arena, ambient = true, className = '', children 
     // `relative` would override an `absolute` passed in className (Tailwind order), so only add it when needed
     <div className={`${/absolute/.test(className) ? '' : 'relative'} overflow-hidden bg-gradient-to-b ${arena.sky} ${className}`} data-arena={arena.id}>
       <Scenery arena={arena} />
-      <div className={`absolute inset-x-0 bottom-0 h-[34%] bg-gradient-to-b ${arena.ground}`} />
+      {/* The League battlefield draws its own lined pitch */}
+      {arena.id !== 'league' && <div className={`absolute inset-x-0 bottom-0 h-[34%] bg-gradient-to-b ${arena.ground}`} />}
       {ambient && <Ambient kind={arena.ambient} />}
       {children}
     </div>

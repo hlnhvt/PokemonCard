@@ -54,6 +54,37 @@ const build = (quarter) => mirrorX(mirrorY(quarter));
  */
 export const MAPS = [
   {
+    // The Pokemon League battlefield from the cartoon: a lined pitch with the Pokeball in the
+    // middle, stands round the edge, Pokeball statues and trophies between the lanes
+    id: 'league',
+    name: 'Sân đấu Liên đoàn',
+    icon: '🏆',
+    card: 'from-sky-400 to-emerald-600',
+    obstacles: build([
+      { x: 360, y: 80, r: 28, kind: 'statue' },
+      { x: 520, y: 65, r: 24, kind: 'trophy' },
+      { x: 660, y: 85, r: 28, kind: 'statue' },
+      { x: 300, y: 300, r: 24, kind: 'trophy' },
+      { x: 420, y: 340, r: 30, kind: 'statue' },
+      { x: 560, y: 275, r: 26, kind: 'trophy' },
+      { x: 680, y: 340, r: 24, kind: 'statue' },
+      { x: 240, y: 90, r: 22, kind: 'trophy' },
+      { x: 800, y: 320, r: 28, kind: 'statue' },
+    ]),
+    bushes: [],
+    theme: {
+      field: true,
+      ground: ['#22c55e', '#15803d'],
+      patches: ['rgba(255,255,255,0.05)', 'rgba(0,0,0,0.05)'],
+      tuft: 'rgba(20,83,45,0.25)',
+      lane: ['#b45309', '#e7c98a', 'rgba(161,98,7,0.35)'],
+      deco: ['#ffffff', '#fde047', '#f43f5e', '#38bdf8'],
+      bush: ['#15803d', '#166534'],
+      mini: '#16a34a',
+      miniDot: 'rgba(255,255,255,0.9)',
+    },
+  },
+  {
     id: 'forest',
     name: 'Rừng xanh',
     icon: '🌳',

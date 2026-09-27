@@ -60,9 +60,9 @@ describe('team building', () => {
 
 describe('arenas', () => {
   it('AR-01 seven grounds (the Pokemon stadium first) with unique ids; matching moves get stronger and are marked', () => {
-    expect(ARENAS).toHaveLength(7);
-    expect(ARENAS[0]).toMatchObject({ id: 'stadium', name: 'Sân vận động Pokémon' });
-    expect(new Set(ARENAS.map((a) => a.id)).size).toBe(7);
+    expect(ARENAS).toHaveLength(8);
+    expect(ARENAS[0]).toMatchObject({ id: 'league', name: 'Sân đấu Liên đoàn' });
+    expect(new Set(ARENAS.map((a) => a.id)).size).toBe(8);
     const volcano = arenaById('volcano');
     const moves = applyArena(dataOf(byName('Charmander')), volcano).moves;
     const fire = moves.find((m) => m.type === 'fire');
@@ -70,7 +70,7 @@ describe('arenas', () => {
     expect(fire.boosted).toBe(true);
     expect(fire.power).toBe(Math.round(fallbackMoves(['fire']).find((m) => m.name === fire.name).power * ARENA_BOOST));
     expect(normal.boosted).toBeUndefined();
-    expect(arenaById('nope').id).toBe('stadium');
+    expect(arenaById('nope').id).toBe('league');
   });
 });
 
