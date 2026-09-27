@@ -10,7 +10,8 @@ const ASSIST_WINDOW = 6;
 const BASE_HEAL = 0.14; // of max HP per second, for allies inside their base
 const BASE_BURN = 0.22; // of max HP per second, for enemies inside a base
 export const ULT_MAX = 100;
-const ULT_GAIN = { dealt: 0.14, taken: 0.1, kill: 30 }; // per damage point / per kill
+// Only the Pokemon's own attacks fill its ultimate (per damage point dealt / per knock-out)
+const ULT_GAIN = { dealt: 0.18, kill: 30 };
 // Children's team gets a little help (tuned with bot matches in moba.test.js)
 export const TEAM_POWER = { blue: 1.02, red: 0.99 };
 
@@ -188,7 +189,6 @@ function damage(state, attacker, target, mult) {
   attacker.dealt += dealt;
   target.taken += dealt;
   attacker.ult = Math.min(ULT_MAX, attacker.ult + dealt * ULT_GAIN.dealt);
-  target.ult = Math.min(ULT_MAX, target.ult + dealt * ULT_GAIN.taken);
   target.hitters[attacker.id] = state.time;
   state.events.push({ kind: 'hit', x: target.x, y: target.y - 26, amount: dealt, crit, eff, type: attacker.types[0], target: target.id, from: attacker.id });
   if (target.hp <= 0) kill(state, attacker, target);

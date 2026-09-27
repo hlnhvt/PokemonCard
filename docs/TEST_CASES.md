@@ -1116,3 +1116,29 @@ Cả 3 trò nằm trong nhóm "🏆 Thi đấu thể thao" (tab Trò chơi và t
 | MG-10 | P1 | AUTO | Giải đấu 5 trận: bảng giải, "Tiếp tục" sau mỗi trận, lễ trao thưởng, vàng 6 lần (5 trận + thưởng) | Đạt |
 | MG-11 | P1 | AUTO | Cúp: bảng vẽ từ Chung kết xuống Tứ kết; kết thúc Vô địch hoặc Dừng bước; Chơi lại | Đạt |
 | UI-25 | P1 | MANUAL (Chrome) | Màn chế độ chơi, lịch Giải đấu, trận 1 phút xong có nút Tiếp tục, bảng giải cập nhật điểm | Đúng, không lỗi JS |
+
+---
+
+## 36. Tuyệt kỹ liên hoàn chỉ tích khi bé ra chiêu trúng (2026-09-27)
+
+- **Trận theo lượt** (1 đấu 1, Đấu đội 5 vs 5, Giải đấu Liên minh):
+  - Bỏ phần cộng năng lượng khi bị đối thủ đánh (trước đây +12 mỗi lần bị trúng).
+  - Thanh chỉ tăng khi Pokémon của bé đánh trúng: +38 mỗi đòn trúng, +15 nếu siêu hiệu quả, +10 nếu chí mạng. Đánh trượt không được cộng.
+- **Đấu trường:**
+  - Bỏ phần năng lượng tuyệt kỹ nhận khi bị mất máu.
+  - Chỉ còn năng lượng từ sát thương gây ra (0,18 mỗi điểm) và từ mỗi lần hạ gục (+30).
+- **Vì sao đòn trúng được cộng nhiều hơn:** trước đây năng lượng khi bị đánh giúp đội bé lật ngược thế trận. Bỏ phần này đi (với mức +26 mỗi đòn) làm trận đội Trung bình tụt từ 68% xuống 48%. Với +38, tuyệt kỹ vẫn đầy sau khoảng 3 đòn trúng như trước, và độ khó trở lại mức cũ:
+
+| Trận đội (máy bấm chiêu ngẫu nhiên) | Trước | Chỉ bỏ, không bù (+26) | Sau (+38) |
+|---|---|---|---|
+| Dễ | 98% | 95% | 98% |
+| Trung bình | 68% | 48% | 65% |
+| Khó | 35% | 25% | 33% |
+
+- Đấu trường theo độ khó sau thay đổi: Dễ 78%, Trung bình 61%, Khó 17%, Cao thủ 11%.
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| BT-COMBO | P1 | AUTO | 5 đòn của đối thủ: thanh tuyệt kỹ vẫn 0; bé đánh trúng thì tăng đúng mức | Đạt |
+| TM-04, TM-06 | P1 | AUTO | Cân bằng trận đội vẫn trong khoảng mục tiêu | Đạt |
+| MB-05, MB-09 | P1 | AUTO | Cân bằng Đấu trường vẫn trong khoảng mục tiêu | Đạt |

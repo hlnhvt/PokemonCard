@@ -4,8 +4,8 @@ import { effectiveness, effectivenessLabel } from './typeChart';
 
 export const LEVEL = 50;
 export const COMBO_MAX = 100;
-// Energy the child's Pokemon gains: landing hits builds the combo, taking hits too (comeback)
-export const COMBO_GAIN = { hit: 22, superEffective: 15, crit: 10, tookHit: 12 };
+// Energy the child's Pokemon gains: only its own hits that land build the combo
+export const COMBO_GAIN = { hit: 38, superEffective: 15, crit: 10 };
 // The combo finisher chains all four moves with growing power
 export const CHAIN_MULTIPLIERS = [1, 1.2, 1.45, 1.8];
 
@@ -155,8 +155,6 @@ function attack(state, actor, events, { chain = 0, multiplier = 1, sureHit = fal
 
   if (actor.side === 'player' && !chain) {
     gainCombo(state, COMBO_GAIN.hit + (eff >= 2 ? COMBO_GAIN.superEffective : 0) + (anyCrit ? COMBO_GAIN.crit : 0));
-  } else if (actor.side === 'opponent') {
-    gainCombo(state, COMBO_GAIN.tookHit);
   }
   events.push({ kind: 'combo', value: state.combo });
 

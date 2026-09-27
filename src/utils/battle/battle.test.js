@@ -8,6 +8,8 @@ import {
   createBattle,
   playTurn,
   playCombo,
+  playOpponentOnly,
+  COMBO_GAIN,
   canUseCombo,
   chooseAiMove,
   opponentLevel,
@@ -298,5 +300,21 @@ describe('difficulty for children', () => {
     expect(smartRate).toBeGreaterThan(0.75);
     expect(randomRate).toBeGreaterThan(0.3);
     expect(randomRate).toBeLessThan(smartRate);
+  });
+});
+
+describe('combo energy', () => {
+  it('BT-COMBO only the child\'s own hits fill the Tuyệt Kỹ Liên Hoàn bar, never the opponent\'s attacks', () => {
+    const player = createFighter(PIKACHU, { isPlayer: true });
+    const opponent = createFighter(SQUIRTLE);
+    player.maxHp = player.hp = 9999; // survives every hit
+    opponent.maxHp = opponent.hp = 9999;
+    const state = createBattle({ player, opponent, random: () => 0.5 });
+    for (let i = 0; i < 5; i++) playOpponentOnly(state);
+    expect(state.combo).toBe(0);
+    const events = playTurn(state, 0);
+    const landed = events.some((e) => e.kind === 'hit' && e.attacker === 'player');
+    expect(state.combo).toBe(landed ? Math.min(100, COMBO_GAIN.hit + (events.some((e) => e.kind === 'effect' && e.effectiveness >= 2) ? COMBO_GAIN.superEffective : 0) + (events.some((e) => e.kind === 'hit' && e.attacker === 'player' && e.crit) ? COMBO_GAIN.crit : 0)) : 0);
+    expect(COMBO_GAIN.tookHit).toBeUndefined();
   });
 });
