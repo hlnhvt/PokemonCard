@@ -2129,3 +2129,128 @@
   .run3d-toast, .run3d-banner-in, .run3d-pop, .run3d-chip, .run3d-pulse, .run3d-hint { animation: none; }
   .run3d-banner { animation: none; transform: translateX(-50%); }
 }
+
+/* ---- gulp3d: Snorlax nuốt cả thành phố ---- */
+@keyframes gulp3dPop {
+  0% { transform: translate(-50%, -30%) scale(0.5); opacity: 0; }
+  20% { transform: translate(-50%, -80%) scale(1.2); opacity: 1; }
+  100% { transform: translate(-50%, -220%) scale(1); opacity: 0; }
+}
+@keyframes gulp3dBanner {
+  0% { transform: scale(0.3) rotate(-6deg); opacity: 0; }
+  18% { transform: scale(1.18) rotate(2deg); opacity: 1; }
+  30% { transform: scale(0.95) rotate(0deg); }
+  40%, 80% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.05) translateY(-12px); opacity: 0; }
+}
+@keyframes gulp3dFloat {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  50% { transform: translateY(-5px) scale(1.03, 0.97); }
+}
+@keyframes gulp3dHint {
+  0% { transform: translateY(8px); opacity: 0; }
+  15%, 85% { transform: translateY(0); opacity: 1; }
+  100% { opacity: 0.9; }
+}
+@keyframes gulp3dChip {
+  0% { transform: scale(0.4); }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+.gulp3d-pop { animation: gulp3dPop 0.9s ease-out both; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35); }
+.gulp3d-banner { animation: gulp3dBanner 1.8s ease-out both; }
+.gulp3d-float { animation: gulp3dFloat 2.4s ease-in-out infinite; }
+.gulp3d-hint { animation: gulp3dHint 1.5s ease-out both; }
+.gulp3d-chip { animation: gulp3dChip 0.35s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .gulp3d-banner, .gulp3d-float, .gulp3d-hint, .gulp3d-chip { animation: none; }
+  .gulp3d-pop { animation: none; transform: translate(-50%, -100%); }
+}
+
+/* ---- pinball3d ---- */
+@keyframes pinball3dBanner {
+  0% { transform: scaleX(0.1) scaleY(0.6); opacity: 0; }
+  12% { transform: scaleX(1.08) scaleY(1.05); opacity: 1; }
+  20% { transform: scale(1); }
+  85% { opacity: 1; }
+  100% { transform: scale(1); opacity: 0; }
+}
+@keyframes pinball3dToast {
+  0% { transform: translateY(10px) scale(0.6); opacity: 0; }
+  20% { transform: translateY(0) scale(1.1); opacity: 1; }
+  100% { transform: translateY(-36px) scale(1); opacity: 0; }
+}
+@keyframes pinball3dBump {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+@keyframes pinball3dPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.8); }
+  50% { box-shadow: 0 0 0 10px rgba(251, 191, 36, 0); }
+}
+@keyframes pinball3dFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+@keyframes pinball3dLedScan {
+  0% { background-position: 0 0, 0 0; }
+  100% { background-position: 0 0, 200px 0; }
+}
+.pinball3d-led {
+  color: #ffb340;
+  text-shadow: 0 0 6px rgba(255, 150, 40, 0.95), 0 0 14px rgba(255, 110, 20, 0.6);
+  background-color: rgba(20, 8, 2, 0.88);
+  background-image: radial-gradient(circle, rgba(255, 140, 40, 0.18) 1px, transparent 1.6px), linear-gradient(90deg, transparent 0%, rgba(255, 200, 120, 0.12) 50%, transparent 100%);
+  background-size: 4px 4px, 120px 100%;
+  background-repeat: repeat, no-repeat;
+  animation: pinball3dLedScan 1.2s linear infinite;
+  font-family: ui-monospace, 'Courier New', monospace;
+  box-shadow: 0 0 18px rgba(255, 120, 20, 0.45), inset 0 0 10px rgba(0, 0, 0, 0.8);
+}
+.pinball3d-banner { animation: pinball3dBanner 2.3s ease-out both, pinball3dLedScan 1.2s linear infinite; }
+.pinball3d-led-digits { box-shadow: 0 0 12px rgba(251, 191, 36, 0.35); font-family: ui-monospace, 'Courier New', monospace; }
+.pinball3d-toast { animation: pinball3dToast 1.2s ease-out both; }
+.pinball3d-bump { animation: pinball3dBump 0.35s ease-out; }
+.pinball3d-pulse { animation: pinball3dPulse 1.1s ease-in-out infinite; }
+.pinball3d-float { animation: pinball3dFloat 1.8s ease-in-out infinite; }
+.pinball3d-knob { transition: top 0.05s linear; }
+@media (prefers-reduced-motion: reduce) {
+  .pinball3d-led, .pinball3d-banner, .pinball3d-toast, .pinball3d-bump, .pinball3d-pulse, .pinball3d-float { animation: none; }
+}
+
+/* obby3d: "Vượt chướng ngại Pokémon" */
+@keyframes obby3dToast {
+  0% { transform: translateY(12px) scale(0.6); opacity: 0; }
+  18% { transform: translateY(0) scale(1.15); opacity: 1; }
+  30% { transform: scale(1); }
+  80% { opacity: 1; }
+  100% { transform: translateY(-18px); opacity: 0; }
+}
+@keyframes obby3dBanner {
+  0% { transform: scale(0.3) rotate(-8deg); opacity: 0; }
+  55% { transform: scale(1.18) rotate(3deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+@keyframes obby3dPop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+@keyframes obby3dBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+@keyframes obby3dMedal {
+  0% { transform: scale(0.2) rotate(-30deg); }
+  60% { transform: scale(1.2) rotate(10deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+.obby3d-toast { animation: obby3dToast 1.3s ease-out both; }
+.obby3d-banner { animation: obby3dBanner 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+.obby3d-pop { animation: obby3dPop 0.4s ease-out; }
+.obby3d-bob { animation: obby3dBob 1.6s ease-in-out infinite; }
+.obby3d-medal { animation: obby3dMedal 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+@media (prefers-reduced-motion: reduce) {
+  .obby3d-toast, .obby3d-banner, .obby3d-pop, .obby3d-bob, .obby3d-medal { animation: none; }
+}

@@ -561,6 +561,31 @@ const GAME_PICS = {
       <Ball x={33} y={24} r={5} />
     </>
   ),
+  gulp3d: (
+    <>
+      <circle cx="24" cy="27" r="18" fill="#3a7d93" />
+      <path d="M11 15 L13 4 L20 11 Z" fill="#3a7d93" />
+      <path d="M37 15 L35 4 L28 11 Z" fill="#3a7d93" />
+      <ellipse cx="24" cy="24.5" rx="12" ry="8" fill="#f4e3bd" />
+      <ellipse cx="24" cy="39" rx="13" ry="7.5" fill="#f4e3bd" />
+      <path d="M16.5 22 q2.5 2 5 0 M26.5 22 q2.5 2 5 0" stroke="#1d2b38" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+      <path d="M18 27.5 q6 3.5 12 0" stroke="#1d2b38" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+      <path d="M20 28.6 l1.2 -2.4 l1.2 2.4 Z M25.6 28.6 l1.2 -2.4 l1.2 2.4 Z" fill="#ffffff" />
+      <Ball x={40} y={40} r={6} />
+    </>
+  ),
+  pinball3d: (
+    <>
+      <rect x="6" y="3" width="36" height="42" rx="10" fill="#1e1b4b" stroke="#7c3aed" strokeWidth="2" />
+      <circle cx="12" cy="9" r="1.6" fill="#facc15" /><circle cx="36" cy="9" r="1.6" fill="#22d3ee" /><circle cx="24" cy="6.5" r="1.4" fill="#f472b6" />
+      <circle cx="24" cy="16" r="7" fill="#ef4444" stroke="#1e293b" strokeWidth="1.2" />
+      <path d="M17 16a7 7 0 0 0 14 0z" fill="#f8fafc" stroke="#1e293b" strokeWidth="1.2" />
+      <path d="M19.5 13.8l3 1M28.5 13.8l-3 1" stroke="#1e293b" strokeWidth="1.4" strokeLinecap="round" />
+      <circle cx="21.6" cy="15.6" r="1" fill="#1e293b" /><circle cx="26.4" cy="15.6" r="1" fill="#1e293b" />
+      <Ball x={27} y={28} r={4} />
+      <path d="M11 36l9 4.5" stroke="#f8fafc" strokeWidth="4" strokeLinecap="round" /><path d="M37 36l-9 4.5" stroke="#f8fafc" strokeWidth="4" strokeLinecap="round" />
+    </>
+  ),
   towerdef: (
     <>
       <path d="M6 40 Q14 30 24 34 T42 28" fill="none" stroke="#c2894b" strokeWidth="6" strokeLinecap="round" />
