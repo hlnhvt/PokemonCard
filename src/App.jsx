@@ -25,6 +25,8 @@ export function App() {
   const [savedItem, setSavedItem] = useState(null);
   // 'saved' for collected cards, 'preview' for a Pokemon opened from the evolution tree
   const [detailMode, setDetailMode] = useState('saved');
+  // The detail page right after a new scan plays the 3D Poké Ball reveal
+  const [justScanned, setJustScanned] = useState(false);
   const [isPlayingVideo, setIsPlayingVideo] = useState(false);
   // 'scan' saves the card once the video ends; 'replay' only shows it again
   const [videoSource, setVideoSource] = useState('scan');
@@ -81,6 +83,7 @@ export function App() {
     setActivePokemon(pokemon);
     setSavedItem(saved);
     setDetailMode(mode);
+    setJustScanned(false);
     setCurrentTab('detail');
   };
 
@@ -103,6 +106,7 @@ export function App() {
       // Refresh collection state from localStorage
       setCollection(getSavedCollection());
     }
+    setJustScanned(videoSource === 'scan');
 
     // Advance to detailed card view
     setCurrentTab('detail');
@@ -296,6 +300,7 @@ export function App() {
             onGive={handleGive}
             onOpenShop={() => setShowShop(true)}
             ownedSpecies={ownedSpecies}
+            justScanned={justScanned}
           />
         )}
 

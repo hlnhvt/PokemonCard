@@ -4,23 +4,30 @@ import { createSnorlax, SNORLAX_COLORS, MUNCHLAX_COLORS } from './snorlaxModel';
 import { kindGeometry, VARIANTS, powerupGeometry, createChibi } from './gulp3dModels';
 import { KINDS } from '../../../utils/three3d/gulp3d';
 
-const triangles = (root) => {
+const triangles = (root, { outlines = true } = {}) => {
   let n = 0;
   root.traverse((o) => {
-    if (!o.isMesh) return;
+    if (!o.isMesh || (!outlines && o.userData.outline)) return;
     const g = o.geometry;
     n += (g.index ? g.index.count : g.attributes.position.count) / 3;
   });
   return n;
 };
+// Colours a model shows: material colours, shader-painted colours (uCream) and vertex colours
 const colors = (root) => {
   const set = new Set();
-  root.traverse((o) => o.isMesh && set.add(`#${o.material.color.getHexString()}`));
+  const c = new THREE.Color();
+  root.traverse((o) => {
+    if (!o.isMesh) return;
+    set.add(`#${o.material.color.getHexString()}`);
+    const vc = o.geometry.attributes.color;
+    if (vc && o.material.vertexColors) for (let i = 0; i < vc.count; i++) set.add(`#${c.fromBufferAttribute(vc, i).getHexString()}`);
+  });
   return set;
 };
 
 describe('createSnorlax', () => {
-  it('GULP-M01 builds a real 3D Snorlax: teal body, cream belly and face, ears, eyes, fangs, claws, feet; < 15k triangles', () => {
+  it('GULP-M01 builds a real 3D Snorlax: teal body, cream belly and face, ears, eyes, fangs, claws, feet; < 20k triangles (outlines included)', () => {
     const z = createSnorlax();
     expect(z.group).toBeInstanceOf(THREE.Group);
     const c = colors(z.group);
@@ -35,7 +42,7 @@ describe('createSnorlax', () => {
     expect(z.parts.torso.material).toBeInstanceOf(THREE.MeshToonMaterial);
     const tris = triangles(z.group);
     console.info(`[gulp3d] Snorlax triangles: ${tris}`);
-    expect(tris).toBeLessThan(15000);
+    expect(tris).toBeLessThan(20000);
     z.dispose();
   });
 
@@ -90,6 +97,6 @@ describe('createSnorlax', () => {
     expect(total).toBeLessThan(40000);
     for (const t of ['gold', 'speed', 'magnet']) powerupGeometry(t).dispose();
     const cache = { geos: {}, mats: {}, ramp: null };
-    for (const sp of ['rattata', 'pidgey', 'wurmple']) expect(triangles(createChibi(sp, cache).group)).toBeLessThan(4000);
+    for (const sp of ['rattata', 'pidgey', 'wurmple']) expect(triangles(createChibi(sp, cache).group, { outlines: false })).toBeLessThan(4000); // + outline hull re-using the same geometry
   });
 });

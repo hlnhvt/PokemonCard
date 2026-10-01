@@ -25,6 +25,27 @@ function renderDetail(props = {}) {
 }
 
 describe('PokemonCardDetail', () => {
+  it('DT-12 "Chơi cùng" opens the 5 games that suit this Pokemon, with the reason', () => {
+    renderDetail();
+    fireEvent.click(screen.getByText(/Chơi cùng Charizard/));
+    const picker = screen.getByRole('dialog', { name: 'Chọn trò chơi' });
+    const tiles = picker.querySelectorAll('li button');
+    expect(tiles).toHaveLength(5);
+    expect(tiles[0]).toHaveAccessibleName(/Cưỡi Charizard/);
+    expect(picker).toHaveTextContent('Dành riêng cho Charizard');
+    expect(picker).toHaveTextContent('Hợp hệ Lửa');
+  });
+
+  it('DT-13 artwork without a background sits in a scene of its type; a real card scan fills the card', () => {
+    const { container, unmount } = render(<PokemonCardDetail pokemon={makeCard({ image: 'https://raw.githubusercontent.com/x/official-artwork/6.png' })} onScanNext={vi.fn()} />);
+    expect(container.querySelector('svg[data-type="fire"]')).not.toBeNull();
+    expect(screen.getAllByAltText('Charizard')[0].className).toContain('object-contain');
+    unmount();
+    const scan = render(<PokemonCardDetail pokemon={makeCard({ image: 'https://images.pokemontcg.io/base1/4_hires.png' })} onScanNext={vi.fn()} />);
+    expect(scan.container.querySelector('svg[data-type]')).toBeNull();
+    expect(screen.getAllByAltText('Charizard')[0].className).toContain('object-cover');
+  });
+
   it('DT-01 renders the main card info', () => {
     renderDetail();
     expect(screen.getByRole('heading', { name: 'Charizard' })).toBeInTheDocument();

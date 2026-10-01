@@ -1583,3 +1583,21 @@ Banner mới trong tab Trò chơi. Game chơi màn ngang và tự xoay khi cầm
 | SC-22 | P1 | AUTO | Bấm "Sai rồi, quét lại" trên khung camera hoặc ✕ đầu bảng → bảng đóng ngay | Đạt |
 | CO-12 | P1 | AUTO | Umbreon (artwork) có nền hệ Ác, ảnh object-contain; Primarina (thẻ thật) không có nền, object-cover | Đạt |
 | UI-39 | P2 | MANUAL (Chrome 360×760) | Bộ sưu tập 12 thẻ nhiều hệ: Muk tím bong bóng, Charizard cam lửa, Pikachu vàng sét, Gengar tím... | Đúng, không lỗi JS |
+
+
+## 53. Sân chơi 3D sau khi quét, 5 trò đặc trưng, nền ảnh ở trang chi tiết, Snorlax đẹp hơn
+
+- **Sân chơi 3D** (`src/components/playground3d/`, tải riêng khi cần): sau khi quét, Poké Ball rơi, lắc 3 lần, bung sáng, Pokémon hiện ra trên đảo 3D theo hệ (11 kiểu đảo, hiệu ứng riêng mỗi hệ). Pikachu, Jigglypuff, Psyduck, Bulbasaur, Squirtle, Charmander, Eevee, Piplup, Charizard, Snorlax dùng mô hình 3D thật; Pokémon khác được dựng khối nổi từ ảnh. 8 hoạt động: vuốt ve, cho ăn, ném bóng, nhảy múa, trốn tìm, tắm, ngủ ngon, chụp ảnh. Không có WebGL thì dùng lại bản 2D.
+- **"Chơi cùng …"**: nút mới (Pokémon trong vòng Poké Ball, không ghi số trò); danh sách chỉ 5 trò hợp nhất (theo loài, rồi theo hệ, ưu tiên trò đã mở), trò thứ 5 luôn là "Ném bóng bắt Pokémon" vì trò này chỉ mở từ thẻ.
+- **Tiệm quà** ở tab Trò chơi: icon và chữ cùng một dòng.
+- **Trang chi tiết**: ảnh artwork không nền có nền theo hệ (như Bộ sưu tập).
+- **Snorlax nuốt thành phố**: Snorlax/Munchlax/Pokémon nhỏ có viền hoạt hình, nhà mái ngói, Poké Mart, Trung tâm Pokémon, cây lay gió, bóng đổ thật.
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| PG-01..14 | P1 | AUTO | Màn mở Poké Ball (bỏ qua bằng chạm), đảo theo hệ, 8 hoạt động tới phần thưởng, onFeed/onPet đúng giới hạn, không WebGL → 2D, tạm dừng/giải phóng | Đạt |
+| SG-01..05 | P1 | AUTO | Bảng trò hợp lệ; 5 trò khác nhau; loài trước, các hệ xen kẽ; trò đã mở trước; "Bắt chính bạn ấy" luôn ở vị trí 5 | Đạt |
+| DT-12 | P1 | AUTO | Bấm "Chơi cùng Charizard" → đúng 5 trò, trò đầu "Cưỡi Charizard", có nhãn "Dành riêng cho Charizard", "Hợp hệ Lửa" | Đạt |
+| DT-13 | P1 | AUTO | Artwork ở trang chi tiết có nền hệ Lửa, object-contain; ảnh thẻ thật thì không | Đạt |
+| GULP-M01..M04 | P1 | AUTO | Mô hình Snorlax mới đủ bộ phận, < 20k tam giác (kể cả viền) | Đạt (910 test toàn dự án) |
+| UI-40 | P2 | MANUAL (Chrome 360×760) | Nút "Chơi cùng Lapras" mới; danh sách 5 trò hệ Nước/Băng; nút Tiệm quà một dòng; Makuhita có nền hệ Giác đấu | Đúng, không lỗi JS |

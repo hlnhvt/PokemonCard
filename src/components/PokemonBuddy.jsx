@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import confetti from 'canvas-confetti';
 import { Volume2, Music, Sparkles, Heart, Gamepad2 } from './icons/PokeIcons';
 import { getCardMedia } from '../services/pokemonOnlineService';
@@ -16,6 +16,11 @@ import {
 import { BerryIcon } from './BerryIcon';
 import { GamePicker } from './GamePicker';
 import { itemById, wornItem, roomItems } from '../utils/shopItems';
+import { canUseWebGL } from '../utils/playground3d/webgl';
+import { PokeballIcon } from './PokeballIcon';
+
+// three.js is only downloaded when the 3D playground is shown
+const Playground3D = lazy(() => import('./playground3d/Playground3D'));
 
 const EAT_DELAY_MS = 450;
 
@@ -53,6 +58,8 @@ export function PokemonBuddy({
   onPet,
   gifts = { enabled: false },
   rank,
+  revealKind = 'open',
+  paused = false,
 }) {
   const [hearts, setHearts] = useState([]);
   const [hopKey, setHopKey] = useState(0);
@@ -65,6 +72,9 @@ export function PokemonBuddy({
   const [toyPlay, setToyPlay] = useState(null);
   const [sparkle, setSparkle] = useState(0);
   const heartId = useRef(0);
+  // 3D playground when WebGL works; the 2D buddy otherwise (or if the 3D scene fails to start)
+  const [mode3d, setMode3d] = useState(() => canUseWebGL());
+  const pg = useRef(null);
   const timers = useRef([]);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
   const later = (fn, ms) => timers.current.push(setTimeout(fn, ms));
@@ -94,6 +104,7 @@ export function PokemonBuddy({
     } catch {
       // ignore
     }
+    pg.current?.react('levelup');
     later(() => setLevelUp(null), 2600);
   };
 
@@ -118,6 +129,7 @@ export function PokemonBuddy({
     later(() => {
       setFlyingBerry(null);
       sounds.playMunch();
+      pg.current?.react('eat', { berry });
       burstHearts(outcome.favorite ? 5 : 3);
       setFloatText({ text: outcome.favorite ? `+${outcome.gain} Món yêu thích!` : `+${outcome.gain}`, key: ++heartId.current });
       later(() => setFloatText(null), 1200);
@@ -145,14 +157,17 @@ export function PokemonBuddy({
       setGiving(null);
       if (item.category === 'food') {
         sounds.playMunch();
+        pg.current?.react('eat');
         burstHearts(3);
       } else if (item.category === 'toy') {
         setToyPlay({ emoji: item.emoji, key: ++heartId.current });
+        pg.current?.react('toy');
         sounds.playJump();
         burstHearts(2);
         later(() => setToyPlay(null), 1300);
       } else {
         setSparkle((n) => n + 1);
+        pg.current?.react('sparkle');
         sounds.playSuccessFanfare();
         burstHearts(4);
       }
@@ -163,6 +178,40 @@ export function PokemonBuddy({
       if (outcome.levelUp) celebrate(outcome.levelUp);
     }, EAT_DELAY_MS);
   };
+
+  // 3D playground rewards: same storage rules as the 2D buttons (onPet / onFeed and their daily limits)
+  const petReward3d = () => {
+    const outcome = care.enabled ? onPet?.() : null;
+    if (outcome?.levelUp) celebrate(outcome.levelUp);
+    return outcome;
+  };
+  const feed3d = (berry) => (care.enabled ? onFeed?.(berry) || null : null);
+  const ate3d = (outcome) => {
+    if (!outcome) return;
+    burstHearts(outcome.favorite ? 5 : 3);
+    setFloatText({ text: outcome.favorite ? `+${outcome.gain} Món yêu thích!` : `+${outcome.gain}`, key: ++heartId.current });
+    later(() => setFloatText(null), 1200);
+    if (outcome.levelUp) celebrate(outcome.levelUp);
+  };
+  const floatAndLevel = (
+    <>
+      {floatText && (
+        <span key={`float-${floatText.key}`} role="status" className="gain-float absolute top-12 left-1/2 z-10 whitespace-nowrap px-2 py-0.5 rounded-full bg-pink-500 text-white text-sm font-black shadow pointer-events-none">
+          {floatText.text}
+        </span>
+      )}
+      {levelUp && (
+        <span role="status" className="level-pop absolute inset-x-0 bottom-16 z-10 mx-auto w-max px-3 py-1 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 text-white text-sm font-black shadow-lg pointer-events-none">
+          🎉 Giờ là {levelUp.label}!
+        </span>
+      )}
+      {room.slice(0, 2).map((item, i) => (
+        <span key={item.id} aria-label={item.name} className={`absolute ${i ? 'right-3' : 'left-3'} bottom-3 z-[1] text-3xl drop-shadow pointer-events-none`}>
+          {item.emoji}
+        </span>
+      ))}
+    </>
+  );
 
   return (
     <div className="glass-panel p-4 rounded-2xl flex flex-col items-center gap-3">
@@ -180,6 +229,39 @@ export function PokemonBuddy({
         )}
       </div>
 
+      {mode3d ? (
+        <div className="w-full -mx-1" data-testid="buddy-3d">
+          <Suspense
+            fallback={
+              <div className="pg3d-stage flex flex-col items-center justify-center gap-2" role="status">
+                {image && <img src={image} alt="" className="w-36 h-36 object-contain opacity-80" draggable={false} />}
+                <span className="flex items-center gap-2 text-white font-black text-sm drop-shadow">
+                  <PokeballIcon className="w-6 h-6 pg3d-spin" /> Đang mở sân chơi 3D…
+                </span>
+              </div>
+            }
+          >
+            <Playground3D
+              ref={pg}
+              pokemon={pokemon}
+              image={image}
+              shiny={!!(canShowShiny && showShiny)}
+              revealKind={revealKind}
+              paused={paused || showGames}
+              care={care}
+              onTapPokemon={pet}
+              onPetReward={petReward3d}
+              onFeedBerry={feed3d}
+              onAte={ate3d}
+              onFail={() => setMode3d(false)}
+              message={message}
+              worn={worn}
+              overlay={floatAndLevel}
+              levelLabel={level.label}
+            />
+          </Suspense>
+        </div>
+      ) : (
       <button
         type="button"
         onClick={pet}
@@ -235,7 +317,8 @@ export function PokemonBuddy({
           </span>
         )}
       </button>
-      <p className="text-xs text-slate-400">Chạm vào {pokemon.name} để chơi cùng bạn ấy nhé!</p>
+      )}
+      <p className="text-xs text-slate-400">{mode3d ? `Chọn trò bên dưới để chơi 3D với ${pokemon.name} nhé!` : `Chạm vào ${pokemon.name} để chơi cùng bạn ấy nhé!`}</p>
 
       {canShowShiny && (
         <div className="flex rounded-xl overflow-hidden border border-slate-700 text-sm font-bold" role="group" aria-label="Màu Pokémon">
@@ -348,11 +431,21 @@ export function PokemonBuddy({
           // One button instead of a long list: the games open in a bottom sheet
           <button
             onClick={() => setShowGames(true)}
-            className="col-span-2 py-4 rounded-2xl bg-gradient-to-r from-red-500 via-rose-500 to-orange-500 text-white text-lg font-black flex items-center justify-center gap-2 shadow-lg shadow-red-600/30 active:scale-95 transition-transform"
+            className="play-with-btn group relative col-span-2 overflow-hidden rounded-3xl p-[3px] bg-gradient-to-r from-amber-300 via-rose-400 to-fuchsia-500 shadow-xl shadow-rose-600/40 active:scale-[0.97] transition-transform"
           >
-            <Gamepad2 className="w-6 h-6" /> Chơi cùng {pokemon.name}
-            <span className="px-2 py-0.5 rounded-full bg-white/25 text-xs">
-              {rank ? `${games.filter((g) => !(g.needRank > rank.level)).length}/${games.length}` : games.length} trò
+            <span className="relative flex items-center gap-3 rounded-[21px] bg-gradient-to-br from-red-500 via-rose-500 to-orange-500 pl-2 pr-4 py-2.5 text-left text-white">
+              <span className="play-with-shine absolute inset-0 pointer-events-none" aria-hidden="true" />
+              <span className="relative shrink-0 w-14 h-14 rounded-full bg-white/95 shadow-inner flex items-center justify-center ring-4 ring-white/40">
+                <span className="absolute inset-x-0 top-0 h-1/2 rounded-t-full bg-red-500/90" aria-hidden="true" />
+                <span className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-1 bg-slate-800/80" aria-hidden="true" />
+                {image ? <img src={image} alt="" className="relative w-12 h-12 object-contain drop-shadow-md play-with-peek" /> : <Gamepad2 className="relative w-7 h-7 text-slate-800" />}
+              </span>
+              <span className="relative flex-1 min-w-0">
+                <span className="sr-only">Chơi cùng {pokemon.name}</span>
+                <span aria-hidden="true" className="block text-xs font-black uppercase tracking-wider text-white/85 leading-tight">Chơi cùng</span>
+                <span aria-hidden="true" className="block text-xl font-black leading-tight truncate">{pokemon.name}</span>
+              </span>
+              <Gamepad2 className="relative w-7 h-7 shrink-0 drop-shadow" aria-hidden="true" />
             </span>
           </button>
         )}

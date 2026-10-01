@@ -2286,3 +2286,94 @@
 @media (prefers-reduced-motion: reduce) {
   .pizza3d-pop, .pizza3d-banner, .pizza3d-bump, .pizza3d-float { animation: none; }
 }
+
+/* ---- "Chơi cùng" button ---- */
+.play-with-shine {
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.45) 45%, transparent 60%);
+  background-size: 250% 100%;
+  animation: play-with-shine 3.2s ease-in-out infinite;
+}
+@keyframes play-with-shine {
+  0%, 55% { background-position: 130% 0; }
+  100% { background-position: -130% 0; }
+}
+.play-with-peek { animation: play-with-peek 2.4s ease-in-out infinite; transform-origin: 50% 90%; }
+@keyframes play-with-peek {
+  0%, 100% { transform: translateY(2px) scale(1); }
+  50% { transform: translateY(-3px) scale(1.06) rotate(-4deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .play-with-shine, .play-with-peek { animation: none; }
+}
+
+/* ---- 3D Pokémon playground (components/playground3d) ---- */
+.pg3d-root { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+.pg3d-stage { position: relative; width: 100%; height: 340px; border-radius: 24px; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; background: radial-gradient(circle at 50% 30%, #9fd8ff, #3a6fb0); box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.12), 0 10px 30px rgba(0, 0, 0, 0.35); cursor: grab; }
+.pg3d-canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; display: block; }
+.pg3d-overlay { position: fixed; inset: 0; z-index: 60; background: #0b1020; display: flex; }
+.pg3d-full { height: 100vh; height: 100dvh; padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); gap: 8px; }
+.pg3d-full .pg3d-stage { flex: 1; height: auto; min-height: 0; border-radius: 22px; }
+.pg3d-placeholder { width: 100%; height: 64px; border-radius: 18px; border: 2px dashed rgba(148, 163, 184, 0.5); color: #cbd5e1; font-weight: 800; font-size: 13px; background: rgba(15, 23, 42, 0.5); }
+.pg3d-flash { position: absolute; inset: 0; background: radial-gradient(circle at 50% 60%, #fffbe8, rgba(255, 255, 255, 0.85) 40%, rgba(255, 255, 255, 0.5)); opacity: 0; pointer-events: none; z-index: 3; }
+.pg3d-domimg { position: absolute; transform: translateX(-50%); object-fit: contain; pointer-events: none; z-index: 1; filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.3)); }
+.pg3d-worn { position: absolute; transform: translate(-50%, -85%); font-size: 34px; pointer-events: none; z-index: 2; filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.35)); transition: opacity 0.2s; }
+.pg3d-loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; color: #fff; font-weight: 900; font-size: 16px; text-shadow: 0 2px 6px rgba(0, 0, 0, 0.4); z-index: 4; background: radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.25), rgba(15, 23, 42, 0.55)); }
+.pg3d-spin { animation: pg3d-wobble 0.9s ease-in-out infinite; }
+@keyframes pg3d-wobble { 0%, 100% { transform: rotate(-14deg); } 50% { transform: rotate(14deg) translateY(-4px); } }
+.pg3d-top { position: absolute; top: 8px; left: 8px; right: 8px; display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; z-index: 5; pointer-events: none; }
+.pg3d-chip { pointer-events: none; padding: 4px 10px; border-radius: 999px; background: rgba(15, 23, 42, 0.55); color: #fff; font-size: 11px; font-weight: 800; backdrop-filter: blur(4px); max-width: 70%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pg3d-iconbtn { pointer-events: auto; width: 38px; height: 38px; border-radius: 999px; background: rgba(15, 23, 42, 0.6); color: #fff; font-size: 18px; font-weight: 900; display: flex; align-items: center; justify-content: center; border: 2px solid rgba(255, 255, 255, 0.35); }
+.pg3d-iconbtn:active { transform: scale(0.92); }
+.pg3d-skip { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); padding: 5px 12px; border-radius: 999px; background: rgba(15, 23, 42, 0.5); color: #fff; font-size: 12px; font-weight: 800; z-index: 5; pointer-events: none; animation: pg3d-pulse 1.4s ease-in-out infinite; }
+@keyframes pg3d-pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+.pg3d-hud { position: absolute; top: 8px; left: 8px; right: 54px; z-index: 5; pointer-events: none; padding: 5px 10px 6px; border-radius: 16px; background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(4px); color: #fff; }
+.pg3d-hud-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.pg3d-hud-title { font-size: 13px; font-weight: 900; white-space: nowrap; }
+.pg3d-hud-extra { font-size: 12px; font-weight: 900; padding: 2px 8px; border-radius: 999px; background: linear-gradient(90deg, #f472b6, #f59e0b); }
+.pg3d-hud-hint { font-size: 11px; font-weight: 700; opacity: 0.92; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pg3d-progress { margin-top: 4px; height: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.2); overflow: hidden; }
+.pg3d-progress > div { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #34d399, #fde047, #f472b6); transition: width 0.2s ease-out; }
+.pg3d-bubble { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 6; pointer-events: none; max-width: 86%; width: max-content; padding: 8px 14px; border-radius: 18px; background: #fff; color: #1e293b; font-size: 14px; font-weight: 900; text-align: center; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25); animation: pg3d-pop 0.35s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+@keyframes pg3d-pop { from { opacity: 0; transform: translateX(-50%) scale(0.6); } to { opacity: 1; transform: translateX(-50%) scale(1); } }
+.pg3d-result { position: absolute; left: 50%; top: 30%; white-space: nowrap; transform: translate(-50%, -50%); z-index: 7; pointer-events: none; padding: 12px 22px; border-radius: 22px; text-align: center; background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(255, 241, 214, 0.96)); color: #1e293b; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3); animation: pg3d-res 0.45s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+@keyframes pg3d-res { from { opacity: 0; transform: translate(-50%, -50%) scale(0.5); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+.pg3d-result-title { font-size: 22px; font-weight: 900; }
+.pg3d-stars { font-size: 34px; line-height: 1; letter-spacing: 4px; }
+.pg3d-stars span { color: #cbd5e1; display: inline-block; }
+.pg3d-stars span.on { color: #fbbf24; text-shadow: 0 2px 0 #d97706; animation: pg3d-star 0.5s cubic-bezier(0.2, 1.8, 0.4, 1) both; }
+@keyframes pg3d-star { from { transform: scale(0) rotate(-90deg); } to { transform: scale(1) rotate(0); } }
+.pg3d-gain { margin-top: 4px; font-size: 13px; font-weight: 900; color: #e11d48; }
+.pg3d-photo { position: absolute; inset: 0; z-index: 8; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 14px; background: rgba(15, 23, 42, 0.75); }
+.pg3d-photo img { max-width: 100%; max-height: 72%; border-radius: 14px; box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45); transform: rotate(-2deg); animation: pg3d-pop2 0.4s ease-out both; }
+@keyframes pg3d-pop2 { from { transform: rotate(-8deg) scale(0.7); opacity: 0; } to { transform: rotate(-2deg) scale(1); opacity: 1; } }
+.pg3d-photo-actions { display: flex; gap: 8px; }
+.pg3d-frame-overlay { position: absolute; inset: 0; z-index: 2; pointer-events: none; border: 10px solid transparent; border-radius: 24px; }
+.pg3d-frame-overlay.frame-rainbow { border-image: linear-gradient(135deg, #ff595e, #ffca3a, #8ac926, #1982c4, #6a4c93) 1; }
+.pg3d-frame-overlay.frame-stars { border-color: #ffd60a; box-shadow: inset 0 0 24px rgba(255, 214, 10, 0.6); }
+.pg3d-frame-overlay.frame-hearts { border-color: #ff70a6; box-shadow: inset 0 0 24px rgba(255, 112, 166, 0.6); }
+.pg3d-frame-overlay.frame-pokeball { border-color: #ef4444; box-shadow: inset 0 0 0 4px #fff, inset 0 0 0 8px #1e293b; }
+.pg3d-bar { width: 100%; }
+.pg3d-acts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.pg3d-act { position: relative; min-height: 60px; border-radius: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; color: #fff; box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.18), 0 4px 10px rgba(0, 0, 0, 0.25); transition: transform 0.12s; }
+.pg3d-act:active { transform: scale(0.92) translateY(2px); }
+.pg3d-act.dim { filter: saturate(0.4); opacity: 0.75; }
+.pg3d-act-icon { font-size: 24px; line-height: 1.1; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.25)); }
+.pg3d-act-label { font-size: 11px; font-weight: 900; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); white-space: nowrap; }
+.pg3d-controls { display: flex; align-items: center; gap: 8px; min-height: 60px; flex-wrap: wrap; justify-content: center; }
+.pg3d-pill { padding: 10px 16px; border-radius: 999px; background: rgba(30, 41, 59, 0.9); border: 2px solid rgba(148, 163, 184, 0.5); color: #fff; font-size: 14px; font-weight: 900; text-decoration: none; }
+.pg3d-pill:active { transform: scale(0.94); }
+.pg3d-pill-hot { background: linear-gradient(90deg, #f43f5e, #f59e0b); border-color: rgba(255, 255, 255, 0.6); }
+.pg3d-beat { padding: 14px 26px; font-size: 18px; }
+.pg3d-berries { display: flex; gap: 8px; }
+.pg3d-berry { width: 64px; height: 60px; border-radius: 18px; background: rgba(236, 72, 153, 0.18); border: 2px solid rgba(244, 114, 182, 0.6); display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; font-size: 12px; font-weight: 900; touch-action: none; animation: pg3d-bob 1.6s ease-in-out infinite; }
+.pg3d-berry.empty { opacity: 0.45; animation: none; }
+.pg3d-berry.dragging { opacity: 0.35; }
+@keyframes pg3d-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+.pg3d-frames { display: flex; gap: 6px; }
+.pg3d-frame { width: 44px; height: 44px; border-radius: 14px; font-size: 22px; background: rgba(30, 41, 59, 0.9); border: 2px solid rgba(148, 163, 184, 0.4); }
+.pg3d-frame.on { border-color: #fbbf24; box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.35); }
+.pg3d-snap { width: 60px; height: 60px; border-radius: 999px; font-size: 28px; background: #fff; border: 5px solid #f43f5e; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35); }
+.pg3d-snap:active { transform: scale(0.9); }
+@media (prefers-reduced-motion: reduce) {
+  .pg3d-spin, .pg3d-skip, .pg3d-bubble, .pg3d-result, .pg3d-stars span.on, .pg3d-photo img, .pg3d-berry { animation: none; }
+}

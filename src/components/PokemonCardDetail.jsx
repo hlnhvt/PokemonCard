@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, Suspense } from 'react';
 import confetti from 'canvas-confetti';
 import {
   CheckCircle,
@@ -26,6 +26,11 @@ import { ShopGame } from './kidgames/ShopGame';
 import { SPORTS, findSport } from './sports';
 import { LOGIC_GAMES, findLogicGame } from './logic';
 import { CARNIVAL_GAMES, findCarnivalGame } from './carnival';
+import { GAMES_3D, findGame3D } from './three3d';
+import { signatureGames } from '../utils/signatureGames';
+import { TypeBackdrop } from './TypeBackdrop';
+import { isCardScan } from '../utils/typeTheme';
+import { PokeballIcon } from './PokeballIcon';
 import { rankOf, GAME_RANK } from '../utils/pokemonRank';
 import { getCardMedia } from '../services/pokemonOnlineService';
 import { fedToday } from '../utils/friendship';
@@ -56,6 +61,7 @@ export function PokemonCardDetail({
   onGive,
   onOpenShop,
   ownedSpecies,
+  justScanned = false,
 }) {
   const isPreview = mode === 'preview';
   const [showShiny, setShowShiny] = useState(!!rawPokemon.isShiny);
@@ -122,12 +128,15 @@ export function PokemonCardDetail({
     ...SPORTS.map((s) => ({ id: s.id, title: s.title, description: s.description, icon: s.icon, gradient: s.gradient, group: 'sport', onPlay: () => setExtra({ kind: 'sport', id: s.id }) })),
     ...LOGIC_GAMES.map((g) => ({ id: g.id, title: g.title, description: g.description, icon: g.icon, gradient: g.gradient, group: 'logic', onPlay: () => setExtra({ kind: 'logic', id: g.id }) })),
     ...CARNIVAL_GAMES.map((g) => ({ id: g.id, title: g.title, description: g.description, icon: g.icon, gradient: g.gradient, group: 'carnival', onPlay: () => setExtra({ kind: 'carnival', id: g.id }) })),
+    ...GAMES_3D.map((g) => ({ id: g.id, title: g.title, description: g.description, icon: g.icon, gradient: g.gradient, group: '3d', onPlay: () => setExtra({ kind: '3d', id: g.id }) })),
   ];
   // Stronger Pokemon play more games (utils/pokemonRank.js)
   games.forEach((g) => {
     g.needRank = GAME_RANK[g.id] || 1;
   });
   const rank = rankOf({ ...rawPokemon, ...(savedItem || {}) });
+  // Only the 5 games that suit this Pokemon best (all games are in the Games tab)
+  const myGames = signatureGames(rawPokemon, games, { rankLevel: rank.level }).map((g) => ({ ...g, group: null }));
 
   // Older or partially saved cards may miss fields; fill them so rendering never crashes
   const pokemon = {
@@ -377,6 +386,8 @@ export function PokemonCardDetail({
               }}
               className="holo-card-inner relative aspect-[63/88] w-full rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing border-2 border-amber-300/40 bg-slate-900 shadow-2xl transition-transform"
             >
+              {/* Artwork has no background of its own: put it in a scene of its type */}
+              {!isCardScan(pokemon.image) && <TypeBackdrop types={pokemon.types} />}
               {/* Card Image */}
               <img
                 src={pokemon.image}
@@ -385,7 +396,11 @@ export function PokemonCardDetail({
                   e.target.onerror = null;
                   if (pokemon.fallbackImage) e.target.src = pokemon.fallbackImage;
                 }}
-                className="w-full h-full object-cover select-none pointer-events-none"
+                className={
+                  isCardScan(pokemon.image)
+                    ? 'w-full h-full object-cover select-none pointer-events-none'
+                    : 'relative w-full h-full object-contain p-4 pb-8 select-none pointer-events-none drop-shadow-[0_10px_10px_rgba(0,0,0,0.35)]'
+                }
               />
 
               {/* Holographic Rainbow Foil Overlay */}
@@ -443,7 +458,7 @@ export function PokemonCardDetail({
               showShiny={showShiny}
               onToggleShiny={setShowShiny}
               catchCount={savedItem?.catchCount || 0}
-              games={games}
+              games={myGames}
               care={{
                 enabled: !isPreview && !!savedItem,
                 friendship: savedItem?.friendship || 0,
@@ -455,6 +470,8 @@ export function PokemonCardDetail({
               onPet={onPet}
               gifts={{ enabled: !isPreview && !!savedItem, bag, card: savedItem, onGive, onOpenShop }}
               rank={rank}
+              revealKind={justScanned && !isPreview ? 'scan' : 'open'}
+              paused={isCatching || isRunning || isBattling || isCooking || isShopping || !!extra}
             />
           </div>
         </div>
@@ -668,7 +685,22 @@ export function PokemonCardDetail({
       {isCooking && <CookingGame chef={{ ...pokemon, fallbackImage: buddyImage }} onBerries={onBerries} onGold={onGold} onClose={() => setIsCooking(false)} />}
       {isShopping && <ShopGame shopkeeper={{ ...pokemon, fallbackImage: buddyImage }} onBerries={onBerries} onGold={onGold} onClose={() => setIsShopping(false)} />}
 
-      {extra && (() => {
+      {extra?.kind === '3d' && (() => {
+        const Game = findGame3D(extra.id).Component;
+        return (
+          <Suspense
+            fallback={
+              <div role="status" className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-slate-950/90 text-white">
+                <PokeballIcon className="w-16 h-16 sport-bob" />
+                <p className="text-lg font-black">Đang mở thế giới 3D…</p>
+              </div>
+            }
+          >
+            <Game player={{ name: pokemon.name, image: buddyImage, types: pokemon.types }} collection={[]} onGold={onGold} onClose={() => setExtra(null)} />
+          </Suspense>
+        );
+      })()}
+      {extra && extra.kind !== '3d' && (() => {
         const Game = ({ sport: findSport, logic: findLogicGame, carnival: findCarnivalGame }[extra.kind])(extra.id).Component;
         return <Game player={{ name: pokemon.name, image: buddyImage, types: pokemon.types }} onBerries={onBerries} onGold={onGold} onClose={() => setExtra(null)} />;
       })()}

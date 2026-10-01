@@ -4,7 +4,7 @@ import { X, ChevronRight, Lock } from './icons/PokeIcons';
 import { rankFor } from '../utils/pokemonRank';
 import { GameIcon } from './icons/GameIcons';
 
-const GROUP_TITLES = { play: '🎮 Vui chơi', sport: '🏆 Thi đấu thể thao', logic: '🧠 Trò chơi trí tuệ', carnival: '🎪 Hội chợ Pokémon' };
+const GROUP_TITLES = { play: '🎮 Vui chơi', sport: '🏆 Thi đấu thể thao', logic: '🧠 Trò chơi trí tuệ', carnival: '🎪 Hội chợ Pokémon', '3d': '🧊 Thế giới 3D' };
 
 /** Games in groups, in the order the groups first appear (games without a group form one list). */
 function groupsOf(games) {
@@ -93,6 +93,7 @@ export function GamePicker({ pokemonName, image, games, onClose, rank }) {
                       <GameIcon id={game.id} fallback={game.icon} className="w-11 h-11" />
                     </span>
                     <span className="flex-1 min-w-0">
+                      {game.reason && <span className="inline-block mb-0.5 px-2 py-0.5 rounded-full bg-black/20 text-[10px] font-black">{game.reason}</span>}
                       <span className="flex items-center gap-2">
                         <span className="text-base font-black">{game.title}</span>
                         {game.badge && <span className="px-1.5 py-0.5 rounded-full bg-white/25 text-[10px] font-black">{game.badge}</span>}

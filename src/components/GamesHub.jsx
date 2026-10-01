@@ -117,8 +117,14 @@ export function GamesHub({ collection = [], berries, onBerries, onBattleResult, 
                 {rank.icon} {rank.name}
               </span>
             )}
-            <button onClick={onOpenShop} className="px-3 py-1.5 rounded-full bg-amber-400/20 border border-amber-400/50 text-amber-200 text-sm font-black active:scale-95">
-              <GameIcon id="gift" className="w-6 h-6" /> Tiệm quà
+            <button
+              onClick={onOpenShop}
+              className="shrink-0 inline-flex items-center gap-1.5 whitespace-nowrap pl-1.5 pr-3 py-1 rounded-full bg-gradient-to-r from-amber-300 to-orange-400 text-slate-900 text-sm font-black shadow-md shadow-amber-500/30 border border-white/60 active:scale-95 transition-transform"
+            >
+              <span className="w-7 h-7 rounded-full bg-white/80 flex items-center justify-center">
+                <GameIcon id="gift" className="w-6 h-6" />
+              </span>
+              Tiệm quà
             </button>
           </div>
           <div className="flex gap-2 overflow-x-auto pb-1" role="radiogroup" aria-label="Chọn Pokémon để chơi">

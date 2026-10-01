@@ -56,7 +56,8 @@ describe('Pokemon rank on the detail page', () => {
     const pikachu = makeCard({ id: 'pikachu', name: 'Pikachu' });
     render(<PokemonBuddy pokemon={pikachu} games={games} rank={rankOf({ baseHp: 35, attack: 55, defense: 40, speed: 90 })} />);
     expect(screen.getByTestId('rank-badge')).toHaveTextContent('Hạng Đồng');
-    expect(screen.getByText(/Chơi cùng Pikachu/).textContent).toContain('1/2 trò');
+    // The button no longer shows a game count
+    expect(screen.getByText(/Chơi cùng Pikachu/).textContent).not.toMatch(/\d+\/\d+ trò/);
     fireEvent.click(screen.getByText(/Chơi cùng Pikachu/));
     expect(screen.getByTestId('picker-rank')).toHaveTextContent('mở 1/2 trò');
     fireEvent.click(screen.getByLabelText('Đua xe máy (cần hạng Huyền thoại)'));

@@ -1,17 +1,24 @@
 // Three.js world for "Snorlax nuốt cả thành phố": a toy town drawn from the gulp3d engine state.
+// Look: ACES tone mapping, hemisphere + one soft shadow-casting sun that follows Snorlax, toon
+// characters with outlines, bevelled vertex-coloured town (one InstancedMesh + outline per kind),
+// swaying trees, painted ground (roads, sidewalks, gardens, beach), grass tufts, rocks and clouds.
+// Adaptive quality: on slow devices shadows, outlines and small decorations switch off.
 import * as THREE from 'three';
 import { KINDS, MAPS, EAT_K } from '../../../utils/three3d/gulp3d';
 import { createSnorlax } from './snorlaxModel';
-import { kindGeometry, kindHeight, VARIANTS, powerupGeometry, createChibi } from './gulp3dModels';
+import { kindGeometry, kindHeight, VARIANTS, powerupGeometry, createChibi, decorGeometry } from './gulp3dModels';
+import { lookTime, toonRamp, townMaterial, outlineMaterial, outlineOf } from './gulp3dLook';
 
 const TAU = Math.PI * 2;
-const SPARE_BERRIES = 70;
-const MARGIN = 16; // ground texture margin around the town (m) // room in the berry InstancedMesh for berries dropped by Pokemon
+const SPARE_BERRIES = 70; // room in the berry InstancedMesh for berries dropped by Pokemon
+const MARGIN = 16; // ground texture margin around the town (m)
+const TINY = new Set(['berry', 'apple', 'pokeball', 'flower', 'coconut', 'shell']); // many instances: no outline, blob shadow only
+const CASTS = new Set(['tree', 'palm', 'house', 'hut', 'mart', 'center', 'tower', 'lighthouse', 'car', 'bus', 'boat', 'fountain', 'umbrella', 'sandcastle']); // real sun shadow
 
 const THEMES = [
-  { sky: ['#5fb4f2', '#d9f1ff'], fog: '#cfeafc', grass: '#7ccf6a', grass2: '#6dc25c', road: '#8b93a3', walk: '#e7dcc4', edge: '#5fae4f', sun: '#fff4dc' },
-  { sky: ['#4f9fe6', '#e3f0ff'], fog: '#d8e9fb', grass: '#86cc72', grass2: '#76bf63', road: '#7b8394', walk: '#ddd6c8', edge: '#62a957', sun: '#fff6e6' },
-  { sky: ['#37a9e8', '#d2f6ff'], fog: '#c4ecfb', grass: '#8fd46a', grass2: '#7fca5c', road: '#f3d9a0', walk: '#f3d9a0', edge: '#f1d38f', sun: '#fff3d6', sand: '#f4dc9c', sea: '#38b6e8' },
+  { sky: ['#4aa8f0', '#bfe6ff', '#fff4e0'], fog: '#cfeafc', grass: '#86d16f', grass2: '#74c35f', grass3: '#9ade7f', road: '#9097a6', walk: '#efe4cc', curb: '#d6c9ab', edge: '#69b357', sun: '#fff1d6', hemi: ['#e4f4ff', '#7fb36a'] },
+  { sky: ['#4f9fe6', '#cfe6ff', '#fff0f3'], fog: '#d8e9fb', grass: '#8ccf78', grass2: '#7bc267', grass3: '#a2dc8d', road: '#878ea0', walk: '#e7e0d2', curb: '#cfc5b3', edge: '#67ad5c', sun: '#fff4e6', hemi: ['#e8f0ff', '#83b071'] },
+  { sky: ['#2fa6ea', '#bff0ff', '#fff6dc'], fog: '#c4ecfb', grass: '#93d66c', grass2: '#82cb5d', grass3: '#a8e283', road: '#f3d9a0', walk: '#f3d9a0', curb: '#e9c98a', edge: '#f1d38f', sun: '#fff1d0', sand: '#f6dfa4', sand2: '#ecca86', sea: '#2fb3e6', shallow: '#7fdcf2', hemi: ['#e6f8ff', '#9cc27a'] },
 ];
 
 function canvasTexture(w, h, draw) {
@@ -47,47 +54,80 @@ function textTexture(text, color = '#ffffff', stroke = '#1e3a8a') {
   });
 }
 
-/** Ground: grass, roads with dashes and sidewalks, plazas; the island adds beach and sea. */
+/** Ground: mottled grass, roads with curbs and markings, tiled sidewalks, gardens, plazas; the island adds beach and shallows. */
 function groundTexture(map, city, theme) {
   const N = 2048;
   const half = map.half + MARGIN; // texture covers a margin around the town
   return canvasTexture(N, N, (ctx) => {
     const k = N / (2 * half);
     const X = (x) => (x + half) * k;
-    ctx.fillStyle = map.island ? theme.sea : theme.edge;
-    ctx.fillRect(0, 0, N, N);
     let rnd = 7;
-    const r = () => ((rnd = (rnd * 16807) % 2147483647) / 2147483647);
+    const r = () => (rnd = (rnd * 16807) % 2147483647) / 2147483647;
+    const blob = (x, y, rad, color) => {
+      const g = ctx.createRadialGradient(x, y, 0, x, y, rad);
+      g.addColorStop(0, color);
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(x - rad, y - rad, rad * 2, rad * 2);
+    };
+    const cx = X(0);
     if (map.island) {
-      // shallow water, sand ring, grass
-      const cx = X(0);
-      ctx.fillStyle = '#7fd6f2';
+      ctx.fillStyle = theme.sea;
+      ctx.fillRect(0, 0, N, N);
+      const sh = ctx.createRadialGradient(cx, cx, (map.half - 1) * k, cx, cx, (map.half + 12) * k);
+      sh.addColorStop(0, theme.shallow);
+      sh.addColorStop(1, theme.sea);
+      ctx.fillStyle = sh;
       ctx.beginPath();
-      ctx.arc(cx, cx, (map.half + 6) * k, 0, TAU);
+      ctx.arc(cx, cx, (map.half + 12) * k, 0, TAU);
+      ctx.fill();
+      // wet sand, dry sand with speckles
+      ctx.fillStyle = theme.sand2;
+      ctx.beginPath();
+      ctx.arc(cx, cx, (map.half + 1.6) * k, 0, TAU);
       ctx.fill();
       ctx.fillStyle = theme.sand;
       ctx.beginPath();
-      ctx.arc(cx, cx, (map.half + 1) * k, 0, TAU);
+      ctx.arc(cx, cx, (map.half + 0.4) * k, 0, TAU);
       ctx.fill();
+      for (let i = 0; i < 5000; i++) {
+        const a = r() * TAU;
+        const rr = (map.half - 9 + r() * 10) * k;
+        ctx.fillStyle = r() < 0.5 ? 'rgba(255,255,255,0.35)' : 'rgba(190,140,70,0.25)';
+        ctx.fillRect(cx + Math.cos(a) * rr, cx + Math.sin(a) * rr, 2, 2);
+      }
       ctx.fillStyle = theme.grass;
       ctx.beginPath();
       ctx.arc(cx, cx, (map.half - 9) * k, 0, TAU);
       ctx.fill();
     } else {
+      ctx.fillStyle = theme.edge;
+      ctx.fillRect(0, 0, N, N);
       ctx.fillStyle = theme.grass;
       ctx.fillRect(X(-map.half), X(-map.half), 2 * map.half * k, 2 * map.half * k);
     }
-    // grass speckles
-    for (let i = 0; i < 9000; i++) {
-      const x = r() * N;
-      const y = r() * N;
-      ctx.fillStyle = r() < 0.5 ? theme.grass2 : 'rgba(255,255,255,0.10)';
-      ctx.fillRect(x, y, 2 + r() * 3, 2 + r() * 3);
+    // grass: soft light/dark patches, then tiny blades
+    ctx.save();
+    if (map.island) {
+      ctx.beginPath();
+      ctx.arc(cx, cx, (map.half - 9) * k, 0, TAU);
+      ctx.clip();
     }
+    for (let i = 0; i < 260; i++) blob(r() * N, r() * N, (6 + r() * 16) * k, r() < 0.5 ? `${theme.grass3}88` : `${theme.grass2}99`);
+    for (let i = 0; i < 16000; i++) {
+      ctx.fillStyle = r() < 0.6 ? theme.grass2 : 'rgba(255,255,255,0.1)';
+      ctx.fillRect(r() * N, r() * N, 1.5, 2 + r() * 3);
+    }
+    ctx.restore();
     const inIsland = (x, z) => !map.island || Math.hypot(x, z) < map.half - 2;
     // roads
     const lim = map.half - 1.5;
-    for (const pass of ['walk', 'road', 'dash']) {
+    const band = (rv, axis, w, color) => {
+      ctx.fillStyle = color;
+      if (axis) ctx.fillRect(X(-lim), X(rv - w / 2), 2 * lim * k, w * k);
+      else ctx.fillRect(X(rv - w / 2), X(-lim), w * k, 2 * lim * k);
+    };
+    for (const pass of ['walk', 'tiles', 'curb', 'road', 'marks']) {
       for (const rv of city.roads) {
         for (const axis of [0, 1]) {
           ctx.save();
@@ -96,16 +136,30 @@ function groundTexture(map, city, theme) {
             ctx.arc(X(0), X(0), (map.half - 3) * k, 0, TAU);
             ctx.clip();
           }
-          if (pass === 'walk') {
-            ctx.fillStyle = theme.walk;
-            if (axis) ctx.fillRect(X(-lim), X(rv - 3.6), 2 * lim * k, 7.2 * k);
-            else ctx.fillRect(X(rv - 3.6), X(-lim), 7.2 * k, 2 * lim * k);
-          } else if (pass === 'road') {
-            ctx.fillStyle = theme.road;
-            if (axis) ctx.fillRect(X(-lim), X(rv - 2.6), 2 * lim * k, 5.2 * k);
-            else ctx.fillRect(X(rv - 2.6), X(-lim), 5.2 * k, 2 * lim * k);
-          } else if (!map.island) {
-            ctx.fillStyle = '#f8fafc';
+          if (pass === 'walk') band(rv, axis, 7.4, theme.walk);
+          else if (pass === 'tiles' && !map.island) {
+            ctx.fillStyle = 'rgba(120,100,70,0.13)';
+            for (let u = -lim; u < lim; u += 1.2) {
+              if (axis) ctx.fillRect(X(u), X(rv - 3.7), 1.5, 7.4 * k);
+              else ctx.fillRect(X(rv - 3.7), X(u), 7.4 * k, 1.5);
+            }
+            for (const o of [-3.1, -2.95, 2.95, 3.1]) band(rv + o, axis, 0.04, 'rgba(120,100,70,0.13)');
+          } else if (pass === 'curb' && !map.island) band(rv, axis, 5.8, theme.curb);
+          else if (pass === 'road') {
+            band(rv, axis, 5.2, theme.road);
+            if (!map.island) {
+              ctx.fillStyle = 'rgba(255,255,255,0.05)';
+              for (let i = 0; i < 260; i++) {
+                const u = -lim + r() * 2 * lim;
+                const v = rv - 2.5 + r() * 5;
+                if (axis) ctx.fillRect(X(u), X(v), 3, 2);
+                else ctx.fillRect(X(v), X(u), 2, 3);
+              }
+            }
+          } else if (pass === 'marks' && !map.island) {
+            band(rv - 2.3, axis, 0.12, 'rgba(255,255,255,0.7)');
+            band(rv + 2.3, axis, 0.12, 'rgba(255,255,255,0.7)');
+            ctx.fillStyle = '#ffe58a';
             for (let u = -lim; u < lim; u += 3) {
               if (city.roads.some((q) => Math.abs(q - u) < 3.4)) continue;
               if (axis) ctx.fillRect(X(u), X(rv - 0.12), 1.5 * k, 0.24 * k);
@@ -116,34 +170,63 @@ function groundTexture(map, city, theme) {
         }
       }
     }
-    // zebra crossings near the crossroads
+    // crossroads: clean asphalt square, zebra crossings
     if (!map.island) {
-      ctx.fillStyle = 'rgba(255,255,255,0.85)';
       for (const a of city.roads)
-        for (const b of city.roads)
+        for (const b of city.roads) {
+          ctx.fillStyle = theme.road;
+          ctx.fillRect(X(a - 2.6), X(b - 2.6), 5.2 * k, 5.2 * k);
+          ctx.fillStyle = 'rgba(255,255,255,0.9)';
           for (let i = -2; i <= 2; i++) {
             ctx.fillRect(X(a + i * 0.9 - 0.3), X(b + 3.0), 0.6 * k, 1.4 * k);
             ctx.fillRect(X(a + i * 0.9 - 0.3), X(b - 4.4), 0.6 * k, 1.4 * k);
+            ctx.fillRect(X(b + 3.0), X(a + i * 0.9 - 0.3), 1.4 * k, 0.6 * k);
+            ctx.fillRect(X(b - 4.4), X(a + i * 0.9 - 0.3), 1.4 * k, 0.6 * k);
           }
+        }
     }
-    // plazas under fountains and landmarks, gardens under houses
+    // plazas under fountains and landmarks, gardens with stepping stones under houses
     for (const o of city.objects) {
       if (!inIsland(o.x, o.z)) continue;
       if (o.kind === 'fountain' || o.kind === 'tower' || o.kind === 'lighthouse' || o.kind === 'mart' || o.kind === 'center') {
-        ctx.fillStyle = map.island ? '#f7e3b0' : '#ece3cf';
+        const R0 = KINDS[o.kind].r + 2.2;
+        ctx.fillStyle = map.island ? '#f7e3b0' : '#efe5cf';
         ctx.beginPath();
-        ctx.arc(X(o.x), X(o.z), (KINDS[o.kind].r + 2.2) * k, 0, TAU);
+        ctx.arc(X(o.x), X(o.z), R0 * k, 0, TAU);
         ctx.fill();
-        ctx.strokeStyle = 'rgba(0,0,0,0.06)';
-        ctx.lineWidth = 3;
-        for (let q = 1; q < 3; q++) {
+        ctx.strokeStyle = map.island ? 'rgba(180,130,60,0.25)' : 'rgba(150,120,80,0.22)';
+        ctx.lineWidth = 2;
+        for (let q = 1; q < 5; q++) {
           ctx.beginPath();
-          ctx.arc(X(o.x), X(o.z), (KINDS[o.kind].r + 2.2 - q * 1.1) * k, 0, TAU);
+          ctx.arc(X(o.x), X(o.z), (R0 - q * 0.9) * k, 0, TAU);
           ctx.stroke();
         }
+        for (let q = 0; q < 24; q++) {
+          const a = (q / 24) * TAU;
+          ctx.beginPath();
+          ctx.moveTo(X(o.x + Math.cos(a) * (R0 - 3.6)), X(o.z + Math.sin(a) * (R0 - 3.6)));
+          ctx.lineTo(X(o.x + Math.cos(a) * R0), X(o.z + Math.sin(a) * R0));
+          ctx.stroke();
+        }
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+        ctx.beginPath();
+        ctx.arc(X(o.x), X(o.z), R0 * k, 0, TAU);
+        ctx.stroke();
       } else if (o.kind === 'house' || o.kind === 'hut') {
-        ctx.fillStyle = 'rgba(255,255,255,0.13)';
-        ctx.fillRect(X(o.x - 3.4), X(o.z - 3.2), 6.8 * k, 6.4 * k);
+        ctx.fillStyle = 'rgba(255,255,255,0.14)';
+        ctx.beginPath();
+        ctx.roundRect?.(X(o.x - 3.4), X(o.z - 3.2), 6.8 * k, 6.4 * k, 1.2 * k);
+        ctx.fill();
+        const fx = Math.sin(o.rot);
+        const fz = Math.cos(o.rot);
+        ctx.fillStyle = map.island ? '#e9cf98' : '#e3dccb';
+        for (let s = 0; s < 3; s++) {
+          const d = 2.5 + s * 0.85;
+          ctx.beginPath();
+          ctx.ellipse(X(o.x + fx * d), X(o.z + fz * d), 0.38 * k, 0.3 * k, 0, 0, TAU);
+          ctx.fill();
+        }
       }
     }
   });
@@ -217,6 +300,10 @@ export function createGulp3DScene(container, { state }) {
   let pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
   renderer.setPixelRatio(pixelRatio);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.12;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
   const canvas = renderer.domElement;
   canvas.style.width = '100%';
   canvas.style.height = '100%';
@@ -224,28 +311,32 @@ export function createGulp3DScene(container, { state }) {
   container.appendChild(canvas);
 
   const map = state.map;
-  const mapIndex = MAPS.indexOf(map);
-  const theme = THEMES[Math.max(0, mapIndex)];
+  const mapIndex = Math.max(0, MAPS.indexOf(map));
+  const theme = THEMES[mapIndex] || THEMES[0];
   const textures = [];
   const disposables = new Set();
   const D = (x) => (disposables.add(x), x);
   const T = (t) => (textures.push(t), t);
+  const outlines = []; // hidden on slow devices
+  const decor = []; // small decorations, hidden on slow devices
 
   const scene = new THREE.Scene();
   scene.fog = new THREE.Fog(theme.fog, 60, 170);
   const camera = new THREE.PerspectiveCamera(50, 1, 0.3, 600);
 
-  // ---- Sky dome (vertical gradient)
+  // ---- Sky dome (three-stop vertical gradient) and a few puffy clouds
   const skyGeo = D(new THREE.SphereGeometry(400, 24, 12));
   {
     const top = new THREE.Color(theme.sky[0]);
-    const bottom = new THREE.Color(theme.sky[1]);
+    const mid = new THREE.Color(theme.sky[1]);
+    const low = new THREE.Color(theme.sky[2]);
     const p = skyGeo.attributes.position;
     const col = new Float32Array(p.count * 3);
     const c = new THREE.Color();
     for (let i = 0; i < p.count; i++) {
-      const t = Math.max(0, Math.min(1, p.getY(i) / 400 + 0.15));
-      c.copy(bottom).lerp(top, Math.pow(t, 0.7));
+      const t = Math.max(0, Math.min(1, p.getY(i) / 400 + 0.1));
+      if (t < 0.25) c.copy(low).lerp(mid, t / 0.25);
+      else c.copy(mid).lerp(top, Math.pow((t - 0.25) / 0.75, 0.7));
       col.set([c.r, c.g, c.b], i * 3);
     }
     skyGeo.setAttribute('color', new THREE.BufferAttribute(col, 3));
@@ -253,11 +344,28 @@ export function createGulp3DScene(container, { state }) {
   const sky = new THREE.Mesh(skyGeo, D(new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false })));
   sky.renderOrder = -10;
   scene.add(sky);
+  const cloudGeo = D(decorGeometry('cloud'));
+  const clouds = new THREE.InstancedMesh(cloudGeo, D(new THREE.MeshLambertMaterial({ vertexColors: true, emissive: '#ffffff', emissiveIntensity: 0.35, fog: false })), 14);
+  clouds.frustumCulled = false;
+  const cloudData = [];
+  for (let i = 0; i < 14; i++) {
+    const a = (i / 14) * TAU + i * 0.7;
+    const rr = map.half + 30 + (i % 4) * 22;
+    cloudData.push({ x: Math.cos(a) * rr, z: Math.sin(a) * rr, y: 38 + (i % 5) * 7, s: 1.6 + (i % 3) * 0.7, v: 0.6 + (i % 3) * 0.3 });
+  }
+  scene.add(clouds);
 
-  // ---- Lights: soft day
-  scene.add(new THREE.HemisphereLight('#eaf6ff', '#7aa860', 1.25));
-  const sun = new THREE.DirectionalLight(theme.sun, 1.9);
+  // ---- Lights: soft day, one shadow-casting sun that follows Snorlax
+  scene.add(new THREE.HemisphereLight(theme.hemi[0], theme.hemi[1], 1.35));
+  const sun = new THREE.DirectionalLight(theme.sun, 2.1);
   sun.position.set(30, 60, 25);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(1024, 1024);
+  sun.shadow.bias = -0.0006;
+  sun.shadow.normalBias = 0.04;
+  sun.shadow.radius = 3;
+  const SUN_DIR = new THREE.Vector3(30, 60, 25).normalize();
+  let shadowHalf = 0;
   scene.add(sun);
   scene.add(sun.target);
 
@@ -267,17 +375,23 @@ export function createGulp3DScene(container, { state }) {
   const gSize = 2 * (map.half + MARGIN);
   const ground = new THREE.Mesh(D(new THREE.PlaneGeometry(gSize, gSize)), D(new THREE.MeshLambertMaterial({ map: groundTex })));
   ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
   scene.add(ground);
-  // Far surroundings: green hills or open sea
+  // Far surroundings: green hills or open sea with a foamy shore
   let seaTex = null;
+  let foam = null;
   if (map.island) {
     seaTex = T(
       canvasTexture(128, 128, (ctx, w, h) => {
         ctx.fillStyle = theme.sea;
         ctx.fillRect(0, 0, w, h);
-        for (let i = 0; i < 26; i++) {
-          ctx.fillStyle = `rgba(255,255,255,${0.12 + (i % 4) * 0.06})`;
-          ctx.fillRect((i * 37) % w, (i * 53) % h, 10 + (i % 5) * 4, 3);
+        for (let i = 0; i < 30; i++) {
+          ctx.fillStyle = `rgba(255,255,255,${0.1 + (i % 4) * 0.05})`;
+          const x = (i * 37) % w;
+          const y = (i * 53) % h;
+          ctx.beginPath();
+          ctx.ellipse(x, y, 6 + (i % 5) * 3, 1.5, 0, 0, TAU);
+          ctx.fill();
         }
       })
     );
@@ -287,6 +401,37 @@ export function createGulp3DScene(container, { state }) {
     sea.rotation.x = -Math.PI / 2;
     sea.position.y = -0.08;
     scene.add(sea);
+    const foamTex = T(
+      canvasTexture(256, 16, (ctx, w, h) => {
+        const g = ctx.createLinearGradient(0, 0, 0, h);
+        g.addColorStop(0, 'rgba(255,255,255,0)');
+        g.addColorStop(0.45, 'rgba(255,255,255,0.95)');
+        g.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, w, h);
+        ctx.fillStyle = 'rgba(0,0,0,0)';
+        ctx.globalCompositeOperation = 'destination-out';
+        for (let i = 0; i < 40; i++) ctx.fillRect((i * 29) % w, 0, 3 + (i % 3) * 3, h);
+      })
+    );
+    foamTex.wrapS = THREE.RepeatWrapping;
+    foamTex.repeat.set(10, 1);
+    foam = new THREE.Mesh(D(new THREE.RingGeometry(map.half + 1.0, map.half + 2.6, 96, 1)), D(new THREE.MeshBasicMaterial({ map: foamTex, transparent: true, depthWrite: false, opacity: 0.85 })));
+    // ring UVs run radially: rotate the texture so the foam band follows the shore
+    {
+      const g = foam.geometry;
+      const p = g.attributes.position;
+      const uv = g.attributes.uv;
+      for (let i = 0; i < p.count; i++) {
+        const a = Math.atan2(p.getY(i), p.getX(i));
+        const rr = Math.hypot(p.getX(i), p.getY(i));
+        uv.setXY(i, (a / TAU + 0.5) * 6, (rr - map.half - 1.0) / 1.6);
+      }
+    }
+    foam.rotation.x = -Math.PI / 2;
+    foam.position.y = 0.03;
+    foam.renderOrder = 1;
+    scene.add(foam);
   } else {
     const far = new THREE.Mesh(D(new THREE.PlaneGeometry(1200, 1200)), D(new THREE.MeshLambertMaterial({ color: theme.edge })));
     far.rotation.x = -Math.PI / 2;
@@ -294,8 +439,9 @@ export function createGulp3DScene(container, { state }) {
     scene.add(far);
   }
 
-  // ---- City: one InstancedMesh per (kind, variant)
-  const cityMat = D(new THREE.MeshLambertMaterial({ vertexColors: true }));
+  // ---- City: one InstancedMesh (+ outline sharing its matrices) per (kind, variant)
+  const cityMat = D(townMaterial());
+  const lineMat = D(outlineMaterial({ vertexColors: true, darken: 0.4, sway: true, width: 0.0026, max: 0.07 }));
   const buckets = new Map(); // key -> { mesh, height, n }
   const slots = []; // object id -> { b, i }
   const keyOf = (kind, variant) => {
@@ -310,18 +456,29 @@ export function createGulp3DScene(container, { state }) {
     counts.set('berry:0', counts.get('berry:0') + SPARE_BERRIES);
     for (const [key, n] of counts) {
       const [kind, v] = key.split(':');
-      const geo = D(kindGeometry(kind, Number(v)));
+      const geo = D(kindGeometry(kind, Number(v), mapIndex));
       const mesh = new THREE.InstancedMesh(geo, cityMat, n);
+      mesh.name = key;
+      mesh.count = 0; // grows as slots are handed out
       mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       mesh.frustumCulled = false;
+      mesh.castShadow = CASTS.has(kind);
+      mesh.receiveShadow = true;
       scene.add(mesh);
-      buckets.set(key, { mesh, height: kindHeight(geo), n: 0, cap: n });
+      let line = null;
+      if (!TINY.has(kind) && kind !== 'lamp') {
+        line = outlineOf(mesh, lineMat);
+        scene.add(line);
+        outlines.push(line);
+      }
+      buckets.set(key, { mesh, line, height: kindHeight(geo), n: 0, cap: n });
     }
   }
-  // Blob shadows for everything (one InstancedMesh)
+  // Blob shadows for everything (one InstancedMesh): contact shade under the real sun shadow
   const shadowTex = T(radial('rgba(20,40,30,0.42)', 'rgba(20,40,30,0)'));
   const shadowCap = state.objects.length + SPARE_BERRIES + 4;
-  const shadowMesh = new THREE.InstancedMesh(D(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2)), D(new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false })), shadowCap);
+  const blobMatCity = D(new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false, opacity: 0.6 }));
+  const shadowMesh = new THREE.InstancedMesh(D(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2)), blobMatCity, shadowCap);
   shadowMesh.frustumCulled = false;
   shadowMesh.renderOrder = 1;
   scene.add(shadowMesh);
@@ -331,8 +488,9 @@ export function createGulp3DScene(container, { state }) {
   const vs = new THREE.Vector3();
   const up = new THREE.Vector3(0, 1, 0);
   const zero = new THREE.Matrix4().makeScale(0, 0, 0);
-  const lastX = new Float32Array(shadowCap);
-  const lastZ = new Float32Array(shadowCap);
+  // Float64: engine positions are doubles (Float32 would make every object look "moved" and spin)
+  const lastX = new Float64Array(shadowCap);
+  const lastZ = new Float64Array(shadowCap);
   const setObj = (o, sx = 1, sy = 1, y = 0, extraRot = 0) => {
     const sl = slots[o.id];
     if (!sl) return;
@@ -365,6 +523,8 @@ export function createGulp3DScene(container, { state }) {
     const b = buckets.get(keyOf(o.kind, o.variant));
     if (!b || b.n >= b.cap || o.id >= shadowCap) return false;
     slots[o.id] = { b, i: b.n++ };
+    b.mesh.count = b.n; // only draw the slots in use (spare berries cost nothing until dropped)
+    if (b.line) b.line.count = b.n;
     lastX[o.id] = o.x;
     lastZ[o.id] = o.z;
     return true;
@@ -380,36 +540,71 @@ export function createGulp3DScene(container, { state }) {
   }
   const knownObjects = { n: state.objects.length };
 
-  // Outer ring of decorative trees (not edible) so the town does not end in nothing
+  // ---- Scenery (not edible): grass tufts, flower patches, rocks; tree ring and hills or sea rocks
+  let rs = 99;
+  const rr = () => (rs = (rs * 16807) % 2147483647) / 2147483647;
+  {
+    const roadNear = (x, z, pad) => state.city.roads.some((v) => Math.abs(v - x) < pad || Math.abs(v - z) < pad);
+    const objNear = (x, z) => state.objects.some((o) => Math.abs(o.x - x) < KINDS[o.kind].r + 0.6 && Math.abs(o.z - z) < KINDS[o.kind].r + 0.6);
+    const scatter = (type, n, pad, sc) => {
+      const mesh = new THREE.InstancedMesh(D(decorGeometry(type)), cityMat, n);
+      let c = 0;
+      for (let i = 0; i < n * 6 && c < n; i++) {
+        const x = (rr() - 0.5) * 2 * (map.half - 2);
+        const z = (rr() - 0.5) * 2 * (map.half - 2);
+        if (map.island ? Math.hypot(x, z) > map.half - 10 : false) continue;
+        if (roadNear(x, z, pad) || objNear(x, z)) continue;
+        q.setFromAxisAngle(up, rr() * TAU);
+        const s = sc * (0.7 + rr() * 0.6);
+        m4.compose(vp.set(x, 0, z), q, vs.set(s, s, s));
+        mesh.setMatrixAt(c++, m4);
+      }
+      mesh.count = c;
+      mesh.receiveShadow = true;
+      scene.add(mesh);
+      return mesh;
+    };
+    decor.push(scatter('tuft', 520, 4.2, 1), scatter('flowers', 70, 4.4, 1));
+    const rocks = scatter('rock', 26, 4.4, 0.9);
+    rocks.castShadow = true;
+  }
   if (!map.island) {
-    const decoGeo = D(kindGeometry('tree', 1));
-    const deco = new THREE.InstancedMesh(decoGeo, cityMat, 160);
-    let n = 0;
-    let rs = 99;
-    const rr = () => ((rs = (rs * 16807) % 2147483647) / 2147483647);
-    for (let i = 0; i < 160; i++) {
+    // Outer ring of decorative pines so the town does not end in nothing, hills behind
+    const ring = [new THREE.InstancedMesh(D(kindGeometry('tree', 1, mapIndex)), cityMat, 200)];
+    const nRing = [0];
+    for (let i = 0; i < 200; i++) {
       const side = i % 4;
       const u = (rr() - 0.5) * 2 * (map.half + 14);
       const w = map.half + 3 + rr() * 14;
       const x = side === 0 ? u : side === 1 ? u : side === 2 ? w : -w;
       const z = side === 0 ? w : side === 1 ? -w : u;
       q.setFromAxisAngle(up, rr() * TAU);
-      const sc = 1.6 + rr() * 1.6;
+      const sc = 1.5 + rr() * 1.5;
       m4.compose(vp.set(x, 0, z), q, vs.set(sc, sc, sc));
-      deco.setMatrixAt(n++, m4);
+      ring[0].setMatrixAt(nRing[0]++, m4);
     }
-    deco.count = n;
-    scene.add(deco);
+    ring.forEach((m, k) => {
+      m.count = nRing[k];
+      scene.add(m);
+    });
+    const hills = new THREE.InstancedMesh(D(decorGeometry('hill')), cityMat, 16);
+    for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * TAU + 0.3;
+      const d = map.half + 40 + (i % 3) * 14;
+      const s = 18 + (i % 4) * 7;
+      m4.compose(vp.set(Math.cos(a) * d, -1, Math.sin(a) * d), q.identity(), vs.set(s, s * (0.7 + (i % 3) * 0.25), s));
+      hills.setMatrixAt(i, m4);
+    }
+    scene.add(hills);
   } else {
     // a few rocks in the shallow water
-    const rockGeo = D(new THREE.DodecahedronGeometry(1, 0));
-    const rock = new THREE.InstancedMesh(rockGeo, D(new THREE.MeshLambertMaterial({ color: '#9aa5b1', flatShading: true })), 24);
+    const rock = new THREE.InstancedMesh(D(decorGeometry('rock')), cityMat, 24);
     for (let i = 0; i < 24; i++) {
       const a = (i / 24) * TAU + 0.2;
-      const rr = map.half + 6 + (i % 3) * 5;
+      const d = map.half + 6 + (i % 3) * 5;
       q.setFromAxisAngle(up, i);
-      const sc = 0.8 + (i % 4) * 0.5;
-      m4.compose(vp.set(Math.cos(a) * rr, -0.2, Math.sin(a) * rr), q, vs.set(sc, sc * 0.6, sc));
+      const sc = 1.2 + (i % 4) * 0.7;
+      m4.compose(vp.set(Math.cos(a) * d, -0.25, Math.sin(a) * d), q, vs.set(sc, sc * 0.8, sc));
       rock.setMatrixAt(i, m4);
     }
     scene.add(rock);
@@ -418,39 +613,34 @@ export function createGulp3DScene(container, { state }) {
   // ---- Snorlax, rival Munchlax
   const snorlax = createSnorlax({ variant: 'snorlax' });
   scene.add(snorlax.group);
+  // Blob shadows of the characters: one InstancedMesh (0 Snorlax, 1 Munchlax, 2.. chibis)
   const blobTex = T(radial('rgba(10,30,30,0.5)', 'rgba(10,30,30,0)'));
-  const blobMat = D(new THREE.MeshBasicMaterial({ map: blobTex, transparent: true, depthWrite: false }));
-  const blobGeo = D(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2));
-  const snorShadow = new THREE.Mesh(blobGeo, blobMat);
-  snorShadow.renderOrder = 2;
-  scene.add(snorShadow);
+  const blobMat = D(new THREE.MeshBasicMaterial({ map: blobTex, transparent: true, depthWrite: false, opacity: 0.55 }));
+  const charShadow = new THREE.InstancedMesh(D(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2)), blobMat, 2 + state.pokemon.length);
+  charShadow.frustumCulled = false;
+  charShadow.renderOrder = 2;
+  for (let i = 0; i < charShadow.count; i++) charShadow.setMatrixAt(i, zero);
+  scene.add(charShadow);
+  const putShadow = (i, x, z, sx, sz) => {
+    m4.compose(vp.set(x, 0.04 - i * 0.001, z), q.identity(), vs.set(sx, 1, sz));
+    charShadow.setMatrixAt(i, m4);
+    charShadow.instanceMatrix.needsUpdate = true;
+  };
   let munch = null;
-  let munchShadow = null;
   if (state.rival) {
     munch = createSnorlax({ variant: 'munchlax' });
     scene.add(munch.group);
-    munchShadow = new THREE.Mesh(blobGeo, blobMat);
-    munchShadow.renderOrder = 2;
-    scene.add(munchShadow);
   }
+  for (const m of [snorlax, munch]) if (m) outlines.push(...m.parts.outlines);
 
   // ---- Friendly Pokemon (3D chibis)
-  const chibiCache = { geos: {}, mats: {}, ramp: null };
-  {
-    const data = new Uint8Array([120, 120, 120, 255, 190, 190, 190, 255, 255, 255, 255, 255]);
-    chibiCache.ramp = new THREE.DataTexture(data, 3, 1, THREE.RGBAFormat);
-    chibiCache.ramp.minFilter = chibiCache.ramp.magFilter = THREE.NearestFilter;
-    chibiCache.ramp.needsUpdate = true;
-    textures.push(chibiCache.ramp);
-  }
+  const chibiCache = { geos: {}, mats: {}, ramp: T(toonRamp([130, 200, 240, 255])) };
   const chibis = state.pokemon.map((p) => {
     const c = createChibi(p.species, chibiCache);
     c.group.scale.setScalar(1.1);
     scene.add(c.group);
-    const sh = new THREE.Mesh(blobGeo, blobMat);
-    sh.scale.set(1, 1, 1);
-    scene.add(sh);
-    return { ...c, shadow: sh, alert: 0 };
+    c.group.traverse((o) => o.userData.outline && outlines.push(o));
+    return { ...c, alert: 0 };
   });
   const alertTex = T(textTexture('!', '#fde047', '#b45309'));
   const alertMat = D(new THREE.SpriteMaterial({ map: alertTex, transparent: true, depthWrite: false }));
@@ -465,7 +655,7 @@ export function createGulp3DScene(container, { state }) {
 
   // ---- Powerups
   const powerGeos = { gold: D(powerupGeometry('gold')), speed: D(powerupGeometry('speed')), magnet: D(powerupGeometry('magnet')) };
-  const powerMat = D(new THREE.MeshLambertMaterial({ vertexColors: true, emissive: '#ffffff', emissiveIntensity: 0.18 }));
+  const powerMat = D(townMaterial({ emissive: '#ffffff', emissiveIntensity: 0.18 }));
   const glowTex = T(radial('rgba(255,255,255,1)', 'rgba(255,255,255,0)'));
   const glowColors = { gold: '#fde047', speed: '#f87171', magnet: '#93c5fd' };
   const powerViews = new Map();
@@ -526,7 +716,22 @@ export function createGulp3DScene(container, { state }) {
   let lastSZ = state.z;
   let zAcc = 0;
 
-  function syncBody(model, shadow, b, dt, opts) {
+  /** Slow device: drop the sun shadow, outlines and small decorations; blob shadows take over. */
+  function goLowPower() {
+    lowPower = true;
+    pixelRatio = 1;
+    renderer.setPixelRatio(1);
+    resize();
+    dust.points.visible = false;
+    sun.castShadow = false;
+    renderer.shadowMap.enabled = false;
+    for (const o of outlines) o.visible = false;
+    for (const d of decor) d.visible = false;
+    blobMatCity.opacity = 1;
+    blobMat.opacity = 1;
+  }
+
+  function syncBody(model, shadowIndex, b, dt, opts) {
     const k = b.R; // model radius 1 → engine R
     model.group.position.set(b.x, 0, b.z);
     model.group.scale.setScalar(k);
@@ -537,13 +742,13 @@ export function createGulp3DScene(container, { state }) {
     d = Math.atan2(Math.sin(d), Math.cos(d));
     model.group.rotation.y += d * Math.min(1, dt * (model.idleT > 0.7 ? 4 : 12));
     model.update(dt, opts);
-    shadow.position.set(b.x, 0.04, b.z);
-    shadow.scale.set(k * 2.9, 1, k * 2.6);
+    putShadow(shadowIndex, b.x, b.z, k * 2.9, k * 2.6);
   }
 
   function update(s, dt) {
     dt = Math.min(dt, 0.1);
     t += dt;
+    lookTime.value = t;
     const sleeping = s.status === 'done';
     // New objects (berries dropped by Pokemon)
     while (knownObjects.n < s.objects.length) {
@@ -554,7 +759,7 @@ export function createGulp3DScene(container, { state }) {
       }
     }
     // Snorlax
-    syncBody(snorlax, snorShadow, s, dt, { moving: s.moving, sleeping });
+    syncBody(snorlax, 0, s, dt, { moving: s.moving, sleeping });
     const moved = Math.hypot(s.x - lastSX, s.z - lastSZ);
     lastSX = s.x;
     lastSZ = s.z;
@@ -573,7 +778,7 @@ export function createGulp3DScene(container, { state }) {
         addFloater(zMat, s.x + s.R * 0.3, s.R * 2.5, s.z + s.R * 0.3, s.R * 0.5, 2.2, s.R * 0.25);
       }
     }
-    if (munch && s.rival) syncBody(munch, munchShadow, s.rival, dt, { moving: s.rival.moving, sleeping });
+    if (munch && s.rival) syncBody(munch, 1, s.rival, dt, { moving: s.rival.moving, sleeping });
 
     // Objects: magnet pulls, jiggles, new berries popping in
     for (let i = 0; i < s.objects.length; i++) {
@@ -644,8 +849,7 @@ export function createGulp3DScene(container, { state }) {
       if (c.parts.wag) c.parts.wag.rotation.x = Math.sin(t * 8 + i) * 0.4;
       if (c.parts.wings) c.parts.wings.forEach((w, k) => (w.rotation.z = (k ? -1 : 1) * (-0.25 - (p.fleeing ? Math.abs(Math.sin(t * 22)) * 0.9 : 0))));
       c.bang.visible = p.fleeing && Math.sin(t * 10) > -0.5;
-      c.shadow.position.set(p.x, 0.035, p.z);
-      c.shadow.scale.set(1.1 - hop, 1, 1.1 - hop);
+      putShadow(2 + i, p.x, p.z, 1.1 - hop, 1.1 - hop);
     });
 
     // Powerups
@@ -702,6 +906,20 @@ export function createGulp3DScene(container, { state }) {
     dust.update(dt);
     sparks.update(dt);
     if (seaTex) seaTex.offset.set(t * 0.01, t * 0.006);
+    if (foam) {
+      foam.material.map.offset.x = t * 0.01;
+      const b = 1 + Math.sin(t * 1.3) * 0.012;
+      foam.scale.set(b, b, 1);
+      foam.material.opacity = 0.65 + Math.sin(t * 1.3) * 0.2;
+    }
+    // Clouds drift slowly
+    for (let i = 0; i < cloudData.length; i++) {
+      const c = cloudData[i];
+      const x = ((c.x + t * c.v + 260) % 520) - 260;
+      m4.compose(vp.set(x, c.y, c.z), q.identity(), vs.set(c.s, c.s, c.s));
+      clouds.setMatrixAt(i, m4);
+    }
+    clouds.instanceMatrix.needsUpdate = true;
 
     // Camera: high 3/4 view, pulls back as Snorlax grows
     const a = cam.ready ? 1 - Math.exp(-dt * 5) : 1;
@@ -717,19 +935,32 @@ export function createGulp3DScene(container, { state }) {
     sky.position.copy(camera.position);
     scene.fog.near = 40 + dist * 1.2;
     scene.fog.far = 120 + dist * 3;
-    sun.position.set(cam.x + 30, 60, cam.z + 25);
-    sun.target.position.set(cam.x, 0, cam.z);
+    // Sun shadow box follows the view (snapped to texels so edges do not shimmer)
+    if (sun.castShadow) {
+      const want = Math.ceil((8 + dist * 0.95) / 4) * 4;
+      if (want !== shadowHalf) {
+        shadowHalf = want;
+        const sc = sun.shadow.camera;
+        sc.left = sc.bottom = -want;
+        sc.right = sc.top = want;
+        sc.near = 1;
+        sc.far = 160 + want;
+        sc.updateProjectionMatrix();
+      }
+      const texel = (2 * shadowHalf) / sun.shadow.mapSize.x;
+      const tx = Math.round(cam.x / texel) * texel;
+      const tz = Math.round((cam.z - dist * 0.15) / texel) * texel;
+      sun.target.position.set(tx, 0, tz);
+      sun.position.set(tx + SUN_DIR.x * 90, SUN_DIR.y * 90, tz + SUN_DIR.z * 90);
+    } else {
+      sun.position.set(cam.x + 30, 60, cam.z + 25);
+      sun.target.position.set(cam.x, 0, cam.z);
+    }
 
     // Adaptive quality
     if (!lowPower) {
       slowT = dt > 0.034 ? slowT + dt : Math.max(0, slowT - dt * 0.5);
-      if (slowT > 3) {
-        lowPower = true;
-        pixelRatio = 1;
-        renderer.setPixelRatio(1);
-        resize();
-        dust.points.visible = false;
-      }
+      if (slowT > 3) goLowPower();
     }
     renderer.render(scene, camera);
     return { sx: project(s.x, s.R * 2.6, s.z) };
@@ -783,7 +1014,7 @@ export function createGulp3DScene(container, { state }) {
     scene.traverse((o) => {
       if (o.geometry) disposables.add(o.geometry);
       if (o.material) disposables.add(o.material);
-      if (o.isInstancedMesh) disposables.add(o);
+      if (o.isInstancedMesh && !o.userData.outline) disposables.add(o);
     });
     for (const d of disposables) d.dispose?.();
     for (const tx of textures) tx.dispose();
