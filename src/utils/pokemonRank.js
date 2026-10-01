@@ -28,6 +28,9 @@ export const GAME_RANK = {
   oddone: 1,
   spot: 1,
   snorlax: 1,
+  run3d: 1,
+  sky3d: 1,
+  island3d: 1,
   // Carnival games are open to every Pokemon
   diglett: 1,
   ringtoss: 1,

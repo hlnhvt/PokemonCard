@@ -1534,3 +1534,22 @@ Banner mới trong tab Trò chơi. Game chơi màn ngang và tự xoay khi cầm
 | TD-14..15 | P1 | AUTO | Bot mô phỏng cân bằng (xem trên); bạn đồng hành hệ khác vẫn thắng | Đạt |
 | TDUI-01..02 | P1 | AUTO | Chơi màn 1 tới kết quả, vàng 1 lần; tiến hóa Charmander → Charmeleon, bán trụ | Đạt (699 test toàn dự án) |
 | UI-37 | P2 | MANUAL (Chrome 360×760) | Chọn màn, xây Charmander, gọi đợt: đường đi, ô Poké Ball, tầm bắn, thanh năng lượng | Đúng, không lỗi JS |
+
+
+## 50. Thế giới 3D (three.js): Chạy 3 làn, Cưỡi Charizard, Đảo nhà Pokémon
+
+- Mục mới "🧊 Thế giới 3D" trong tab Trò chơi. Mỗi game tải riêng (React.lazy); three.js là một gói riêng ~148 KB nén, chỉ tải khi mở game. Máy không có WebGL thì hiện thông báo thân thiện.
+- Pokémon là ảnh 2D đặt trong thế giới 3D (luôn quay về camera, có bóng đổ); cảnh vật dựng 3D bằng code, không tải mô hình ngoài.
+- **Chạy 3 làn** (`pokescan_run3d_v1`): bot biết né chạy tới giới hạn 4000 m ở 12/12 lần; bot đứng yên dừng trung bình 75 m. Thử 2000 hàng × 4 tốc độ: luôn có làn trống tới kịp.
+- **Cưỡi Charizard** (progress `sky3d`): 10 màn; lái tự động 3★ cả 10 màn; bay lắc lư 2–3★; bay thẳng 0★.
+- **Đảo nhà Pokémon** (`pokescan_island3d_v1`): 11 điều ước, tổng 181 vàng; bot xây hoàn thành cả 11 từ đảo khởi đầu.
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| RUN-E01..E21 | P1 | AUTO | Đổi làn/nhảy/trượt, từng loại vật cản, vật phẩm, hồi sinh, tiếp tục, nhiệm vụ, vàng, bot | Đạt |
+| RUN-U01..U05 | P1 | AUTO | Màn đầu + đếm ngược, va → Tiếp tục → kết quả (vàng 1 lần), không WebGL, giải phóng cảnh | Đạt |
+| SKY-01..15 | P1 | AUTO | Lái, tăng tốc, qua vòng theo thứ tự, vòng vàng/di chuyển, không chạm đất, gió đưa về, va chạm −3 s, sao, bot | Đạt |
+| SKY-UI-01..04 | P1 | AUTO | Bay màn 1 được 3★, vàng 1 lần, mở màn 2; cần điều khiển; không WebGL; bàn phím | Đạt |
+| ISL-01..19 | P1 | AUTO | Lưới, đặt/xóa/tô/hoàn tác, lưu RLE, tìm đường, các điều ước, trả vàng 1 lần, bot | Đạt |
+| ISL-UI-01..06 | P1 | AUTO | Trồng 5 hoa → chúc mừng, vàng 1 lần, tự lưu; mời bạn; ngày/đêm; mở lại; không WebGL | Đạt (769 test toàn dự án) |
+| UI-38 | P2 | MANUAL (Chrome 360×760, SwiftShader) | Mở 3 game từ tab Trò chơi: đường chạy rừng + Snorlax + xu; đảo khởi đầu + Pikachu + nhiệm vụ | Đúng, không lỗi JS |

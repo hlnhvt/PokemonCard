@@ -523,6 +523,44 @@ const GAME_PICS = {
       <Ball x={40} y={9} r={4} />
     </>
   ),
+  run3d: (
+    <>
+      <path d="M19 8h10l15 36H4z" fill="#d8ad74" />
+      <path d="M22.3 8 15 44M25.7 8 33 44" stroke="#fff" strokeWidth="1.4" strokeDasharray="3 2.5" />
+      <circle cx="24" cy="13" r="2.6" fill="#facc15" stroke="#b45309" strokeWidth="1" />
+      <circle cx="24" cy="20" r="3.2" fill="#facc15" stroke="#b45309" strokeWidth="1" />
+      <path d="M15.5 31l-3-8 6 5zM32.5 31l3-8-6 5z" fill="#facc15" stroke="#1f2937" strokeWidth="1" strokeLinejoin="round" />
+      <path d="M12.6 23l1.2 3.2M35.4 23l-1.2 3.2" stroke="#1f2937" strokeWidth="1.6" />
+      <Ball x={24} y={35} r={7} />
+      <path d="M6 14h7M4 19h6M35 14h7M38 19h6" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" opacity="0.8" />
+    </>
+  ),
+  sky3d: (
+    <>
+      <defs><linearGradient id="sky3dBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#38bdf8" /><stop offset="1" stopColor="#fdba74" /></linearGradient></defs>
+      <rect x="2" y="2" width="44" height="44" rx="12" fill="url(#sky3dBg)" />
+      <ellipse cx="14" cy="13" rx="7" ry="3.5" fill="#fff" opacity="0.9" />
+      <ellipse cx="33" cy="24" rx="9" ry="11" fill="none" stroke="#fde047" strokeWidth="3.5" />
+      <path d="M8 34c6-9 12-11 17-9l6-7 1 9c3 1 5 3 6 6-6-2-11-1-15 2-4-3-9-3-15-1z" fill="#f97316" stroke="#9a3412" strokeWidth="1.2" strokeLinejoin="round" />
+      <path d="M25 25l6-7 1 9z" fill="#14b8a6" stroke="#0f766e" strokeWidth="1" />
+      <path d="M38 33c2-2 3-4 2-6" stroke="#facc15" strokeWidth="2" fill="none" strokeLinecap="round" />
+      <Ball x={21} y={20} r={3.6} />
+    </>
+  ),
+  island3d: (
+    <>
+      <rect x="2" y="30" width="44" height="16" rx="6" fill="#38bdf8" />
+      <path d="M4 36q5-3 10 0t10 0 10 0 10 0" stroke="#e0f2fe" strokeWidth="2" fill="none" />
+      <path d="M8 32l16-8 16 8-16 8z" fill="#6cc24a" />
+      <path d="M8 32v6l16 8v-6z" fill="#9b6b3f" />
+      <path d="M40 32v6l-16 8v-6z" fill="#8a5d35" />
+      <rect x="15" y="14" width="10" height="10" fill="#c8553d" />
+      <path d="M13 15l7-7 7 7z" fill="#c99a5b" />
+      <rect x="18.5" y="18" width="3" height="6" fill="#7c2d12" />
+      <circle cx="31" cy="12" r="2.4" fill="#fde047" />
+      <Ball x={33} y={24} r={5} />
+    </>
+  ),
   towerdef: (
     <>
       <path d="M6 40 Q14 30 24 34 T42 28" fill="none" stroke="#c2894b" strokeWidth="6" strokeLinecap="round" />

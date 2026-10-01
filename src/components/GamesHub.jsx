@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import { Target, Lock } from './icons/PokeIcons';
 import { GuessGame } from './GuessGame';
 import { RunnerGame } from './RunnerGame';
@@ -8,6 +8,7 @@ import { ShopGame } from './kidgames/ShopGame';
 import { SPORTS, findSport } from './sports';
 import { LOGIC_GAMES, findLogicGame } from './logic';
 import { CARNIVAL_GAMES, findCarnivalGame } from './carnival';
+import { GAMES_3D, findGame3D } from './three3d';
 import { PokeballIcon } from './PokeballIcon';
 import { TeamBattle } from './team/TeamBattle';
 import { LeagueGame } from './league/LeagueGame';
@@ -38,6 +39,7 @@ const SECTIONS = [
   { id: 'sport', title: '🏆 Thi đấu thể thao', games: SPORTS },
   { id: 'logic', title: '🧠 Trò chơi trí tuệ', games: LOGIC_GAMES },
   { id: 'carnival', title: '🎪 Hội chợ Pokémon', games: CARNIVAL_GAMES },
+  { id: '3d', title: '🧊 Thế giới 3D', games: GAMES_3D },
 ];
 
 function GameTile({ game, onPlay, locked, needRank }) {
@@ -301,6 +303,21 @@ export function GamesHub({ collection = [], berries, onBerries, onBattleResult, 
         const find = { sport: findSport, logic: findLogicGame, carnival: findCarnivalGame }[playing.section];
         const Game = find(playing.id).Component;
         return <Game player={player} onBerries={onBerries} onGold={onGold} onClose={close} />;
+      })()}
+      {selected && playing?.section === '3d' && (() => {
+        const Game = findGame3D(playing.id).Component;
+        return (
+          <Suspense
+            fallback={
+              <div role="status" className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-slate-950/90 text-white">
+                <PokeballIcon className="w-16 h-16 sport-bob" />
+                <p className="text-lg font-black">Đang mở thế giới 3D…</p>
+              </div>
+            }
+          >
+            <Game player={player} collection={collection} onGold={onGold} onClose={close} />
+          </Suspense>
+        );
       })()}
     </div>
   );

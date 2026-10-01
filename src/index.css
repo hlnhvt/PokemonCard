@@ -2012,3 +2012,120 @@
   .snorlax-hint-arrow { transform: translate(-50%, -100%); }
   .snorlax-hint-ring { transform: translate(-50%, -50%); }
 }
+
+/* ---------- Cưỡi Charizard bay lượn (sky3d) ---------- */
+@keyframes sky3dFloat {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-5px) rotate(2deg); }
+}
+@keyframes sky3dToast {
+  0% { transform: translateY(12px) scale(0.6); opacity: 0; }
+  20% { transform: translateY(0) scale(1.15); opacity: 1; }
+  35% { transform: scale(1); }
+  80% { opacity: 1; }
+  100% { transform: translateY(-26px); opacity: 0; }
+}
+@keyframes sky3dSpeed {
+  from { background-position: 0 0; opacity: 0.55; }
+  to { background-position: 0 0; opacity: 0.85; }
+}
+@keyframes sky3dCloud {
+  0% { opacity: 0.55; }
+  100% { opacity: 0; }
+}
+@keyframes sky3dArrow {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.5); }
+}
+@keyframes sky3dWind {
+  0%, 100% { transform: translateX(-6px); }
+  50% { transform: translateX(6px); }
+}
+.sky3d-float { animation: sky3dFloat 2.4s ease-in-out infinite; }
+.sky3d-toast { animation: sky3dToast 1.3s ease-out both; }
+.sky3d-speedlines {
+  background: repeating-conic-gradient(from 0deg at 50% 55%, rgba(255,255,255,0) 0deg 5deg, rgba(255,255,255,0.32) 5.5deg 6deg, rgba(255,255,255,0) 6.5deg 11deg);
+  -webkit-mask-image: radial-gradient(circle at 50% 55%, transparent 32%, black 75%);
+  mask-image: radial-gradient(circle at 50% 55%, transparent 32%, black 75%);
+  animation: sky3dSpeed 0.18s linear infinite alternate;
+}
+.sky3d-cloudflash { animation: sky3dCloud 0.7s ease-out both; }
+.sky3d-arrow { animation: sky3dArrow 0.8s ease-in-out infinite; }
+.sky3d-wind { animation: sky3dWind 1.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .sky3d-float, .sky3d-arrow, .sky3d-wind, .sky3d-speedlines { animation: none; }
+  .sky3d-toast { animation: sky3dCloud 1.3s ease-out both; }
+  .sky3d-cloudflash { animation: none; opacity: 0; }
+}
+
+/* ---------- Đảo nhà Pokémon (island3d) ---------- */
+@keyframes island3dHint {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(-6px); }
+}
+@keyframes island3dToast {
+  0% { transform: translateX(-50%) translateY(-10px) scale(0.9); opacity: 0; }
+  12%, 85% { transform: translateX(-50%) translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateX(-50%) translateY(-6px) scale(1); opacity: 0; }
+}
+@keyframes island3dHop {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  30% { transform: translateY(-14px) scale(0.94, 1.06); }
+  55% { transform: translateY(0) scale(1.08, 0.92); }
+}
+@keyframes island3dSheet {
+  from { transform: translateY(40px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.island3d-hint { animation: island3dHint 1.6s ease-in-out infinite; }
+.island3d-toast { animation: island3dToast 2.2s ease-out both; }
+.island3d-hop { animation: island3dHop 0.9s ease-in-out infinite; }
+.island3d-sheet { animation: island3dSheet 0.22s ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .island3d-hint, .island3d-toast, .island3d-hop, .island3d-sheet { animation: none; }
+}
+
+/* ---------- run3d: Pokémon Chạy 3 làn ---------- */
+@keyframes run3dToast {
+  0% { transform: translateY(14px) scale(0.6); opacity: 0; }
+  18% { transform: translateY(0) scale(1.12); opacity: 1; }
+  30% { transform: scale(1); }
+  80% { opacity: 1; }
+  100% { transform: translateY(-26px) scale(1); opacity: 0; }
+}
+@keyframes run3dBanner {
+  0% { transform: translate(-50%, -30px) scale(0.7); opacity: 0; }
+  15% { transform: translate(-50%, 0) scale(1.08); opacity: 1; }
+  25% { transform: translate(-50%, 0) scale(1); }
+  80% { opacity: 1; }
+  100% { transform: translate(-50%, -10px) scale(1); opacity: 0; }
+}
+@keyframes run3dBannerIn {
+  0% { transform: scale(0.4); opacity: 0; }
+  40% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes run3dPop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+@keyframes run3dPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.7); }
+  50% { transform: scale(1.05); box-shadow: 0 0 0 14px rgba(52, 211, 153, 0); }
+}
+@keyframes run3dHint {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 1; }
+}
+.run3d-toast { animation: run3dToast 1.3s ease-out both; }
+.run3d-banner { animation: run3dBanner 2.6s ease-out both; }
+.run3d-banner-in { animation: run3dBannerIn 0.5s ease-out both; }
+.run3d-pop { animation: run3dPop 0.5s ease-out; }
+.run3d-chip { animation: run3dPop 0.4s ease-out; }
+.run3d-pulse { animation: run3dPulse 1s ease-in-out infinite; }
+.run3d-hint { animation: run3dHint 1.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .run3d-toast, .run3d-banner-in, .run3d-pop, .run3d-chip, .run3d-pulse, .run3d-hint { animation: none; }
+  .run3d-banner { animation: none; transform: translateX(-50%); }
+}
