@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeType, themeFor, realModelFor, DIORAMAS, AURAS, GAME_TYPES } from './themes';
+import { normalizeType, themeFor, DIORAMAS, AURAS, GAME_TYPES } from './themes';
 import { buildStandee, buildMask, distanceField, dropSmallIslands, inflateProfile, makeImageData, opaqueBounds } from './standeeMesh';
 import { revealPose, revealEvents, REVEAL, QUICK_START } from './reveal';
 import {
@@ -34,13 +34,6 @@ describe('themes', () => {
     expect(themeFor({ types: ['Water'] }).dioramaId).toBe('beach');
     expect(themeFor({ types: ['Ghost'] }).aura.kind).toBe('wisps');
     expect(themeFor({}).type).toBe('normal');
-  });
-  it('PG-TH-03 real models by Pokédex number or name; others use the standee', () => {
-    expect(realModelFor({ pokedexNumber: '025' })).toEqual({ kind: 'racer', species: 'pikachu' });
-    expect(realModelFor({ pokedexNumber: 6 }).kind).toBe('charizard');
-    expect(realModelFor({ pokedexNumber: 143 }).kind).toBe('snorlax');
-    expect(realModelFor({ name: 'Eevee V' }).species).toBe('eevee');
-    expect(realModelFor({ pokedexNumber: 131, name: 'Lapras' })).toBeNull();
   });
 });
 

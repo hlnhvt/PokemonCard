@@ -1,21 +1,18 @@
 // three.js world of the 3D Pokémon playground: a floating diorama themed by the Pokémon's type,
-// the Pokémon as a puffy artwork "standee" (or the app's real 3D model for a few species),
+// every Pokémon as a puffy 3D "standee" made from its own artwork,
 // the Poké Ball reveal, type aura particles and the props of every activity.
 // The scene is "dumb": React drives it with update(dt, view) every frame (view comes from the
 // pure engines in utils/playground3d) and fx(type) for one-shot effects. No own RAF loop, so
 // pausing = not calling update. Budget: < ~80 draw calls, pixel ratio ≤ 2 (drops to 1 when slow).
 import * as THREE from 'three';
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { themeFor, realModelFor } from '../../utils/playground3d/themes';
+import { themeFor } from '../../utils/playground3d/themes';
 import { buildStandee } from '../../utils/playground3d/standeeMesh';
 import { idlePose, mulberry } from '../../utils/playground3d/activities';
 import {
   islandGeometries, buildDecorations, skyClouds, createPokeball, beachBallTexture, bushGeometry, BUSH_TINT, BERRY_COLORS,
   radialTexture, raysGeometry, raysMaterial, beamMesh, spriteAtlas, SPRITE, particleMaterial, particlePool, placeholderCardTexture, canvasTexture,
 } from './playgroundArt';
-import { createRacerModel, TYPE_COLORS } from '../three3d/obby3d/racers';
-import { createCharizard } from '../three3d/sky3d/charizardModel';
-import { createSnorlax } from '../three3d/gulp3d/snorlaxModel';
+import { TYPE_COLORS } from '../../utils/battle/typeChart';
 
 const TAU = Math.PI * 2;
 const ISLAND_R = 2.2;
@@ -44,65 +41,6 @@ function addRim(mat, uniforms) {
   mat.customProgramCacheKey = () => 'pg3d-rim';
 }
 
-/**
- * Real models are built from many small meshes. Meshes that never move relative to their parent
- * (checked by running the model's own animation for a few seconds) are merged per parent and
- * material, which cuts draw calls a lot without changing the look.
- */
-function bakeStaticMeshes(root, simulate, own) {
-  const meshes = [];
-  root.traverse((o) => {
-    if (o.isMesh && !o.isSkinnedMesh && !o.isInstancedMesh && !Array.isArray(o.material) && o.children.length === 0 && !o.morphTargetInfluences && o.geometry?.attributes?.position) meshes.push(o);
-  });
-  const snap = meshes.map((m) => [m.position.clone(), m.quaternion.clone(), m.scale.clone(), m.visible]);
-  const dynamic = new Set();
-  const check = () => {
-    meshes.forEach((m, i) => {
-      if (dynamic.has(m)) return;
-      const [p, q, sc, vis] = snap[i];
-      if (m.position.distanceToSquared(p) > 1e-12 || Math.abs(m.quaternion.dot(q)) < 1 - 1e-9 || m.scale.distanceToSquared(sc) > 1e-12 || m.visible !== vis) dynamic.add(m);
-    });
-  };
-  simulate(check);
-  const groups = new Map();
-  for (const m of meshes) {
-    if (dynamic.has(m) || !m.visible || !m.parent) continue;
-    const g = m.geometry;
-    const keyAttrs = Object.keys(g.attributes).sort().map((k) => k + g.attributes[k].itemSize).join(',');
-    const key = `${m.parent.uuid}|${m.material.uuid}|${keyAttrs}|${g.index ? 1 : 0}|${m.renderOrder}|${Object.keys(g.morphAttributes || {}).length}`;
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(m);
-  }
-  let removed = 0;
-  for (const list of groups.values()) {
-    if (list.length < 2) continue;
-    const parts = list.map((m) => {
-      m.updateMatrix();
-      const c = m.geometry.clone();
-      c.clearGroups();
-      c.applyMatrix4(m.matrix);
-      return c;
-    });
-    let merged = null;
-    try {
-      merged = mergeGeometries(parts, false);
-    } catch {
-      merged = null;
-    }
-    parts.forEach((p) => p.dispose());
-    if (!merged) continue;
-    own(merged);
-    const parent = list[0].parent;
-    const mesh = new THREE.Mesh(merged, list[0].material);
-    mesh.renderOrder = list[0].renderOrder;
-    mesh.name = 'baked';
-    parent.add(mesh);
-    for (const m of list) parent.remove(m);
-    removed += list.length - 1;
-  }
-  return removed;
-}
-
 function loadImage(src, cors) {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -127,7 +65,7 @@ function readPixels(img, max = 256) {
   return ctx.getImageData(0, 0, w, h);
 }
 
-export function createPlaygroundScene({ pokemon = {}, image, shiny = false, pixelRatio, onStatus } = {}) {
+export function createPlaygroundScene({ pokemon = {}, image, pixelRatio, onStatus } = {}) {
   const theme = themeFor(pokemon);
   const D = theme.diorama;
   const aura = theme.aura;
@@ -353,134 +291,6 @@ export function createPlaygroundScene({ pokemon = {}, image, shiny = false, pixe
     resolveReady();
   }
 
-  /** Materials of a real model whose emissive can be pushed to white (materialise). */
-  function whiteable(object) {
-    const list = [];
-    object.traverse((o) => {
-      if (!o.isMesh && !o.isSkinnedMesh) return;
-      for (const mat of Array.isArray(o.material) ? o.material : [o.material]) {
-        if (mat && mat.emissive && !list.some((x) => x.mat === mat)) list.push({ mat, color: mat.emissive.clone(), intensity: mat.emissiveIntensity ?? 1 });
-      }
-    });
-    const white = col('#ffffff');
-    return (k) => {
-      for (const it of list) {
-        it.mat.emissive.copy(it.color).lerp(white, k);
-        it.mat.emissiveIntensity = it.intensity + (1.2 - it.intensity) * k;
-      }
-    };
-  }
-
-  /** Scales a real model to a target height with its feet on y = 0. */
-  function normalise(object, targetH, maxW = 2.3) {
-    object.updateMatrixWorld(true);
-    const box = new THREE.Box3().setFromObject(object);
-    const size = box.getSize(new THREE.Vector3());
-    const k = Math.min(targetH / Math.max(0.01, size.y), maxW / Math.max(0.01, size.x));
-    const holder = new THREE.Group();
-    holder.add(object);
-    object.scale.multiplyScalar(k);
-    object.position.y -= box.min.y * k;
-    object.position.x -= ((box.min.x + box.max.x) / 2) * k;
-    object.position.z -= ((box.min.z + box.max.z) / 2) * k;
-    return { holder, height: size.y * k, width: size.x * k, depth: size.z * k };
-  }
-
-  function buildRealModel(spec) {
-    if (spec.kind === 'racer') {
-      const r = createRacerModel({ species: spec.species, shiny });
-      const wrap = new THREE.Group();
-      r.group.rotation.y = Math.PI; // racers face -Z
-      wrap.add(r.group);
-      r.update(0, { state: 'idle' });
-      const n = normalise(wrap, 1.5);
-      bakeStaticMeshes(wrap, (check) => {
-        for (const [state, secs] of [['idle', 5], ['celebrate', 1.5], ['run', 1.5], ['air', 0.6]]) {
-          for (let i = 0; i < secs * 30; i++) {
-            r.update(1 / 30, { state, speed: state === 'run' ? 1 : 0, vy: 2, land: i === 0 ? 1 : 0 });
-            check();
-          }
-        }
-        for (let i = 0; i < 20; i++) r.update(1 / 30, { state: 'idle' });
-      }, own);
-      let land = 0;
-      return {
-        kind: 'racer',
-        object: n.holder,
-        height: n.height,
-        width: n.width,
-        footprint: n.width * 0.7,
-        head: new THREE.Vector3(0, n.height, 0),
-        setWhite: whiteable(wrap),
-        update: (dt, a) => {
-          const state = a.anim === 'run' ? 'run' : a.anim === 'celebrate' || a.anim === 'dance' || a.anim === 'happy' ? 'celebrate' : a.airborne ? 'air' : 'idle';
-          if (a.landed) land = 1;
-          r.update(dt, { state, speed: a.anim === 'run' ? 1 : 0, vy: a.vy || 0, land });
-          land = 0;
-        },
-        dispose: () => r.dispose(),
-      };
-    }
-    if (spec.kind === 'charizard') {
-      const z = createCharizard({ scale: 1 });
-      const wrap = new THREE.Group();
-      z.group.rotation.y = Math.PI;
-      wrap.add(z.group);
-      z.update(0, { bank: 0, pitch: 0, speed: 0, flap: 0.3 });
-      world.add(z.fx);
-      const n = normalise(wrap, 1.95, 3.3);
-      bakeStaticMeshes(wrap, (check) => {
-        for (const [flap, boosting, speed] of [[0.25, false, 0], [1, true, 30], [0, false, 0]]) {
-          for (let i = 0; i < 60; i++) {
-            z.update(1 / 30, { bank: Math.sin(i * 0.2) * 0.3, pitch: 0, speed, boosting, flap });
-            check();
-          }
-        }
-      }, own);
-      return {
-        kind: 'charizard',
-        object: n.holder,
-        height: n.height,
-        width: Math.min(n.width, 1.4),
-        footprint: 0.9,
-        head: new THREE.Vector3(0, n.height * 0.95, 0.2),
-        setWhite: whiteable(wrap),
-        update: (dt, a) => z.update(dt, { bank: a.anim === 'dance' ? Math.sin(a.t * 6) * 0.3 : 0, pitch: 0, speed: a.anim === 'run' ? 30 : 0, boosting: a.anim === 'celebrate' || a.anim === 'dance', flap: a.anim === 'sleep' ? 0 : a.anim === 'run' || a.anim === 'celebrate' || a.anim === 'dance' ? 1 : 0.25 }),
-        dispose: () => z.dispose(),
-      };
-    }
-    if (spec.kind === 'snorlax') {
-      const s = createSnorlax({ variant: 'snorlax' });
-      s.update(0, {});
-      const n = normalise(s.group, 1.75);
-      bakeStaticMeshes(s.group, (check) => {
-        for (let i = 0; i < 150; i++) {
-          if (i === 20) s.chomp?.(0.5);
-          if (i === 60) s.bounce?.(0.7);
-          if (i === 90) s.wobble?.();
-          s.update(1 / 30, { moving: i > 100 && i < 130 ? 1 : 0, sleeping: i > 130 });
-          check();
-        }
-        for (let i = 0; i < 40; i++) s.update(1 / 30, {});
-      }, own);
-      return {
-        kind: 'snorlax',
-        object: n.holder,
-        height: n.height,
-        width: n.width,
-        footprint: n.width * 0.8,
-        head: new THREE.Vector3(0, n.height, 0),
-        setWhite: whiteable(s.group),
-        update: (dt, a) => s.update(dt, { moving: a.anim === 'run' ? 1 : 0, sleeping: a.anim === 'sleep' }),
-        chomp: () => s.chomp?.(0.5),
-        bounce: () => s.bounce?.(0.7),
-        wobble: () => s.wobble?.(),
-        dispose: () => s.dispose(),
-      };
-    }
-    return null;
-  }
-
   function standeeFromData(data, tex) {
     const geo = own(new THREE.BufferGeometry());
     geo.setAttribute('position', new THREE.BufferAttribute(data.positions, 3));
@@ -566,22 +376,10 @@ export function createPlaygroundScene({ pokemon = {}, image, shiny = false, pixe
   }
 
   let disposed = false;
-  const spec = realModelFor(pokemon);
-  if (spec) {
-    try {
-      const m = buildRealModel(spec);
-      if (m) {
-        mountModel(m);
-        setStatus(m.kind);
-      }
-    } catch (err) {
-      console.warn('[playground3d] real model failed', err);
-    }
-  }
   if (!model) {
     const fallbackCard = () => {
       if (disposed || model) return;
-      const tex = own(placeholderCardTexture(pokemon.name, TYPE_COLORS[(pokemon.types || [])[0]] || '#8a8ab0'));
+      const tex = own(placeholderCardTexture(pokemon.name, TYPE_COLORS[String((pokemon.types || [])[0] || '').toLowerCase()] || '#8a8ab0'));
       mountModel(billboard(tex));
       setStatus('billboard');
     };

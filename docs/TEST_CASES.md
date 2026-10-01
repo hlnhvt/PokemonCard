@@ -1601,3 +1601,5 @@ Banner mới trong tab Trò chơi. Game chơi màn ngang và tự xoay khi cầm
 | DT-13 | P1 | AUTO | Artwork ở trang chi tiết có nền hệ Lửa, object-contain; ảnh thẻ thật thì không | Đạt |
 | GULP-M01..M04 | P1 | AUTO | Mô hình Snorlax mới đủ bộ phận, < 20k tam giác (kể cả viền) | Đạt (910 test toàn dự án) |
 | UI-40 | P2 | MANUAL (Chrome 360×760) | Nút "Chơi cùng Lapras" mới; danh sách 5 trò hệ Nước/Băng; nút Tiệm quà một dòng; Makuhita có nền hệ Giác đấu | Đúng, không lỗi JS |
+
+- **Cập nhật:** sân chơi 3D dựng mọi Pokémon (kể cả Pikachu, Charizard, Snorlax, Bulbasaur, Squirtle, Charmander, Eevee, Jigglypuff, Psyduck, Piplup) thành khối nổi phồng tròn từ ảnh của chính nó; không dùng mô hình 3D dựng sẵn trong sân chơi nữa (các game 3D vẫn dùng). Kiểm tra bằng ảnh chụp: Pikachu, Charizard, Snorlax đều ở trạng thái `standee`, 16–18 draw call.

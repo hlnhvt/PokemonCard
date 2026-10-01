@@ -150,31 +150,3 @@ export function themeFor(pokemon) {
   const dioramaId = TYPE_DIORAMA[type] || 'meadow';
   return { type, dioramaId, diorama: DIORAMAS[dioramaId], aura: AURAS[type] || AURAS.normal };
 }
-
-/** Pokédex number → the hand-made 3D model that exists in the app. */
-export const REAL_MODELS = {
-  25: { kind: 'racer', species: 'pikachu' },
-  39: { kind: 'racer', species: 'jigglypuff' },
-  54: { kind: 'racer', species: 'psyduck' },
-  1: { kind: 'racer', species: 'bulbasaur' },
-  7: { kind: 'racer', species: 'squirtle' },
-  4: { kind: 'racer', species: 'charmander' },
-  133: { kind: 'racer', species: 'eevee' },
-  393: { kind: 'racer', species: 'piplup' },
-  6: { kind: 'charizard' },
-  143: { kind: 'snorlax' },
-};
-
-const NAME_TO_NUMBER = {
-  pikachu: 25, jigglypuff: 39, psyduck: 54, bulbasaur: 1, squirtle: 7, charmander: 4, eevee: 133, piplup: 393, charizard: 6, snorlax: 143,
-};
-
-/** The real model for this card, or null (then the artwork standee is used). */
-export function realModelFor(pokemon) {
-  let n = Number(pokemon?.pokedexNumber);
-  if (!Number.isInteger(n) || n <= 0) {
-    const key = String(pokemon?.speciesName || pokemon?.id || pokemon?.name || '').toLowerCase().split(/[\s-]/)[0];
-    n = NAME_TO_NUMBER[key] || 0;
-  }
-  return REAL_MODELS[n] || null;
-}
