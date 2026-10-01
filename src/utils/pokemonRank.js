@@ -31,6 +31,8 @@ export const GAME_RANK = {
   run3d: 1,
   sky3d: 1,
   island3d: 1,
+  pizza3d: 1,
+  obby3d: 1,
   pinball3d: 1,
   gulp3d: 1,
   // Carnival games are open to every Pokemon

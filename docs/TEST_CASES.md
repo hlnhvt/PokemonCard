@@ -1553,3 +1553,33 @@ Banner mới trong tab Trò chơi. Game chơi màn ngang và tự xoay khi cầm
 | ISL-01..19 | P1 | AUTO | Lưới, đặt/xóa/tô/hoàn tác, lưu RLE, tìm đường, các điều ước, trả vàng 1 lần, bot | Đạt |
 | ISL-UI-01..06 | P1 | AUTO | Trồng 5 hoa → chúc mừng, vàng 1 lần, tự lưu; mời bạn; ngày/đêm; mở lại; không WebGL | Đạt (769 test toàn dự án) |
 | UI-38 | P2 | MANUAL (Chrome 360×760, SwiftShader) | Mở 3 game từ tab Trò chơi: đường chạy rừng + Snorlax + xu; đảo khởi đầu + Pikachu + nhiệm vụ | Đúng, không lỗi JS |
+
+
+## 51. Thủ thành 2.5D, Charizard 3D, 4 game 3D mới
+
+- Thủ thành: bản đồ vẽ lại kiểu nổi khối 2.5D cho cả 8 màn (đường có bờ vát, Trung tâm Pokémon dựng khối, cổng Rocket xoáy, ô xây là bệ đá). Lối chơi không đổi.
+- Cưỡi Charizard: Charizard là mô hình 3D dựng bằng code (~10k tam giác), cánh vỗ 2 khớp, lửa đuôi.
+- Game 3D mới, nhân vật là mô hình 3D thật:
+  - **Snorlax nuốt thành phố** (`pokescan_gulp3d_v1`): bot tham lam 3★ và ăn hơn 90% cả 3 bản đồ; bot đi lung tung 0★.
+  - **Vượt chướng ngại** (progress `obby3d`): 5 đường đua, 10 tay đua; bot về top 3 ở đường 1–4, top 6 ở đường 5.
+  - **Pinball Pokémon** (`pokescan_pinball3d_v1`): 400 cú bắn tốc độ tối đa không xuyên vật; bot lật cần trung vị 43.960 điểm, bot đứng yên 1★.
+  - **Tiệm Pizza Pokémon** (`pokescan_pizza3d_v1`): bot 10 ngày, lãi 273 → 780 xu/ngày, không phá sản; tiệm chỉ có nhân viên vẫn có lãi.
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| SKY-M01..03 | P1 | AUTO | Mô hình Charizard đủ bộ phận, < 15k tam giác, cập nhật và giải phóng | Đạt |
+| GULP-01..10, M01..M04, UI-01..04 | P1 | AUTO | Luật ăn/lớn, vật phẩm, Pokémon nhỏ không bị ăn, bot, mô hình, giao diện | Đạt |
+| OBY-01..17, M01..M04, UI-01..04 | P1 | AUTO | Va chạm, từng chướng ngại, hồi sinh ở cờ, xếp hạng, bot, mô hình, giao diện | Đạt |
+| PIN-E01..E15, B01..B02, UI-01..05 | P1 | AUTO | Không xuyên vật, cần lật, bumper, Diglett, bắt Pokémon, cứu bóng, multiball, bot | Đạt |
+| PIZ-E01..E10, B01..B03, UI-01..04 | P1 | AUTO | Khách xếp hàng, làm bánh, lò nướng, thu tiền, nhân viên, nâng cấp, lưu, bot 10 ngày | Đạt (856 test toàn dự án) |
+
+## 52. Quét thẻ: hủy nhanh; Bộ sưu tập: nền theo hệ
+
+- Khi bảng "Có phải Pokémon này không?" mở: nút đỏ "✕ Sai rồi, quét lại" nằm ngay trên khung camera, và nút ✕ ở đầu bảng.
+- Ảnh artwork trong Bộ sưu tập nằm trên nền theo hệ (18 hệ, mỗi hệ màu + họa tiết riêng; hai hệ thì pha màu), ảnh thu vừa khung không bị cắt. Ảnh chụp thẻ thật (pokemontcg) giữ nguyên.
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| SC-22 | P1 | AUTO | Bấm "Sai rồi, quét lại" trên khung camera hoặc ✕ đầu bảng → bảng đóng ngay | Đạt |
+| CO-12 | P1 | AUTO | Umbreon (artwork) có nền hệ Ác, ảnh object-contain; Primarina (thẻ thật) không có nền, object-cover | Đạt |
+| UI-39 | P2 | MANUAL (Chrome 360×760) | Bộ sưu tập 12 thẻ nhiều hệ: Muk tím bong bóng, Charizard cam lửa, Pikachu vàng sét, Gengar tím... | Đúng, không lỗi JS |

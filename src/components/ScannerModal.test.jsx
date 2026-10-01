@@ -176,6 +176,19 @@ describe('ScannerModal — image upload & OCR', () => {
     expect(within(group).getByText('Haunter')).toBeInTheDocument();
   });
 
+  it('SC-22 a wrong guess is cancelled right away from the viewfinder or the panel header', async () => {
+    render(<ScannerModal onCardDetected={vi.fn()} />);
+    upload(imageFile('pikachu.png'));
+    await screen.findByTestId('confirm-panel');
+    fireEvent.click(screen.getByTestId('quick-rescan'));
+    expect(screen.queryByTestId('confirm-panel')).toBeNull();
+    expect(screen.queryByTestId('quick-rescan')).toBeNull();
+    upload(imageFile('pikachu.png'));
+    await screen.findByTestId('confirm-panel');
+    fireEvent.click(screen.getByRole('button', { name: 'Hủy và quét lại' }));
+    expect(screen.queryByTestId('confirm-panel')).toBeNull();
+  });
+
   it('SC-08 resets the input so the same file can be chosen again', async () => {
     render(<ScannerModal onCardDetected={vi.fn()} />);
     const input = upload(imageFile('pikachu.png'));

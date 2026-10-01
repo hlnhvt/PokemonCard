@@ -2254,3 +2254,35 @@
 @media (prefers-reduced-motion: reduce) {
   .obby3d-toast, .obby3d-banner, .obby3d-pop, .obby3d-bob, .obby3d-medal { animation: none; }
 }
+
+/* pizza3d: "Tiệm Pizza Pokémon" */
+@keyframes pizza3dPop {
+  0% { transform: translate(-50%, 0) scale(0.5); opacity: 0; }
+  20% { transform: translate(-50%, -10px) scale(1.15); opacity: 1; }
+  75% { opacity: 1; }
+  100% { transform: translate(-50%, -46px) scale(1); opacity: 0; }
+}
+@keyframes pizza3dBanner {
+  0% { transform: scale(0.4) rotate(-6deg); opacity: 0; }
+  18% { transform: scale(1.12) rotate(2deg); opacity: 1; }
+  30% { transform: scale(1) rotate(0); }
+  82% { opacity: 1; }
+  100% { transform: translateY(-14px); opacity: 0; }
+}
+@keyframes pizza3dBump {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+@keyframes pizza3dFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+.pizza3d-pop { animation: pizza3dPop 1s ease-out both; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35); }
+.pizza3d-banner { animation: pizza3dBanner 1.7s ease-out both; }
+.pizza3d-bump { animation: pizza3dBump 0.35s ease-out; }
+.pizza3d-float { animation: pizza3dFloat 2.2s ease-in-out infinite; }
+.pizza3d-key { box-shadow: inset 0 -5px 0 rgba(0, 0, 0, 0.18), 0 4px 8px rgba(0, 0, 0, 0.22); }
+@media (prefers-reduced-motion: reduce) {
+  .pizza3d-pop, .pizza3d-banner, .pizza3d-bump, .pizza3d-float { animation: none; }
+}

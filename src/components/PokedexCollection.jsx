@@ -9,6 +9,8 @@ import {
 } from './icons/PokeIcons';
 import { toggleCardFavorite, removeCardFromPokedex, clearPokedex } from '../utils/storage';
 import { levelFor } from '../utils/friendship';
+import { TypeBackdrop } from './TypeBackdrop';
+import { isCardScan } from '../utils/typeTheme';
 
 export function PokedexCollection({ collection, onSelectCard, onReplayVideo, onScanNew, setCollection }) {
   const [search, setSearch] = useState('');
@@ -235,6 +237,8 @@ export function PokedexCollection({ collection, onSelectCard, onReplayVideo, onS
 
               {/* Card Image Thumbnail */}
               <div className="relative aspect-[63/88] w-full rounded-xl overflow-hidden bg-slate-950 mb-2 border border-slate-800 group-hover:border-amber-400/40 transition-colors">
+                {/* Artwork has no background of its own: put it in a scene of its type */}
+                {!isCardScan(card.image) && <TypeBackdrop types={card.types} />}
                 <img
                   src={card.image}
                   alt={card.name}
@@ -242,7 +246,11 @@ export function PokedexCollection({ collection, onSelectCard, onReplayVideo, onS
                     e.target.onerror = null;
                     if (card.fallbackImage) e.target.src = card.fallbackImage;
                   }}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  className={
+                    isCardScan(card.image)
+                      ? 'relative w-full h-full object-cover group-hover:scale-105 transition-transform duration-300'
+                      : 'relative w-full h-full object-contain p-2 pb-4 drop-shadow-[0_6px_6px_rgba(0,0,0,0.35)] group-hover:scale-105 transition-transform duration-300'
+                  }
                 />
 
                 {/* Scan count pill */}

@@ -34,6 +34,18 @@ describe('PokedexCollection', () => {
     expect(screen.getByText(/Hãy dùng Camera hoặc chọn Thẻ Mẫu/)).toBeInTheDocument();
   });
 
+  it('CO-12 artwork gets a scene of its type behind it; a real card scan does not', () => {
+    seed([
+      makeCard({ id: 'umbreon', name: 'Umbreon', types: ['Dark'], image: 'https://raw.githubusercontent.com/x/official-artwork/197.png' }),
+      makeCard({ id: 'primarina', name: 'Primarina', types: ['Water', 'Fairy'], image: 'https://images.pokemontcg.io/sm2/41_hires.png' }),
+    ]);
+    const { container } = render(<Harness handlers={{ onSelectCard: vi.fn(), onReplayVideo: vi.fn(), onScanNew: vi.fn() }} />);
+    const scenes = container.querySelectorAll('svg[data-type]');
+    expect([...scenes].map((s) => s.dataset.type)).toEqual(['dark']);
+    expect(screen.getByAltText('Umbreon').className).toContain('object-contain');
+    expect(screen.getByAltText('Primarina').className).toContain('object-cover');
+  });
+
   it('CO-02 searches by name case-insensitively and by species', () => {
     seed();
     renderCollection();

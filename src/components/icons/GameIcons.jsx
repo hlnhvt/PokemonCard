@@ -586,6 +586,31 @@ const GAME_PICS = {
       <path d="M11 36l9 4.5" stroke="#f8fafc" strokeWidth="4" strokeLinecap="round" /><path d="M37 36l-9 4.5" stroke="#f8fafc" strokeWidth="4" strokeLinecap="round" />
     </>
   ),
+  obby3d: (
+    <>
+      <rect x="2" y="2" width="44" height="44" rx="12" fill="#ffd6ec" />
+      <rect x="4" y="35" width="16" height="7" rx="2.5" fill="#7ee0c3" />
+      <rect x="25" y="29" width="19" height="7" rx="2.5" fill="#ffd166" />
+      <rect x="22" y="21.5" width="22" height="3.2" rx="1.6" fill="#ff4f7b" transform="rotate(-14 33 23)" />
+      <circle cx="22" cy="23" r="2" fill="#ff4f7b" />
+      <path d="M39 6v15" stroke="#64748b" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M39 6.5l6 2.6-6 2.6z" fill="#4dd6ff" />
+      <path d="M9.5 16.5l-1.5-6 4.5 4.2zM18.5 16.5l1.5-6-4.5 4.2z" fill="#facc15" stroke="#1f2937" strokeWidth="0.6" />
+      <Ball x={14} y={22} r={6} />
+      <path d="M6 31q2.5-3 5-1.6M17 31q2.5-1.4 5 1.6" stroke="#ffffff" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+    </>
+  ),
+  pizza3d: (
+    <>
+      <path d="M24 6 L42 40 Q24 46 6 40 Z" fill="#fcd34d" stroke="#b45309" strokeWidth="2" strokeLinejoin="round" />
+      <path d="M6 40 Q24 46 42 40 L40.5 37 Q24 42.5 7.5 37 Z" fill="#f59e0b" />
+      <circle cx="20" cy="25" r="3" fill="#ef4444" />
+      <circle cx="29" cy="31" r="3" fill="#ef4444" />
+      <circle cx="18" cy="34.5" r="2.4" fill="#3f6fe0" />
+      <circle cx="27" cy="21" r="1.8" fill="#16a34a" />
+      <Ball x={35} y={12} r={7} />
+    </>
+  ),
   towerdef: (
     <>
       <path d="M6 40 Q14 30 24 34 T42 28" fill="none" stroke="#c2894b" strokeWidth="6" strokeLinecap="round" />

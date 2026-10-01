@@ -508,6 +508,17 @@ export function ScannerModal({ onCardDetected, recentCards = [], onOpenCard }) {
           </div>
         </div>
 
+        {/* Wrong card? Cancel and scan again straight from the viewfinder */}
+        {isConfirmOpen && !isLoadingOnline && (
+          <button
+            onClick={retakeScan}
+            data-testid="quick-rescan"
+            className="absolute top-3 right-3 z-40 px-4 py-2.5 rounded-full bg-rose-600 text-white text-sm font-black shadow-lg shadow-rose-900/50 border-2 border-white/80 flex items-center gap-1.5 active:scale-95 transition-transform animate-fadeIn"
+          >
+            <X className="w-5 h-5" /> Sai rồi, quét lại
+          </button>
+        )}
+
         {/* Scanning & OCR Progress Overlay */}
         {isScanning && (
           <div className="absolute inset-0 z-30 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
@@ -531,9 +542,18 @@ export function ScannerModal({ onCardDetected, recentCards = [], onOpenCard }) {
       {/* Confirmation: "Is it this Pokemon?" with big picture choices and clear ways out */}
       {isConfirmOpen && (
         <div className="w-full max-w-sm mt-3 p-4 rounded-3xl bg-slate-900 border-2 border-cyan-400/80 shadow-[0_0_25px_rgba(6,182,212,0.3)] flex flex-col gap-3 animate-fadeIn" data-testid="confirm-panel">
-          <div className="flex items-center justify-center gap-2 text-cyan-400 text-sm font-black">
-            {detectedCandidates.length > 0 ? <Check className="w-5 h-5" /> : <Edit3 className="w-5 h-5" />}
-            <span>{detectedCandidates.length > 0 ? 'CÓ PHẢI POKÉMON NÀY KHÔNG?' : 'NHẬP TÊN POKÉMON'}</span>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-cyan-400 text-sm font-black min-w-0">
+              {detectedCandidates.length > 0 ? <Check className="w-5 h-5 shrink-0" /> : <Edit3 className="w-5 h-5 shrink-0" />}
+              <span>{detectedCandidates.length > 0 ? 'CÓ PHẢI POKÉMON NÀY KHÔNG?' : 'NHẬP TÊN POKÉMON'}</span>
+            </div>
+            <button
+              onClick={retakeScan}
+              aria-label="Hủy và quét lại"
+              className="shrink-0 w-10 h-10 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
 
           {detectedCandidates.length > 0 && (
