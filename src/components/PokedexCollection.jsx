@@ -160,7 +160,7 @@ export function PokedexCollection({ collection, onSelectCard, onReplayVideo, onS
                 : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
             }`}
           >
-            <Star className={`w-4 h-4 ${showOnlyFavs ? 'fill-amber-400 text-amber-400' : ''}`} />
+            <Star className={`w-4 h-4 ${showOnlyFavs ? 'fill-amber-400 text-amber-400' : 'text-slate-400'}`} />
           </button>
         </div>
 
@@ -222,7 +222,7 @@ export function PokedexCollection({ collection, onSelectCard, onReplayVideo, onS
                   >
                     <Star
                       className={`w-3.5 h-3.5 ${
-                        card.isFavorite ? 'fill-amber-400 text-amber-400' : ''
+                        card.isFavorite ? 'fill-amber-400 text-amber-400' : 'text-slate-400'
                       }`}
                     />
                   </button>

@@ -192,12 +192,20 @@ export const Heart = (p) => {
     </Svg>
   );
 };
-export const Star = (p) => (
-  <Svg {...p}>
-    <path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17l-5.9 3.3 1.3-6.5L2.5 9.3l6.6-.8z" fill="#facc15" stroke="#b45309" strokeWidth="1.3" />
-    <Ball x={12} y={11.6} r={2.6} />
-  </Svg>
-);
+/** A star with a Poké Ball in it. Given a grey text colour and no fill class (an unearned star,
+ * an unset favourite) it is drawn empty: a grey outline only. */
+const isEmptyStar = (className = '') => !/\bfill-/.test(className) && /\btext-(slate|gray)-/.test(className);
+export const Star = (p) =>
+  isEmptyStar(p.className) ? (
+    <Svg {...p} data-empty="true">
+      <path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17l-5.9 3.3 1.3-6.5L2.5 9.3l6.6-.8z" fill="currentColor" fillOpacity="0.18" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+    </Svg>
+  ) : (
+    <Svg {...p}>
+      <path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17l-5.9 3.3 1.3-6.5L2.5 9.3l6.6-.8z" fill="#facc15" stroke="#b45309" strokeWidth="1.3" />
+      <Ball x={12} y={11.6} r={2.6} />
+    </Svg>
+  );
 /** The shiny sparkle. */
 export const Sparkles = (p) => (
   <Svg {...p}>

@@ -611,6 +611,22 @@ const GAME_PICS = {
       <Ball x={35} y={12} r={7} />
     </>
   ),
+  plane3d: (
+    <>
+      <circle cx="24" cy="24" r="22" fill="#7dd3fc" />
+      <ellipse cx="12" cy="37" rx="9" ry="3.5" fill="#ffffff" />
+      <ellipse cx="36" cy="11" rx="7" ry="2.8" fill="#ffffff" />
+      <path d="M5 27c7-2.5 31-2.5 38 0l-1 3.2c-7 1.2-29 1.2-36 0z" fill="#ffc31a" stroke="#2a2440" strokeWidth="1.5" />
+      <rect x="5.5" y="26" width="5" height="4.6" rx="1.5" fill="#e63946" />
+      <rect x="37.5" y="26" width="5" height="4.6" rx="1.5" fill="#e63946" />
+      <ellipse cx="24" cy="25" rx="8" ry="11.5" fill="#ffd23f" stroke="#2a2440" strokeWidth="1.5" />
+      <path d="M16.3 28.5h15.4" stroke="#3a2a1a" strokeWidth="2.6" />
+      <ellipse cx="24" cy="19.5" rx="4" ry="4.2" fill="#9fe3ff" stroke="#2a2440" strokeWidth="1.2" />
+      <path d="M13.5 11.5h21" stroke="#5a3f2e" strokeWidth="2.4" strokeLinecap="round" />
+      <circle cx="24" cy="12" r="2.6" fill="#e63946" stroke="#2a2440" strokeWidth="1.2" />
+      <Ball x={24} y={38} r={3.6} />
+    </>
+  ),
   towerdef: (
     <>
       <path d="M6 40 Q14 30 24 34 T42 28" fill="none" stroke="#c2894b" strokeWidth="6" strokeLinecap="round" />

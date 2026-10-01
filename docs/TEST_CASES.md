@@ -1603,3 +1603,14 @@ Banner mới trong tab Trò chơi. Game chơi màn ngang và tự xoay khi cầm
 | UI-40 | P2 | MANUAL (Chrome 360×760) | Nút "Chơi cùng Lapras" mới; danh sách 5 trò hệ Nước/Băng; nút Tiệm quà một dòng; Makuhita có nền hệ Giác đấu | Đúng, không lỗi JS |
 
 - **Cập nhật:** sân chơi 3D dựng mọi Pokémon (kể cả Pikachu, Charizard, Snorlax, Bulbasaur, Squirtle, Charmander, Eevee, Jigglypuff, Psyduck, Piplup) thành khối nổi phồng tròn từ ảnh của chính nó; không dùng mô hình 3D dựng sẵn trong sân chơi nữa (các game 3D vẫn dùng). Kiểm tra bằng ảnh chụp: Pikachu, Charizard, Snorlax đều ở trạng thái `standee`, 16–18 draw call.
+
+## 54. Đua máy bay Pokémon 3D; sửa sao chưa đạt hiện vàng
+
+- **Đua máy bay** (mục 🧊 Thế giới 3D, `plane3d`): vuốt trái/phải đổi 3 làn; 10 màn 10 khung cảnh (Pallet, Biển, Viridian, Saffron, Sa mạc, Núi tuyết, Cinnabar, Hang pha lê, Hoàng hôn, Vũ trụ); Dễ/Vừa/Khó; mỗi màn 34→56 giây (≥ 30 s ở mọi độ khó, kể cả khi tăng tốc); 3 tim, hồi sinh 1 lần; khiên, nam châm, tăng tốc; lưu `pokescan_plane3d_v1` + progress `plane3d` (L{n}-{độ khó}).
+- **Sửa lỗi:** icon ngôi sao (đổi sang kiểu Pokémon) luôn tô vàng, nên sao chưa đạt và nút yêu thích chưa chọn cũng hiện vàng. Nay sao chưa đạt (màu xám, không có class `fill-`) là viền rỗng.
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| PLN-E01..E17 | P1 | AUTO | Đổi làn, va chạm từng loại, tim/hồi sinh, khiên/nam châm/tăng tốc, sao, ≥ 30 s mọi màn × độ khó, công bằng (≥ 2000 hàng), bot | Đạt |
+| PLN-U01..U05 | P1 | AUTO | Menu → độ khó → màn 1 → đếm ngược → vuốt; tự lái tới đích, vàng 1 lần, mở màn 2; thua ở Khó; không WebGL; giải phóng | Đạt |
+| IC-01..02 | P1 | AUTO | Sao đạt vàng, sao chưa đạt viền xám; StarRow 1 sao = 1 vàng + 2 rỗng | Đạt (933 test toàn dự án) |
