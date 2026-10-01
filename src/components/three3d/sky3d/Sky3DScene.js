@@ -2,8 +2,10 @@
 import * as THREE from 'three';
 import { heightAt, floorAt, ringPos, mulberry, WATER } from '../../../utils/three3d/sky3d';
 import { artworkUrl } from '../../../services/pokemonOnlineService';
+import { createCharizard } from './charizardModel';
 
-const CHARIZARD = 6;
+const ZARD_SCALE = 1.25; // model units -> world (wingspan about 8)
+const RIDER_SIZE = 2.0;
 
 const SKIES = {
   morning: { top: '#6fb2ee', bottom: '#ffd9c4', fog: '#f4d8cf', sun: [0.55, 0.22, -0.8], sunColor: '#ffd9a8', hemiSky: '#d6e9ff', hemiGround: '#8a7a5a', light: 1.1, hemi: 0.75, sea: '#3d8fc4', near: 160, far: 820 },
@@ -702,15 +704,16 @@ export function createSky3DScene(container, { course, playerImage, riderIsChariz
   // The rider on Charizard
   const player = new THREE.Group();
   scene.add(player);
-  const dragon = billboard(riderIsCharizard ? playerImage || artworkUrl(CHARIZARD) : artworkUrl(CHARIZARD), '#fb923c', 7.5, loader, textures);
-  dragon.position.set(0, 0, 0);
-  player.add(dragon);
+  const zard = createCharizard({ scale: ZARD_SCALE });
+  player.add(zard.group);
+  scene.add(zard.fx);
+  // The child's Pokemon sits on Charizard's back (it rolls with the body); nobody rides a Charizard player
   let rider = null;
+  const riderY = (RIDER_SIZE * 0.36) / ZARD_SCALE;
   if (!riderIsCharizard) {
-    rider = billboard(playerImage, '#fde047', 3.6, loader, textures);
-    rider.position.set(0, 2.4, 0.6);
-    rider.renderOrder = 2;
-    player.add(rider);
+    rider = billboard(playerImage, '#fde047', RIDER_SIZE / ZARD_SCALE, loader, textures);
+    rider.position.set(0, riderY, 0);
+    zard.saddle.add(rider);
   }
   const shadowTex = canvasTexture(64, 64, (ctx) => {
     const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
@@ -720,7 +723,7 @@ export function createSky3DScene(container, { course, playerImage, riderIsChariz
     ctx.fillRect(0, 0, 64, 64);
   });
   textures.push(shadowTex);
-  const shadow = new THREE.Mesh(geo(new THREE.PlaneGeometry(7, 7)), mat(new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false })));
+  const shadow = new THREE.Mesh(geo(new THREE.PlaneGeometry(6 * ZARD_SCALE, 6 * ZARD_SCALE)), mat(new THREE.MeshBasicMaterial({ map: shadowTex, transparent: true, depthWrite: false })));
   shadow.rotation.x = -Math.PI / 2;
   scene.add(shadow);
   const wingL = ribbon(28, '#ffd9a0', 0.35);
@@ -752,13 +755,15 @@ export function createSky3DScene(container, { course, playerImage, riderIsChariz
   let slowFor = 0;
   let lowPower = false;
   let mistT = 0;
+  let baseFov = 62;
 
   const resize = () => {
     const w = container.clientWidth || 360;
     const h = container.clientHeight || 640;
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
-    // Portrait screens see a little wider
+    // Portrait screens see a little wider (so Charizard and the next rings both fit)
+    baseFov = camera.aspect < 1 ? 62 + (1 - camera.aspect) * 22 : 62;
     camera.updateProjectionMatrix();
   };
   resize();
@@ -809,22 +814,16 @@ export function createSky3DScene(container, { course, playerImage, riderIsChariz
     const fwdZ = -Math.cos(s.yaw);
     player.position.set(s.x, s.y, s.z);
     player.rotation.set(0, s.yaw, 0);
-    const flap = Math.sin(time * (s.boosting ? 11 : 7));
-    dragon.scale.set(7.5 * (1 + 0.07 * flap), 7.5 * (1 - 0.035 * flap), 1);
-    dragon.material.rotation = -s.bank * 0.35;
+    zard.update(dt, { bank: s.bank, pitch: s.pitch, speed: s.speed, boosting: s.boosting });
     if (rider) {
       rider.material.rotation = -s.bank * 0.3;
-      rider.position.y = 2.4 + Math.sin(time * 3) * 0.15;
+      rider.position.y = riderY + Math.sin(time * 3) * 0.06;
     }
-    // Wing trails from the wing tips
-    const rightX = -fwdZ;
-    const rightZ = fwdX;
-    const tipY = s.y + 0.6;
-    const span = 3.4;
+    // Wing trails from the (flapping) wing tips
     const side = { x: 0, y: 1, z: 0 };
     const strength = s.boosting ? 1 : 0.55;
-    wingL.push({ x: s.x - rightX * span, y: tipY + s.bank * 1.2, z: s.z - rightZ * span }, side, strength);
-    wingR.push({ x: s.x + rightX * span, y: tipY - s.bank * 1.2, z: s.z + rightZ * span }, side, strength);
+    wingL.push(zard.wings[0].tip.getWorldPosition(tmpV), side, strength);
+    wingR.push(zard.wings[1].tip.getWorldPosition(tmpV), side, strength);
     // Blob shadow on the ground or the water
     const floor = floorAt(course, s.x, s.z);
     const alt = s.y - floor;
@@ -926,14 +925,15 @@ export function createSky3DScene(container, { course, playerImage, riderIsChariz
     puffs.update(dt);
 
     // Chase camera: behind and a little above, following with a gentle lag and a small roll
-    const back = 15 + (s.speed - 30) * 0.12;
-    tmpV.set(s.x - fwdX * back, s.y + 4.2 - Math.sin(s.pitch) * 6, s.z - fwdZ * back);
+    const back = 11.5 + (s.speed - 30) * 0.12;
+    tmpV.set(s.x - fwdX * back, s.y + 5.0 - Math.sin(s.pitch) * 6, s.z - fwdZ * back);
     const camFloor = floorAt(course, tmpV.x, tmpV.z) + 2;
     if (tmpV.y < camFloor) tmpV.y = camFloor;
     tmpV2.set(s.x + fwdX * 10, s.y + 1.5 + Math.sin(s.pitch) * 8, s.z + fwdZ * 10);
     if (!cam.ready) {
       cam.pos.copy(tmpV);
       cam.look.copy(tmpV2);
+      cam.fov = baseFov;
       cam.ready = true;
     } else {
       const k = 1 - Math.exp(-dt * 3.2);
@@ -944,7 +944,7 @@ export function createSky3DScene(container, { course, playerImage, riderIsChariz
     camera.position.copy(cam.pos);
     camera.lookAt(cam.look);
     camera.rotateZ(-cam.bank * 0.1);
-    const wantFov = s.boosting ? 72 : 62;
+    const wantFov = baseFov + (s.boosting ? 10 : 0);
     cam.fov += (wantFov - cam.fov) * (1 - Math.exp(-dt * 3));
     if (Math.abs(camera.fov - cam.fov) > 0.01) {
       camera.fov = cam.fov;
@@ -987,6 +987,7 @@ export function createSky3DScene(container, { course, playerImage, riderIsChariz
   }
 
   function dispose() {
+    zard.dispose();
     if (ro) ro.disconnect();
     else window.removeEventListener('resize', resize);
     scene.traverse((o) => {
