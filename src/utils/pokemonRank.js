@@ -27,6 +27,7 @@ export const GAME_RANK = {
   pairs: 1,
   oddone: 1,
   spot: 1,
+  snorlax: 1,
   // Carnival games are open to every Pokemon
   diglett: 1,
   ringtoss: 1,

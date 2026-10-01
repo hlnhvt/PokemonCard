@@ -1503,3 +1503,34 @@ Banner mới trong tab Trò chơi. Game chơi màn ngang và tự xoay khi cầm
 | QX-01..02 | P1 | AUTO | Số chuyên gia và đội hình; tạm dừng khi mở hộp thoại; thưởng khi thắng / thua; huy hiệu; lưu | Đạt |
 | QUI-08..10 | P1 | AUTO | Hộp thoại chuyên gia; bắt đầu Đấu trường rồi thoát không mất gì; Đấu đội 5 vs 5 tải hai đội; huy hiệu trên bảng | Đạt (667 test toàn dự án) |
 | UI-35 | P1 | MANUAL (Chrome 915×412) | Làng Pallet: 2 Pokémon đi cùng, 3 bóng trên thanh ảnh, đồ họa mới, đi phía trên nhà không bị đè lên mái | Đúng, không lỗi JS |
+
+
+## 48. Cho Snorlax ăn (giải đố vật lý, 30 màn)
+
+- Vuốt cắt dây cho quả mọng rơi vào miệng Snorlax; 5 thế giới × 6 màn: dây → bong bóng → Jigglypuff thổi → nấm nhún → gai Ferrothorn + mạng nhện Spinarak.
+- Vật lý bước cố định 1/120 s, không ngẫu nhiên. Mọi màn có lời giải được kiểm thử; sao lưu qua `progress.js` (game `snorlax`).
+- Mô phỏng: 30/30 màn giải được và đạt 3 sao; không làm gì thì không thắng; bấm ngẫu nhiên thắng 17% (màn 1–12), 7% (màn 13–30).
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| SNX-01..03 | P1 | AUTO | Cắt dây, vuốt trượt, nhặt sao (cả sao di chuyển) | Đạt |
+| SNX-04..08 | P1 | AUTO | Bong bóng, Jigglypuff, nấm nhún, gai, mạng nhện | Đạt |
+| SNX-09..12 | P1 | AUTO | Tất định; gợi ý theo lời giải; 30 màn đều giải được, 3 sao | Đạt |
+| SNX-UI-01..03 | P1 | AUTO | Chơi màn 1 qua giao diện, vàng 1 lần, mở màn 2; nút gợi ý; thua tự chơi lại | Đạt |
+| UI-36 | P2 | MANUAL (Chrome 360×760) | Màn 1: dây, quả mọng, 3 sao, Snorlax ngủ, Pokémon của bé ở góc | Đúng, không lỗi JS |
+
+## 49. Thủ thành Pokémon (tower defense, tiến hóa)
+
+- Banner mới trong tab Trò chơi. 8 màn (Rừng Viridian → Cao nguyên Indigo / Mewtwo), 6→15 đợt.
+- 5 dòng tiến hóa (Charmander, Squirtle, Bulbasaur, Pichu, Abra từ màn 3) + Pokémon của bé làm trụ miễn phí 1 lần/màn.
+- **Tiến hóa:** trụ tích "Năng lượng tiến hóa" khi đánh/hạ địch; đầy thanh + đủ xu → "Tiến hóa!". Trùm rơi Kẹo hiếm làm đầy năng lượng ngay.
+- Lưu `pokescan_towerdef_v1`. Mô phỏng: bot biết tiến hóa thắng cả 8 màn (2–3★); không tiến hóa thì thua từ màn 4; không xây thì thua hết.
+
+| ID | Ưu tiên | Loại | Kịch bản | Kết quả mong đợi |
+|---|---|---|---|---|
+| TD-01..04 | P1 | AUTO | Màn/đợt/ô xây; bảng hệ; xây trụ tốn xu; Abra mở từ màn 3 | Đạt |
+| TD-05..09 | P1 | AUTO | Năng lượng + xu → tiến hóa 3 dạng; Kẹo hiếm; bán hoàn 70%; trụ bạn đồng hành | Đạt |
+| TD-10..13 | P1 | AUTO | Sao theo tim; gọi đợt sớm có thưởng; mất tim / thua; lưu và vàng | Đạt |
+| TD-14..15 | P1 | AUTO | Bot mô phỏng cân bằng (xem trên); bạn đồng hành hệ khác vẫn thắng | Đạt |
+| TDUI-01..02 | P1 | AUTO | Chơi màn 1 tới kết quả, vàng 1 lần; tiến hóa Charmander → Charmeleon, bán trụ | Đạt (699 test toàn dự án) |
+| UI-37 | P2 | MANUAL (Chrome 360×760) | Chọn màn, xây Charmander, gọi đợt: đường đi, ô Poké Ball, tầm bắn, thanh năng lượng | Đúng, không lỗi JS |

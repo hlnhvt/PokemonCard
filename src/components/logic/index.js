@@ -7,6 +7,7 @@ import { PairsGame } from './PairsGame';
 import { RhythmGame } from './RhythmGame';
 import { OddOneGame } from './OddOneGame';
 import { SpotGame } from './SpotGame';
+import { SnorlaxGame } from './SnorlaxGame';
 
 /** Simple thinking games with the child's Pokemon, listed in the game picker and the Games tab. */
 export const LOGIC_GAMES = [
@@ -19,6 +20,7 @@ export const LOGIC_GAMES = [
   { id: 'rhythm', title: 'Nhảy theo nhạc', description: 'Chạm đúng nhịp, Pokémon nhảy múa', icon: '💃', gradient: 'from-fuchsia-500 to-rose-500', Component: RhythmGame },
   { id: 'oddone', title: 'Cái nào khác loại?', description: 'Tìm bạn không cùng nhóm, rèn tư duy', icon: '🔍', gradient: 'from-cyan-500 to-blue-600', Component: OddOneGame },
   { id: 'spot', title: 'Tìm điểm khác nhau', description: 'So hai hình, tìm chỗ khác biệt', icon: '🔎', gradient: 'from-lime-500 to-emerald-600', Component: SpotGame },
+  { id: 'snorlax', title: 'Cho Snorlax ăn', description: 'Vuốt cắt dây cho quả mọng rơi vào miệng Snorlax', icon: '🫐', gradient: 'from-sky-400 to-teal-600', Component: SnorlaxGame },
 ];
 
 export const findLogicGame = (id) => LOGIC_GAMES.find((g) => g.id === id) || null;

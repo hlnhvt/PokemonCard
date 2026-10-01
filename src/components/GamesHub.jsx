@@ -15,6 +15,7 @@ import { MobaGame } from './moba/MobaGame';
 import { GameIcon } from './icons/GameIcons';
 import { BossGame } from './moba/BossGame';
 import { TrainerQuestGame } from './quest/TrainerQuestGame';
+import { TowerDefenseGame } from './towerdef/TowerDefenseGame';
 import { rankOf, rankFor, GAME_RANK } from '../utils/pokemonRank';
 import { artworkUrl, getCardMedia } from '../services/pokemonOnlineService';
 import { BERRY_TYPES, BERRIES } from '../utils/friendship';
@@ -222,6 +223,24 @@ export function GamesHub({ collection = [], berries, onBerries, onBattleResult, 
         </div>
       </button>
 
+      {/* Tower defense with the child's Pokemon: towers evolve with the energy they gather */}
+      <button
+        onClick={() => setPlaying({ section: 'towerdef', id: 'towerdef' })}
+        disabled={locked}
+        className={`relative w-full overflow-hidden rounded-3xl p-4 text-left text-white shadow-2xl bg-gradient-to-r from-rose-500 via-red-600 to-amber-500 border-2 border-amber-200/70 active:scale-[0.98] transition-transform ${locked ? 'grayscale opacity-50' : ''}`}
+        aria-label="Thủ thành Pokémon"
+      >
+        <div className="vs-rays absolute inset-0 opacity-15" />
+        <div className="relative flex items-center gap-3">
+          <GameIcon id="towerdef" className="w-14 h-14" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xl font-black">Thủ thành Pokémon</p>
+            <p className="text-xs font-bold text-white/90">Đặt Charmander, Squirtle, Pikachu… chặn Team Rocket, tích năng lượng để tiến hóa thành Charizard, Blastoise, Raichu!</p>
+          </div>
+          <span className="px-2 py-1 rounded-full bg-amber-300 text-slate-900 text-[11px] font-black shadow">8 màn</span>
+        </div>
+      </button>
+
       {/* Boss raid on the arena map */}
       <button
         onClick={() => setPlaying({ section: 'boss', id: 'boss' })}
@@ -270,6 +289,7 @@ export function GamesHub({ collection = [], berries, onBerries, onBattleResult, 
 
       {playing?.section === 'league' && <LeagueGame collection={collection} allowScanned={teamUseScanned} onScanned={onTeamScan} onGold={onGold} onClose={close} />}
       {playing?.section === 'quest' && <TrainerQuestGame collection={collection} allowScanned={teamUseScanned} onScanned={onTeamScan} onGold={onGold} onClose={close} />}
+      {selected && playing?.section === 'towerdef' && <TowerDefenseGame player={player} onGold={onGold} onClose={close} />}
       {playing?.section === 'boss' && <BossGame collection={collection} allowScanned={teamUseScanned} onScanned={onTeamScan} onGold={onGold} onClose={close} />}
       {playing?.section === 'moba' && <MobaGame collection={collection} allowScanned={teamUseScanned} onScanned={onTeamScan} onGold={onGold} onClose={close} />}
       {playing?.section === 'team' && <TeamBattle collection={collection} allowScanned={teamUseScanned} onScanned={onTeamScan} onGold={onGold} onClose={close} />}

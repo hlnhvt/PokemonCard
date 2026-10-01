@@ -507,6 +507,34 @@ const GAME_PICS = {
       <path d="M40 20l1 2.2 2.3.3-1.7 1.6.4 2.3-2-1.1-2 1.1.4-2.3-1.7-1.6 2.3-.3z" fill="#fde047" />
     </>
   ),
+  snorlax: (
+    <>
+      <rect x="2" y="2" width="44" height="44" rx="12" fill="#bae6fd" />
+      <line x1="24" y1="5" x2="24" y2="13" stroke="#8a5527" strokeWidth="2.5" strokeLinecap="round" />
+      <circle cx="24" cy="5" r="2" fill="#facc15" />
+      <path d="M22 13.5 l2 -2.2 l2 2.2" fill="#16a34a" />
+      <circle cx="24" cy="18" r="5" fill="#2563eb" />
+      <circle cx="22.3" cy="16.4" r="1.4" fill="#fff" opacity="0.85" />
+      <path d="M9 35 L11 24 L18 29 Z M39 35 L37 24 L30 29 Z" fill="#2f6a7a" />
+      <ellipse cx="24" cy="38" rx="17" ry="9" fill="#2f6a7a" />
+      <ellipse cx="24" cy="36.5" rx="12" ry="7" fill="#f2dfb8" />
+      <path d="M18 33.5 h4 M26 33.5 h4" stroke="#1f2937" strokeWidth="1.6" strokeLinecap="round" />
+      <ellipse cx="24" cy="39" rx="3.5" ry="2.5" fill="#7f1d1d" />
+      <Ball x={40} y={9} r={4} />
+    </>
+  ),
+  towerdef: (
+    <>
+      <path d="M6 40 Q14 30 24 34 T42 28" fill="none" stroke="#c2894b" strokeWidth="6" strokeLinecap="round" />
+      <rect x="27" y="8" width="16" height="12" rx="2" fill="#fff7ed" stroke="#1f2937" strokeWidth="1.2" />
+      <path d="M25 9 L35 2 L45 9 Z" fill="#ef4444" stroke="#1f2937" strokeWidth="1.2" />
+      <rect x="33" y="13" width="4" height="7" fill="#38bdf8" />
+      <path d="M10 6 L20 10 V18 C20 24 15 27 10 29 C5 27 0 24 0 18 V10 Z" transform="translate(2 4)" fill="#3b82f6" stroke="#1e3a8a" strokeWidth="1.4" />
+      <path d="M12 14 L10 20 H13 L11 26 L17 18 H14 L16 14 Z" fill="#fde047" stroke="#a16207" strokeWidth="0.8" />
+      <Ball x={24} y={38} r={6} />
+      <path d="M40 34 l1.5 3 3 .5 -2.2 2 .6 3 -2.9-1.5 -2.9 1.5 .6-3 -2.2-2 3-.5z" fill="#fde047" />
+    </>
+  ),
   // Big banners
   team: (
     <>
